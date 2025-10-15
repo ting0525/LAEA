@@ -1,0 +1,90 @@
+# === Build / Devel / Install (Catkin/Colcon) ===
+build/
+build-*/
+build_*/
+build_isolated/
+devel/
+devel_isolated/
+install/
+install_isolated/
+.log/
+logs/
+log/
+.colcon/
+.catkin_tools/
+
+# === CMake (?? CMakeLists.txt ????? cmake/ ??) ===
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+CTestTestfile.cmake
+*.cmake
+!CMakeLists.txt
+!cmake/**.cmake
+
+# === Make ??????? Makefile*? ===
+*.make
+!Makefile
+!Makefile.*
+
+# === ???? / ??????? ===
+*.o
+*.obj
+*.lo
+*.la
+*.a
+*.so
+*.dylib
+*.dll
+*.exe
+*.out
+
+# === Python ?? ===
+__pycache__/
+*.pyc
+*.pyo
+
+# === ??????? ===
+*.includecache
+*.check_cache
+*.stamp
+
+# === ROS ?????/??/?????===
+msg_gen/
+srv_gen/
+geneus/
+gencpp/
+genlisp/
+genpy/
+*.msg~
+
+# === ?? / ?????? ===
+*.gcno
+*.gcda
+*.gcov
+*.lcov
+.coverage
+.pytest_cache/
+
+# === ??? ===
+*.zip
+*.7z
+*.tar
+*.tar.gz
+*.tgz
+
+# === IDE / ??? / OS ??? ===
+.vscode/
+.idea/
+*.swp
+*.swo
+*.orig
+.DS_Store
+Thumbs.db
+
+# === ????????????? ===
+!*.launch
+!*.rviz
+!*.sdf
+!*.world
+

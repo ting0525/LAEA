@@ -1,0 +1,75 @@
+<launch>
+    <param name="/use_sim_time" value="true"/>
+    
+    <!-- depth_point_cloud - 暫時停用,因為深度相機沒有有效數據 -->
+    <!-- <include file="$(find laserscan_to_pointcloud)/launch/depth_cloud.launch">
+        <arg name="laser_frame" value="depth_scan_frame"/>
+        <arg name="target_frame" value="world"/>
+    </include> -->
+    
+    <!-- scan_cloud -->
+    <include file="$(find laserscan_to_pointcloud)/launch/cloud.launch">
+        <arg name="laser_frame" value="iris_0/laser_2d"/>
+        <arg name="target_frame" value="world"/>  <!-- 改為 world -->
+    </include>
+    
+    <!-- TF Publishers - 確保 frame 層級正確 -->
+    <!-- <node pkg="tf2_ros" type="static_transform_publisher" name="world2map"
+        args="0 0 0 0 0 0 world map"/> -->
+  	<!-- <node pkg="tf2_ros" type="static_transform_publisher" name="tf_base2laser"
+        args="0 0 0 0 0 0 base_link iris_0/laser_2d"/> -->
+
+	<node pkg="tf2_ros" type="static_transform_publisher" name="world2odom"
+      args="0 0 0 0 0 0 world odom" />
+
+
+    <!-- OctoMap Server -->
+    <node pkg="octomap_server" type="octomap_server_node" name="octomap_server">
+        <!-- 2D 地圖發布 -->
+        <param name="only_2d_pub" value="true" />
+        
+        <!-- 移除小連通區域 -->
+        <param name="use_Contours" value="true" />
+        
+        <!-- 先腐蝕後膨脹 -->
+        <param name="use_erode_dilate" value="true" />
+        
+        <!-- 半徑濾波器 -->
+        <param name="radius_outlier_radius" value="1.5" />
+        <param name="radius_outlier_neighbors" value="3" />
+        
+        <!-- 中心地圖範圍 -->
+        <param name="centr_map_range" value="12" />
+        
+        <!-- 解析度 -->
+        <param name="resolution" value="0.15" />
+        
+        <!-- 固定地圖坐標系 -->
+        <param name="frame_id" type="string" value="world" />
+        
+        <!-- 最大整合範圍 -->
+        <param name="sensor_model/max_range" value="100" />
+        
+        <!-- 數據源重映射 -->
+        <!-- <remap from="cloud_in" to="/depth_scan_pointcloud" /> -->
+		<remap from="cloud_in" to="/scan_pointcloud" />
+        <!-- <remap from="extra_cloud_in" to="/scan_pointcloud" /> -->
+        
+        <!-- Z 軸限制 -->
+        <param name="pointcloud_min_z" value="0.01" />
+        <param name="pointcloud_max_z" value="4.0" />
+        <param name="occupancy_min_z" value="0.0" />
+        <param name="occupancy_max_z" value="1.5" />
+        
+        <!-- 傳感器模型參數 -->
+        <param name="sensor_model/hit" value="0.7" />
+        <param name="sensor_model/miss" value="0.4" />
+        <param name="sensor_model/min" value="0.12" />
+        <param name="sensor_model/max" value="0.97" />
+        
+        <!-- 濾波設定 -->
+        <param name="m_filterSpeckles" value="true" />
+        <param name="m_useHeightMap" value="false" />
+    </node>
+    
+</launch>
