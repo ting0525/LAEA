@@ -20,7 +20,8 @@ PlanningVisualization::PlanningVisualization(ros::NodeHandle& nh) {
                                                           100);
   pubs_.push_back(visib_pub_);
 
-  frontier_pub_ = node.advertise<visualization_msgs::Marker>("/planning_vis/frontier", 10000);
+  // frontier_pub_ = node.advertise<visualization_msgs::Marker>("/planning_vis/frontier", 10000); tim
+  frontier_pub_ = node.advertise<visualization_msgs::Marker>("/planning_vis/frontier", 1, true);
   pubs_.push_back(frontier_pub_);
 
   yaw_pub_ = node.advertise<visualization_msgs::Marker>("/planning_vis/yaw", 100);
@@ -105,6 +106,24 @@ void PlanningVisualization::drawBox(const Eigen::Vector3d& center, const Eigen::
   ros::Duration(0.0005).sleep();
 }
 
+// void PlanningVisualization::drawSpheres(const vector<Eigen::Vector3d>& list, const double& scale,
+//                                         const Eigen::Vector4d& color, const string& ns, const int& id,
+//                                         const int& pub_id) {
+//   visualization_msgs::Marker mk;
+//   fillBasicInfo(mk, Eigen::Vector3d(scale, scale, scale), color, ns, id,
+//                 visualization_msgs::Marker::SPHERE_LIST);
+
+//   // clean old marker
+//   mk.action = visualization_msgs::Marker::DELETE;
+//   pubs_[pub_id].publish(mk);
+
+//   // pub new marker
+//   fillGeometryInfo(mk, list);
+//   mk.action = visualization_msgs::Marker::ADD;
+//   pubs_[pub_id].publish(mk);
+//   ros::Duration(0.0005).sleep();
+// } tim0525
+
 void PlanningVisualization::drawSpheres(const vector<Eigen::Vector3d>& list, const double& scale,
                                         const Eigen::Vector4d& color, const string& ns, const int& id,
                                         const int& pub_id) {
@@ -112,16 +131,38 @@ void PlanningVisualization::drawSpheres(const vector<Eigen::Vector3d>& list, con
   fillBasicInfo(mk, Eigen::Vector3d(scale, scale, scale), color, ns, id,
                 visualization_msgs::Marker::SPHERE_LIST);
 
-  // clean old marker
+  // 清舊
   mk.action = visualization_msgs::Marker::DELETE;
   pubs_[pub_id].publish(mk);
 
-  // pub new marker
+  // ⚠️ 空就不要 ADD
+  if (list.empty()) return;
+
+  // 發新
   fillGeometryInfo(mk, list);
   mk.action = visualization_msgs::Marker::ADD;
   pubs_[pub_id].publish(mk);
   ros::Duration(0.0005).sleep();
 }
+
+
+// void PlanningVisualization::drawCubes(const vector<Eigen::Vector3d>& list, const double& scale,
+//                                       const Eigen::Vector4d& color, const string& ns, const int& id,
+//                                       const int& pub_id) {
+//   visualization_msgs::Marker mk;
+//   fillBasicInfo(mk, Eigen::Vector3d(scale, scale, scale), color, ns, id,
+//                 visualization_msgs::Marker::CUBE_LIST);
+
+//   // clean old marker
+//   mk.action = visualization_msgs::Marker::DELETE;
+//   pubs_[pub_id].publish(mk);
+
+//   // pub new marker
+//   fillGeometryInfo(mk, list);
+//   mk.action = visualization_msgs::Marker::ADD;
+//   pubs_[pub_id].publish(mk);
+//   ros::Duration(0.0005).sleep();
+// } tim0525
 
 void PlanningVisualization::drawCubes(const vector<Eigen::Vector3d>& list, const double& scale,
                                       const Eigen::Vector4d& color, const string& ns, const int& id,
@@ -130,16 +171,18 @@ void PlanningVisualization::drawCubes(const vector<Eigen::Vector3d>& list, const
   fillBasicInfo(mk, Eigen::Vector3d(scale, scale, scale), color, ns, id,
                 visualization_msgs::Marker::CUBE_LIST);
 
-  // clean old marker
   mk.action = visualization_msgs::Marker::DELETE;
   pubs_[pub_id].publish(mk);
 
-  // pub new marker
+  // ⚠️ 空就不要 ADD
+  if (list.empty()) return;
+
   fillGeometryInfo(mk, list);
   mk.action = visualization_msgs::Marker::ADD;
   pubs_[pub_id].publish(mk);
   ros::Duration(0.0005).sleep();
 }
+
 
 void PlanningVisualization::drawLines(const vector<Eigen::Vector3d>& list1,
                                       const vector<Eigen::Vector3d>& list2, const double& scale,
@@ -189,6 +232,42 @@ void PlanningVisualization::drawLines(const vector<Eigen::Vector3d>& list, const
   ros::Duration(0.0005).sleep();
 }
 
+// void PlanningVisualization::displaySphereList(const vector<Eigen::Vector3d>& list, double resolution,
+//                                               const Eigen::Vector4d& color, int id, int pub_id) {
+//   visualization_msgs::Marker mk;
+//   mk.header.frame_id = "world";
+//   mk.header.stamp = ros::Time::now();
+//   mk.type = visualization_msgs::Marker::SPHERE_LIST;
+//   mk.action = visualization_msgs::Marker::DELETE;
+//   mk.id = id;
+//   pubs_[pub_id].publish(mk);
+
+//   mk.action = visualization_msgs::Marker::ADD;
+//   mk.pose.orientation.x = 0.0;
+//   mk.pose.orientation.y = 0.0;
+//   mk.pose.orientation.z = 0.0;
+//   mk.pose.orientation.w = 1.0;
+
+//   mk.color.r = color(0);
+//   mk.color.g = color(1);
+//   mk.color.b = color(2);
+//   mk.color.a = color(3);
+
+//   mk.scale.x = resolution;
+//   mk.scale.y = resolution;
+//   mk.scale.z = resolution;
+
+//   geometry_msgs::Point pt;
+//   for (int i = 0; i < int(list.size()); i++) {
+//     pt.x = list[i](0);
+//     pt.y = list[i](1);
+//     pt.z = list[i](2);
+//     mk.points.push_back(pt);
+//   }
+//   pubs_[pub_id].publish(mk);
+//   ros::Duration(0.0005).sleep();
+// } tim0525
+
 void PlanningVisualization::displaySphereList(const vector<Eigen::Vector3d>& list, double resolution,
                                               const Eigen::Vector4d& color, int id, int pub_id) {
   visualization_msgs::Marker mk;
@@ -199,31 +278,57 @@ void PlanningVisualization::displaySphereList(const vector<Eigen::Vector3d>& lis
   mk.id = id;
   pubs_[pub_id].publish(mk);
 
+  // ⚠️ 空就不要 ADD
+  if (list.empty()) return;
+
   mk.action = visualization_msgs::Marker::ADD;
-  mk.pose.orientation.x = 0.0;
-  mk.pose.orientation.y = 0.0;
-  mk.pose.orientation.z = 0.0;
   mk.pose.orientation.w = 1.0;
-
-  mk.color.r = color(0);
-  mk.color.g = color(1);
-  mk.color.b = color(2);
-  mk.color.a = color(3);
-
-  mk.scale.x = resolution;
-  mk.scale.y = resolution;
-  mk.scale.z = resolution;
+  mk.color.r = color(0); mk.color.g = color(1); mk.color.b = color(2); mk.color.a = color(3);
+  mk.scale.x = mk.scale.y = mk.scale.z = resolution;
 
   geometry_msgs::Point pt;
-  for (int i = 0; i < int(list.size()); i++) {
-    pt.x = list[i](0);
-    pt.y = list[i](1);
-    pt.z = list[i](2);
-    mk.points.push_back(pt);
-  }
+  for (const auto& v : list) { pt.x = v.x(); pt.y = v.y(); pt.z = v.z(); mk.points.push_back(pt); }
   pubs_[pub_id].publish(mk);
   ros::Duration(0.0005).sleep();
 }
+
+
+// void PlanningVisualization::displayCubeList(const vector<Eigen::Vector3d>& list, double resolution,
+//                                             const Eigen::Vector4d& color, int id, int pub_id) {
+//   visualization_msgs::Marker mk;
+//   mk.header.frame_id = "world";
+//   mk.header.stamp = ros::Time::now();
+//   mk.type = visualization_msgs::Marker::CUBE_LIST;
+//   mk.action = visualization_msgs::Marker::DELETE;
+//   mk.id = id;
+//   pubs_[pub_id].publish(mk);
+
+//   mk.action = visualization_msgs::Marker::ADD;
+//   mk.pose.orientation.x = 0.0;
+//   mk.pose.orientation.y = 0.0;
+//   mk.pose.orientation.z = 0.0;
+//   mk.pose.orientation.w = 1.0;
+
+//   mk.color.r = color(0);
+//   mk.color.g = color(1);
+//   mk.color.b = color(2);
+//   mk.color.a = color(3);
+
+//   mk.scale.x = resolution;
+//   mk.scale.y = resolution;
+//   mk.scale.z = resolution;
+
+//   geometry_msgs::Point pt;
+//   for (int i = 0; i < int(list.size()); i++) {
+//     pt.x = list[i](0);
+//     pt.y = list[i](1);
+//     pt.z = list[i](2);
+//     mk.points.push_back(pt);
+//   }
+//   pubs_[pub_id].publish(mk);
+
+//   ros::Duration(0.0005).sleep();
+// } tim0525
 
 void PlanningVisualization::displayCubeList(const vector<Eigen::Vector3d>& list, double resolution,
                                             const Eigen::Vector4d& color, int id, int pub_id) {
@@ -235,32 +340,20 @@ void PlanningVisualization::displayCubeList(const vector<Eigen::Vector3d>& list,
   mk.id = id;
   pubs_[pub_id].publish(mk);
 
+  // ⚠️ 空就不要 ADD
+  if (list.empty()) return;
+
   mk.action = visualization_msgs::Marker::ADD;
-  mk.pose.orientation.x = 0.0;
-  mk.pose.orientation.y = 0.0;
-  mk.pose.orientation.z = 0.0;
   mk.pose.orientation.w = 1.0;
-
-  mk.color.r = color(0);
-  mk.color.g = color(1);
-  mk.color.b = color(2);
-  mk.color.a = color(3);
-
-  mk.scale.x = resolution;
-  mk.scale.y = resolution;
-  mk.scale.z = resolution;
+  mk.color.r = color(0); mk.color.g = color(1); mk.color.b = color(2); mk.color.a = color(3);
+  mk.scale.x = mk.scale.y = mk.scale.z = resolution;
 
   geometry_msgs::Point pt;
-  for (int i = 0; i < int(list.size()); i++) {
-    pt.x = list[i](0);
-    pt.y = list[i](1);
-    pt.z = list[i](2);
-    mk.points.push_back(pt);
-  }
+  for (const auto& v : list) { pt.x = v.x(); pt.y = v.y(); pt.z = v.z(); mk.points.push_back(pt); }
   pubs_[pub_id].publish(mk);
-
   ros::Duration(0.0005).sleep();
 }
+
 
 void PlanningVisualization::displayLineList(const vector<Eigen::Vector3d>& list1,
                                             const vector<Eigen::Vector3d>& list2, double line_width,
