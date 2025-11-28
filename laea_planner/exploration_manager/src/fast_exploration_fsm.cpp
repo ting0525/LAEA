@@ -118,7 +118,7 @@ namespace fast_planner
     while (!flightEnd)
     {
       cmdCallback();
-      usleep(10000);
+      usleep(15000);
     }
   }
 
@@ -601,7 +601,7 @@ namespace fast_planner
         ROS_WARN("Replan: cluster covered=====================================");
         return;
       }
-      if (t_cur > 1)
+      if (t_cur > 2.5)
       {
         transitState(PLAN_TRAJ, "FSM");
         ROS_WARN("Replan: traj exec half======================================");
