@@ -15,7 +15,7 @@
   <arg name="init_z" value="1.0"/> 
 
   <!-- topic of your odometry such as VIO or LIO -->
-  <arg name="odom_topic" value="/mavros/local_position/odom" />
+  <arg name="odom_topic" value="/mavros/local_position/odom" /> 
 
   <!-- main algorithm params -->
   <include file="$(find exploration_manager)/launch/poaozz/algorithm_.xml">
