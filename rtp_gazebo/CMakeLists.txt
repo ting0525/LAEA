@@ -1,6 +1,17 @@
 cmake_minimum_required(VERSION 3.16)
 project(rtp_gazebo)
 
+option(ENABLE_SIP "Enable SIP signaling via PJSIP" OFF)
+
+if(ENABLE_SIP)
+  add_definitions(-DENABLE_SIP)
+  # 這裡放你原本的 PJSIP include_dir / link_libraries
+  # include_directories(/path/to/pjproject/include)
+  # target_link_libraries(RTPSender pjsua2 pjsua pj ...)
+  # target_link_libraries(RTPReceiver pjsua2 pjsua pj ...)
+endif()
+
+
 # ==============================
 # Compiler / Linker fundamentals
 # ==============================

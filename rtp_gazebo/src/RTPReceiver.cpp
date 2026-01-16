@@ -1,10 +1,11 @@
 #include "RTPReceiver.h"
 #include "RTPSession.h"
 #include "Codec.h"
+
 // #include <iostream>
 
-std::string local_ip = "140.114.208.49";
-std::string remote_ip = "140.114.208.49";
+std::string local_ip = "127.0.0.1";
+std::string remote_ip = "127.0.0.1";
 
 RTPSession *session = new RTPSession();
 VideoCodec *rgb_codec = new VideoCodec();
@@ -582,19 +583,102 @@ std::string receiver_pj_call::create_custom_sdp() {
     return sdp_str;
 }
 
+static void add_default_streams_receiver(
+    RTP_Receiver& client,
+    int base_port,
+    int remote_port_offset,
+    int port_step,
+    int payload_base
+) {
+    struct StreamDef { int id; const char* name; const char* media; };
+    const StreamDef defs[] = {
+        {0, "rgb_stream",              "video"},
+        {1, "depth_stream",            "video"},
+        {2, "point_cloud",             "pointcloud"},
+        {3, "scan_point_cloud",        "pointcloud"},
+        {4, "camera_info",             "camera_info"},
+        {5, "map_point_cloud",         "pointcloud"},
+        {6, "position_visualization",  "marker"},
+        {7, "position_command",        "command"},
+        {8, "local_odom",              "odom"},
+        {9, "pose",                    "pose"}
+    };
+
+    for (const auto& d : defs) {
+        StreamData s;
+        s.stream_id   = d.id;
+
+        // ✅ Receiver 必須 bind 在 Sender 的 remote port（= base + id*step + offset）
+        s.local_port  = base_port + d.id * port_step + remote_port_offset;
+
+        // 對端（Sender）是 base + id*step
+        s.remote_port = base_port + d.id * port_step;
+
+        s.stream_name = d.name;
+        s.media_type  = d.media;
+        s.payload_id  = payload_base + d.id;
+        s.direction   = "recvonly";
+
+        client.add_stream_data(s);
+    }
+}
+
 int main(int argc, char **argv){
     ros::init(argc, argv, "rtp_receiver");
+    ros::NodeHandle pnh("~");
 
-    RTP_Receiver rtp_receiver;
-    SIP_Receiver sip_receiver(&rtp_receiver);
+    bool use_sip = true;
+    pnh.param("use_sip", use_sip, true);
 
-    // Use a thread to run the SIP receiver
-    std::thread sip_thread(&SIP_Receiver::SIP_receiver_main, &sip_receiver);
+    pnh.param<std::string>("local_ip",  local_ip,  std::string("127.0.0.1"));
+    pnh.param<std::string>("remote_ip", remote_ip, std::string("127.0.0.1"));
 
-    ros::spin();
+    int base_port=10000, remote_port_offset=1000, port_step=2000, payload_base=96;
+    pnh.param("base_port", base_port, 10000);
+    pnh.param("remote_port_offset", remote_port_offset, 1000);
+    pnh.param("port_step", port_step, 2000);
+    pnh.param("payload_base", payload_base, 96);
 
+    ROS_INFO_STREAM("[RTPReceiver] use_sip=" << (use_sip?"true":"false")
+                    << " local_ip=" << local_ip
+                    << " remote_ip=" << remote_ip
+                    << " base_port=" << base_port
+                    << " remote_port_offset=" << remote_port_offset
+                    << " port_step=" << port_step
+                    << " payload_base=" << payload_base);
+
+    RTP_Receiver client;
+
+    if (!use_sip) {
+        add_default_streams_receiver(client, base_port, remote_port_offset, port_step, payload_base);
+        client.start_rtp_receiver();   // ← 你的 Receiver 啟動函式名稱可能略不同，需對齊
+        ROS_INFO("[RTPReceiver] Direct RTP started (SIP bypass).");
+    } else {
+        // 保留你原本 SIP 既有流程
+        SIP_Receiver sip_receiver(&client);
+        std::thread sip_thread(&SIP_Receiver::SIP_receiver_main, &sip_receiver);
+        sip_thread.detach();
+        ROS_INFO("[RTPReceiver] SIP signaling started.");
+    }
+
+    ros::MultiThreadedSpinner spinner(6);
+    spinner.spin();
     return 0;
 }
+
+// int main(int argc, char **argv){
+//     ros::init(argc, argv, "rtp_receiver");
+
+//     RTP_Receiver rtp_receiver;
+//     SIP_Receiver sip_receiver(&rtp_receiver);
+
+//     // Use a thread to run the SIP receiver
+//     std::thread sip_thread(&SIP_Receiver::SIP_receiver_main, &sip_receiver);
+
+//     ros::spin();
+
+//     return 0;
+// }
 
 // create two stream, rgb and depth stream
 // if((ret = session->create_stream(
