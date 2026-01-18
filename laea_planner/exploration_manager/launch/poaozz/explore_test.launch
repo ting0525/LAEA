@@ -15,7 +15,7 @@
   <arg name="init_z" value="1.0"/> 
 
   <!-- topic of your odometry such as VIO or LIO -->
-  <arg name="odom_topic" value="/mavros/local_position/odom" /> 
+  <arg name="odom_topic" value="/rtp_sync/local_odom" /> 
 
   <!-- main algorithm params -->
   <include file="$(find exploration_manager)/launch/poaozz/algorithm_.xml">
@@ -30,11 +30,11 @@
     <arg name="init_z" value="$(arg init_z)"/> 
 
     <!-- sensor pose: transform of camera frame in the world frame -->
-    <arg name="sensor_pose_topic" value="/mavros/camera/pose"/>
+    <arg name="sensor_pose_topic" value="/rtp_sync/pose"/>
     <!-- depth topic: depth image, 640x480 by default -->
     <!-- cloud topic: point cloud measurement  -->
     <!-- subscribe ONLY TO ONE of the two topics -->
-    <arg name="depth_topic" value="/camera/depth/image_raw"/>
+    <arg name="depth_topic" value="/rtp_sync/depth/image_raw"/>
     <arg name="cloud_topic" value="/pcl_render_node/cloud"/>
 
     <!-- intrinsic params of the depth camera -->

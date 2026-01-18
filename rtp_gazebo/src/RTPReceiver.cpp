@@ -81,7 +81,16 @@ void RTP_Receiver::receive_depth_stream(int stream_id){
         if(data){
             // Timer Callback
             // depth_image_timer_cb();
-            ret = depth_codec->decode(data, restore_depth_image);
+            // 解出 payload（忽略包頭 stamp，統一用當前時間）
+            struct Data payload;
+            if (data->size > sizeof(uint32_t) * 2) {
+                payload.buffer = data->buffer + sizeof(uint32_t) * 2;
+                payload.size = data->size - sizeof(uint32_t) * 2;
+            } else {
+                payload = *data;
+            }
+
+            ret = depth_codec->decode(&payload, restore_depth_image);
             if(ret == 0){
                 // std::cout << "Got depth image frame!" << std::endl;
                 
@@ -89,7 +98,7 @@ void RTP_Receiver::receive_depth_stream(int stream_id){
                 sensor_msgs::Image depth_msg;
 
                 std_msgs::Header header;
-                header.stamp = ros::Time::now();  // 使用当前的 ROS 时间戳
+                header.stamp = ros::Time::now();  // 用當前 /clock，與 pose/odom 對齊
                 header.frame_id = "depth_camera_link";  // 使用相机的坐标系
                 header.seq = depth_image_count++;
                 cv_bridge::CvImage(header, "32FC1", restore_depth_image).toImageMsg(depth_msg);
@@ -592,14 +601,14 @@ static void add_default_streams_receiver(
 ) {
     struct StreamDef { int id; const char* name; const char* media; };
     const StreamDef defs[] = {
-        {0, "rgb_stream",              "video"},
+        // {0, "rgb_stream",              "video"},
         {1, "depth_stream",            "video"},
-        {2, "point_cloud",             "pointcloud"},
-        {3, "scan_point_cloud",        "pointcloud"},
-        {4, "camera_info",             "camera_info"},
-        {5, "map_point_cloud",         "pointcloud"},
-        {6, "position_visualization",  "marker"},
-        {7, "position_command",        "command"},
+        // {2, "point_cloud",             "pointcloud"},
+        // {3, "scan_point_cloud",        "pointcloud"},
+        // {4, "camera_info",             "camera_info"},
+        // {5, "map_point_cloud",         "pointcloud"},
+        // {6, "position_visualization",  "marker"},
+        // {7, "position_command",        "command"},
         {8, "local_odom",              "odom"},
         {9, "pose",                    "pose"}
     };
