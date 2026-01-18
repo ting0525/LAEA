@@ -19,11 +19,11 @@ PoseCodec *pose_codec = new PoseCodec();
 
 RTP_Receiver::RTP_Receiver(){
     ros::NodeHandle nh;
-    // rgb_pub = nh.advertise<sensor_msgs::Image>("/rtp/depth/rgb_image_raw", 1);
+    rgb_pub = nh.advertise<sensor_msgs::Image>("/rtp/depth/rgb_image_raw", 1);
     depth_pub = nh.advertise<sensor_msgs::Image>("/rtp/depth/image_raw", 1);
     pcloud_pub = nh.advertise<sensor_msgs::PointCloud2>("/rtp/pointcloud/depth", 1);
     scan_pub = nh.advertise<sensor_msgs::PointCloud2>("/rtp/pointcloud/scan", 1);
-    // camera_info_pub = nh.advertise<sensor_msgs::CameraInfo>("/rtp/depth/camera_info", 1);
+    camera_info_pub = nh.advertise<sensor_msgs::CameraInfo>("/rtp/depth/camera_info", 1);
     map_pcloud_pub = nh.advertise<sensor_msgs::PointCloud2>("/rtp/pointcloud/map", 1);
     marker_pub = nh.advertise<visualization_msgs::Marker>("/rtp/position_vis", 1);
     pos_cmd_pub = nh.advertise<quadrotor_msgs::PositionCommand>("/rtp/position_cmd", 1);
@@ -348,22 +348,22 @@ void RTP_Receiver::start_rtp_receiver(){
 
 
     start_rtp_receiver_ = true;
-    // std::thread recv_rgb_thread = std::thread(&RTP_Receiver::receive_rgb_stream, &rtp_receiver, 0);
+    std::thread recv_rgb_thread = std::thread(&RTP_Receiver::receive_rgb_stream, this, 0);
     std::thread recv_depth_thread = std::thread(&RTP_Receiver::receive_depth_stream, this, 1);
     std::thread recv_pcloud_thread = std::thread(&RTP_Receiver::receive_pcloud_stream, this, 2);
     std::thread recv_scan_thread = std::thread(&RTP_Receiver::receive_scan_stream, this, 3);
-    // std::thread recv_camera_info_thread = std::thread(&RTP_Receiver::receive_camera_info_stream, &rtp_receiver, 4);
+    std::thread recv_camera_info_thread = std::thread(&RTP_Receiver::receive_camera_info_stream, this, 4);
     std::thread recv_map_pcloud_thread = std::thread(&RTP_Receiver::receive_map_pcloud_stream, this, 5);
     std::thread recv_marker_thread = std::thread(&RTP_Receiver::receive_marker_stream, this, 6);
     std::thread recv_pos_cmd_thread = std::thread(&RTP_Receiver::receive_pos_cmd_stream, this, 7);
     std::thread recv_local_odom_thread = std::thread(&RTP_Receiver::receive_local_odom_stream, this, 8);
     std::thread recv_pose_thread = std::thread(&RTP_Receiver::receive_pose_stream, this, 9);
 
-    // recv_rgb_thread.join();
+    recv_rgb_thread.join();
     recv_depth_thread.join();
     recv_pcloud_thread.join();
     recv_scan_thread.join();
-    // recv_camera_info_thread.join();
+    recv_camera_info_thread.join();
     recv_map_pcloud_thread.join();
     recv_marker_thread.join();
     recv_pos_cmd_thread.join(); 

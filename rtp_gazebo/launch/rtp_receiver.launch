@@ -1,4 +1,8 @@
 <launch>
-    <node name="RTP_Receiver" pkg="rtp_gazebo" type="RTPReceiver" output="screen"></node>
-    <!-- <node name="Synchronizer" pkg="rtp_gazebo" type="Synchronizer" output="screen"></node> -->
+  <param name="/use_sim_time" value="true"/>
+  <node pkg="rtp_gazebo" type="RTPReceiver" name="rtp_receiver" output="screen">
+    <param name="use_sip" value="false"/>
+    <param name="local_ip" value="127.0.0.1"/>
+    <param name="remote_ip" value="127.0.0.1"/>
+  </node>
 </launch>

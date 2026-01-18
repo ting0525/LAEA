@@ -281,10 +281,13 @@ void RTP_Sender::send_pcloud_stream(int stream_id, pcl::PointCloud<pcl::PointXYZ
     if(!start_rtp_sender_ || session == nullptr){
         return;
     }
+    if(!pcloud || pcloud->empty()){
+        return;
+    }
 
     struct Data data;
     int ret = pcloud_codec->encode(pcloud, &data);
-    if(ret == 0){
+    if(ret == 0 && data.size > 0){
         session->send_data(stream_id, &data);
     }
     destroy_data(&data);
