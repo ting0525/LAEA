@@ -54,6 +54,8 @@
         <!-- 數據源重映射 -->
         <!-- <remap from="cloud_in" to="/depth_scan_pointcloud" /> -->
         <remap from="cloud_in" to="/scan_pointcloud" />
+        <!-- <remap from="extra_cloud_in" to="/scan_pointcloud" /> -->
+        <!-- <remap from="extra_cloud_in" to="/rtp/pointcloud/scan" /> -->
         
         <!-- Z 軸限制 -->
         <param name="pointcloud_min_z" value="0.01" />
