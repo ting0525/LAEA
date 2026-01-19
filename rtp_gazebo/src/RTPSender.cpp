@@ -51,29 +51,20 @@ void RTP_Sender::init_subscriber(ros::NodeHandle &nh){
     depth_sub_.reset(new message_filters::Subscriber<sensor_msgs::Image>(
         nh, "/camera/depth/image_raw", 1));
 
-    rgb_sub_.reset(new message_filters::Subscriber<sensor_msgs::Image>(
-        nh, "/camera/depth/rgb_image_raw", 1));
-
-    depth_info_sub_.reset(new message_filters::Subscriber<sensor_msgs::CameraInfo>(
-        nh, "/camera/depth/camera_info", 1));
-
-    // Depth point cloud: pick LAEA existing source
-    pcloud_sub_.reset(new message_filters::Subscriber<sensor_msgs::PointCloud2>(
-        nh, "/camera/depth/color/points", 1));
-
-    scan_sub_.reset(new message_filters::Subscriber<sensor_msgs::PointCloud2>(
-        nh, "/scan_pointcloud", 1));
-
-    map_pcloud_sub_.reset(new message_filters::Subscriber<sensor_msgs::PointCloud2>(
-        nh, "/sdf_map/occupancy_all", 1));
-
-    local_odom_sub_.reset(new message_filters::Subscriber<nav_msgs::Odometry>(
-        nh, "/mavros/local_position/odom", 1));
-
-    pose_sub_.reset(new message_filters::Subscriber<geometry_msgs::PoseStamped>(
-        nh, "/mavros/camera/pose", 1));
-
-    // === Disable streams not present in your LAEA topic list ===
+    // rgb_sub_.reset(new message_filters::Subscriber<sensor_msgs::Image>(
+    //     nh, "/camera/depth/rgb_image_raw", 1));
+    // depth_info_sub_.reset(new message_filters::Subscriber<sensor_msgs::CameraInfo>(
+    //     nh, "/camera/depth/camera_info", 1));
+    // pcloud_sub_.reset(new message_filters::Subscriber<sensor_msgs::PointCloud2>(
+    //     nh, "/depth_scan_pointcloud", 1));
+    // scan_sub_.reset(new message_filters::Subscriber<sensor_msgs::PointCloud2>(
+    //     nh, "/scan_pointcloud", 1));
+    // map_pcloud_sub_.reset(new message_filters::Subscriber<sensor_msgs::PointCloud2>(
+    //     nh, "/sdf_map/occupancy_all", 1));
+    // local_odom_sub_.reset(new message_filters::Subscriber<nav_msgs::Odometry>(
+    //     nh, "/mavros/local_position/odom", 1));
+    // pose_sub_.reset(new message_filters::Subscriber<geometry_msgs::PoseStamped>(
+    //     nh, "/mavros/camera/pose", 1));
     // position_vis_sub_.reset(new message_filters::Subscriber<visualization_msgs::Marker>(
     //     nh, "/planning/position_cmd_vis", 1));
     // position_command_sub_.reset(new message_filters::Subscriber<quadrotor_msgs::PositionCommand>(
@@ -81,16 +72,13 @@ void RTP_Sender::init_subscriber(ros::NodeHandle &nh){
 
     // === Callback registration ===
     depth_sub_->registerCallback(boost::bind(&RTP_Sender::depth_callback, this, _1));
-    rgb_sub_->registerCallback(boost::bind(&RTP_Sender::rgb_callback, this, _1));
-    depth_info_sub_->registerCallback(boost::bind(&RTP_Sender::depth_info_callback, this, _1));
-
-    pcloud_sub_->registerCallback(boost::bind(&RTP_Sender::depth_point_cloud_callback, this, _1));
-    scan_sub_->registerCallback(boost::bind(&RTP_Sender::scan_point_cloud_callback, this, _1));
-    map_pcloud_sub_->registerCallback(boost::bind(&RTP_Sender::map_point_cloud_callback, this, _1));
-
-    local_odom_sub_->registerCallback(boost::bind(&RTP_Sender::local_odom_callback, this, _1));
-    pose_sub_->registerCallback(boost::bind(&RTP_Sender::pose_callback, this, _1));
-
+    // rgb_sub_->registerCallback(boost::bind(&RTP_Sender::rgb_callback, this, _1));
+    // depth_info_sub_->registerCallback(boost::bind(&RTP_Sender::depth_info_callback, this, _1));
+    // pcloud_sub_->registerCallback(boost::bind(&RTP_Sender::depth_point_cloud_callback, this, _1));
+    // scan_sub_->registerCallback(boost::bind(&RTP_Sender::scan_point_cloud_callback, this, _1));
+    // map_pcloud_sub_->registerCallback(boost::bind(&RTP_Sender::map_point_cloud_callback, this, _1));
+    // local_odom_sub_->registerCallback(boost::bind(&RTP_Sender::local_odom_callback, this, _1));
+    // pose_sub_->registerCallback(boost::bind(&RTP_Sender::pose_callback, this, _1));
     // position_vis_sub_->registerCallback(boost::bind(&RTP_Sender::position_vis_callback, this, _1));
     // position_command_sub_->registerCallback(boost::bind(&RTP_Sender::position_command_callback, this, _1));
 }
@@ -543,18 +531,9 @@ void SIP_Sender::Start_Stream(){
 }
 
 std::string my_pj_call::create_custom_sdp(){
-    std::string rgb_stream = std::string("a=0 10000 rgb_stream video 96 sendonly\n");
     std::string depth_stream = std::string("a=1 12000 depth_stream video 97 sendonly\n");
-    std::string pcloud_stream = std::string("a=2 14000 point_cloud pointcloud 98 sendonly\n");
-    std::string scan_stream = std::string("a=3 16000 scan_point_cloud pointcloud 99 sendonly\n");
-    std::string camera_info_stream = std::string("a=4 18000 camera_info camera_info 100 sendonly\n");
-    std::string map_pcloud_stream = std::string("a=5 20000 map_point_cloud pointcloud 101 sendonly\n");
-    std::string local_odom_stream = std::string("a=8 26000 local_odom odom 104 sendonly\n");
-    std::string pose_stream = std::string("a=9 28000 pose pose 105 sendonly\n");
 
-    return rgb_stream + depth_stream + pcloud_stream + scan_stream +
-           camera_info_stream + map_pcloud_stream +
-           local_odom_stream + pose_stream;
+    return depth_stream;
 }
 
 static void add_default_streams(
@@ -571,14 +550,7 @@ static void add_default_streams(
     };
 
     const StreamDef defs[] = {
-        {0, "rgb_stream",       "video"},
-        {1, "depth_stream",     "video"},
-        {2, "point_cloud",      "pointcloud"},
-        {3, "scan_point_cloud", "pointcloud"},
-        {4, "camera_info",      "camera_info"},
-        {5, "map_point_cloud",  "pointcloud"},
-        {8, "local_odom",       "odom"},
-        {9, "pose",             "pose"}
+        {1, "depth_stream", "video"}
     };
 
     for (const auto& d : defs) {

@@ -23,16 +23,20 @@ void RTPSession::copy_frame(uvg_rtp::frame::rtp_frame *frame){
     auto now = std::chrono::system_clock::now();
     auto timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
     // stream 過多不確定會不會執行太慢
-    for (int i = 0; i < _streams.size(); i++){
-        if (_streams[i]->payload_type_id == payload_type_id){          
+    for (const auto& entry : _streams){
+        Stream* stream = entry.second;
+        if (stream == nullptr){
+            continue;
+        }
+        if (stream->payload_type_id == payload_type_id){
 
             uint8_t* buffer = (uint8_t*) malloc(sizeof(uint8_t) * size);
             memcpy(buffer, frame->payload, size);
             struct Data *data = (struct Data *)malloc(sizeof(struct Data));
             data->buffer = buffer;
             data->size = size;
-            
-            (_streams[i]->stream_buffer).put(data);
+
+            stream->stream_buffer.put(data);
             return;
         }
     }

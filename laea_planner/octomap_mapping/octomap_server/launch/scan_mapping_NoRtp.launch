@@ -1,11 +1,10 @@
 <launch>
     <param name="/use_sim_time" value="true"/>
     
-    <!-- depth_point_cloud -->
+    <!-- depth_point_cloud - 暫時停用,因為深度相機沒有有效數據 -->
     <!-- <include file="$(find laserscan_to_pointcloud)/launch/depth_cloud.launch">
         <arg name="laser_frame" value="depth_scan_frame"/>
         <arg name="target_frame" value="world"/>
-        <arg name="pointcloud_publish_topic" value="/depth_scan_pointcloud"/>
     </include> -->
     
     <!-- scan_cloud -->
@@ -53,7 +52,8 @@
         
         <!-- 數據源重映射 -->
         <!-- <remap from="cloud_in" to="/depth_scan_pointcloud" /> -->
-        <remap from="cloud_in" to="/scan_pointcloud" />
+		<remap from="cloud_in" to="/scan_pointcloud" />
+        <!-- <remap from="extra_cloud_in" to="/scan_pointcloud" /> -->
         
         <!-- Z 軸限制 -->
         <param name="pointcloud_min_z" value="0.01" />
