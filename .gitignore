@@ -73,6 +73,11 @@ genpy/
 *.tar.gz
 *.tgz
 
+# === 3rd-party vendor dirs (do not track) ===
+3rd/uvgRTP/
+3rd/Zdepth/
+3rd/nlohmann_json/json/
+
 # === IDE / ??? / OS ??? ===
 .vscode/
 .idea/
@@ -87,4 +92,3 @@ Thumbs.db
 !*.rviz
 !*.sdf
 !*.world
-
