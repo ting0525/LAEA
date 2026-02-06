@@ -2,11 +2,11 @@
     <param name="/use_sim_time" value="true"/>
     
     <!-- depth_point_cloud -->
-    <!-- <include file="$(find laserscan_to_pointcloud)/launch/depth_cloud.launch">
+    <include file="$(find laserscan_to_pointcloud)/launch/depth_cloud.launch">
         <arg name="laser_frame" value="depth_scan_frame"/>
         <arg name="target_frame" value="world"/>
         <arg name="pointcloud_publish_topic" value="/depth_scan_pointcloud"/>
-    </include> -->
+    </include>
     
     <!-- scan_cloud -->
     <include file="$(find laserscan_to_pointcloud)/launch/cloud.launch">
@@ -52,13 +52,13 @@
         <param name="sensor_model/max_range" value="100" />
         
         <!-- 數據源重映射 -->
-        <!-- <remap from="cloud_in" to="/depth_scan_pointcloud" /> -->
-        <remap from="cloud_in" to="/scan_pointcloud" />
+        <remap from="cloud_in" to="/depth_scan_pointcloud" />
+        <remap from="extra_cloud_in" to="/scan_pointcloud" />
         
         <!-- Z 軸限制 -->
-        <param name="pointcloud_min_z" value="0.01" />
+        <param name="pointcloud_min_z" value="-0.05" />
         <param name="pointcloud_max_z" value="4.0" />
-        <param name="occupancy_min_z" value="0.0" />
+        <param name="occupancy_min_z" value="-0.05" />
         <param name="occupancy_max_z" value="1.5" />
         
         <!-- 傳感器模型參數 -->

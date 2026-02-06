@@ -19,7 +19,7 @@ def IoTtalk_registration():
     
     # register device profile to IoTtalk Server
     DAN.device_registration_with_retry(IoTtalk_ServerURL, Reg_addr)
-    print("Register successfully")
+    print("Register successfully")  
 
 def RTPSender(IDF, ODF):
     # Register the IotTalk Server
@@ -30,16 +30,20 @@ def RTPSender(IDF, ODF):
     flag = False
     while not flag:
         try:
-            sip = 'a=0 10000 rgb_stream video 96 sendonly\n' + \
-                  'a=1 12000 depth_stream video 97 sendonly\n' + \
-                  'a=2 14000 point_cloud pointcloud 98 sendonly\n' + \
-                  'a=3 16000 scan_point_cloud pointcloud 99 sendonly\n' + \
-                  'a=4 18000 camera_info camera_info 100 sendonly\n' + \
-                  'a=5 20000 map_point_cloud pointcloud 101 sendonly\n' + \
-                  'a=6 22000 position_visualization marker 102 sendonly\n' + \
-                  'a=7 24000 position_command command 103 sendonly\n' + \
-                  'a=8 26000 local_odom odom 104 sendonly\n' + \
-                  'a=9 28000 pose pose 105 sendonly\n'
+            # depth-only SDP
+            sip = 'a=1 12000 depth_stream video 97 sendonly\n'
+            # full SDP
+            # sip = 'a=0 10000 rgb_stream video 96 sendonly\n' + \
+            #       'a=1 12000 depth_stream video 97 sendonly\n' + \
+            #       'a=2 14000 point_cloud pointcloud 98 sendonly\n' + \
+            #       'a=3 16000 scan_point_cloud pointcloud 99 sendonly\n' + \
+            #       'a=4 18000 camera_info camera_info 100 sendonly\n' + \
+            #       'a=5 20000 map_point_cloud pointcloud 101 sendonly\n' + \
+            #       'a=6 22000 position_visualization marker 102 sendonly\n' + \
+            #       'a=7 24000 position_command command 103 sendonly\n' + \
+            #       'a=8 26000 local_odom odom 104 sendonly\n' + \
+            #       'a=9 28000 pose pose 105 sendonly\n'
+            
             
             packet = {'type': 'Invite', 'source': 'CD8600D38000', 'target': 'CD8600D38001', 'sdp_data': sip}
             result = DAN.push(IDF, json.dumps(packet))
@@ -107,17 +111,20 @@ def RTPReceiver(IDF, ODF):
     while not flag:
         try:
             
-            sip = 'a=0 11000 rgb_stream video 96 recvonly\n' + \
-                  'a=1 13000 depth_stream video 97 recvonly\n' + \
-                  'a=2 15000 point_cloud pointcloud 98 recvonly\n' + \
-                  'a=3 17000 scan_point_cloud pointcloud 99 recvonly\n' + \
-                  'a=4 19000 camera_info camera_info 100 recvonly\n' + \
-                  'a=5 21000 map_point_cloud pointcloud 101 recvonly\n' + \
-                  'a=6 23000 position_visualization marker 102 recvonly\n' + \
-                  'a=7 25000 position_command command 103 recvonly\n' + \
-                  'a=8 27000 local_odom odom 104 recvonly\n' + \
-                  'a=9 29000 pose pose 105 recvonly\n'
-
+            # depth-only SDP
+            sip = 'a=1 13000 depth_stream video 97 recvonly\n'
+            
+            # full SDP
+            # sip = 'a=0 11000 rgb_stream video 96 recvonly\n' + \
+            #       'a=1 13000 depth_stream video 97 recvonly\n' + \
+            #       'a=2 15000 point_cloud pointcloud 98 recvonly\n' + \
+            #       'a=3 17000 scan_point_cloud pointcloud 99 recvonly\n' + \
+            #       'a=4 19000 camera_info camera_info 100 recvonly\n' + \
+            #       'a=5 21000 map_point_cloud pointcloud 101 recvonly\n' + \
+            #       'a=6 23000 position_visualization marker 102 recvonly\n' + \
+            #       'a=7 25000 position_command command 103 recvonly\n' + \
+            #       'a=8 27000 local_odom odom 104 recvonly\n' + \
+            #       'a=9 29000 pose pose 105 recvonly\n'
             packet = {'type': 'OK', 'source': 'CD8600D38001', 'target': 'CD8600D38000', 'sdp_data': sip}
             result = DAN.push(ODF, json.dumps(packet))
             if result != None:
@@ -135,12 +142,7 @@ def SIP_Dialog():
     # 1. Register the IotTalk Server
     IoTtalk_registration()
 
-    # Press N to continue
-    input('Press N to continue...')
-    while True:
-        # Wait for the user to press N
-        if input() != 'N':
-            break
+    # Auto start without user input
     print('Start the SIP Dialog...')
     # 2. Start the SIP Dialog by creating the SIP Sender and Receiver
     sender = threading.Thread(target=RTPSender, args=('SIP_Sender', 'SIP_Receiver'))
@@ -155,4 +157,3 @@ if __name__ == '__main__':
     SIP_Dialog()
     rospy.spin()
     
-
