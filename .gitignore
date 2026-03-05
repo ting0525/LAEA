@@ -78,6 +78,9 @@ genpy/
 3rd/Zdepth/
 3rd/nlohmann_json/json/
 
+# === Nested tool logs (do not track) ===
+laea_twin_tools/laea_logs/
+
 # === IDE / ??? / OS ??? ===
 .vscode/
 .idea/
