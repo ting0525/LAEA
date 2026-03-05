@@ -1,0 +1,63 @@
+feature_sets:
+  gps_baseline:
+    - gps_lat
+    - gps_lon
+    - gps_alt
+    - gps_vx
+    - gps_vy
+    - gps_vz
+    - gps_fix
+    - gps_sat
+    - pos_x
+    - pos_y
+    - pos_z
+    - vel_x
+    - vel_y
+    - vel_z
+    - yaw
+
+  gps_derived:
+    - gps_lat
+    - gps_lon
+    - gps_alt
+    - gps_vx
+    - gps_vy
+    - gps_vz
+    - gps_fix
+    - gps_sat
+    - pos_x
+    - pos_y
+    - pos_z
+    - vel_x
+    - vel_y
+    - vel_z
+    - yaw
+    - local_speed
+    - gps_speed
+    - speed_gap
+    - vertical_speed_gap
+    - heading_gap
+    - local_step_m
+    - gps_step_m
+    - step_gap
+    - sat_change
+    - sat_drop
+    - fix_bad
+    - dt
+
+  imu_augmented:
+    - pos_x
+    - pos_y
+    - pos_z
+    - vel_x
+    - vel_y
+    - vel_z
+    - roll
+    - pitch
+    - yaw
+    - acc_x
+    - acc_y
+    - acc_z
+    - ang_x
+    - ang_y
+    - ang_z

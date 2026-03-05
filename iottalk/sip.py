@@ -1,12 +1,10 @@
-from flask import Flask, request, abort
 import DAN,csmapi, random, time, threading, json
-import os
 import rospy
 from std_msgs.msg import String
 
 # Publish the SDP to the ROS Topic
-sip_sender = rospy.Publisher('sip_sender_sdp', String, queue_size=10) # Topic name = sip_sender_sdp
-sip_receiver = rospy.Publisher('sip_receiver_sdp', String, queue_size=10) # Topic name = sip_receiver_sdp
+sip_sender = rospy.Publisher('sip_sender_sdp', String, queue_size=10, latch=True) # Topic name = sip_sender_sdp
+sip_receiver = rospy.Publisher('sip_receiver_sdp', String, queue_size=10, latch=True) # Topic name = sip_receiver_sdp
 
 def IoTtalk_registration():
     # set IoTtalk Server URL
@@ -54,8 +52,8 @@ def RTPSender(IDF, ODF):
                 print('Failed to Invite. Retrying...')
                 # Wait for 1 second
                 time.sleep(5)
-        except:
-            # Wait for 1 second
+        except Exception as e:
+            print(f'RTP Sender Invite error: {e}')
             time.sleep(1)
     
     # 2. Wait for the SDP from the IoTtalk Server (OK)
@@ -76,8 +74,8 @@ def RTPSender(IDF, ODF):
                 # Wait for 1 second
                 print('Waiting for the SDP from Receiver...')
                 time.sleep(5)
-        except:
-            # Wait for 1 second
+        except Exception as e:
+            print(f'RTP Sender pull OK error: {e}')
             time.sleep(1)
 
 def RTPReceiver(IDF, ODF):
@@ -102,8 +100,8 @@ def RTPReceiver(IDF, ODF):
                 # Wait for 1 second
                 print('Waiting for the SDP from the Sender...')
                 time.sleep(5)
-        except:
-            # Wait for 1 second
+        except Exception as e:
+            print(f'RTP Receiver pull Invite error: {e}')
             time.sleep(1)  
 
     # 2. Push the SDP to the IoTtalk Server (OK)
@@ -134,8 +132,8 @@ def RTPReceiver(IDF, ODF):
                 print('Failed to OK. Retrying...')
                 # Wait for 1 second
                 time.sleep(5)
-        except:
-            # Wait for 1 second
+        except Exception as e:
+            print(f'RTP Receiver push OK error: {e}')
             time.sleep(1)
 
 def SIP_Dialog():
@@ -156,4 +154,3 @@ if __name__ == '__main__':
     rospy.init_node('SIP_SDP')
     SIP_Dialog()
     rospy.spin()
-    

@@ -95,3 +95,7 @@ Thumbs.db
 !*.rviz
 !*.sdf
 !*.world
+
+# === LKH single-run artifacts ===
+laea_planner/utils/lkh_tsp_solver/resource/single.txt
+laea_planner/utils/lkh_tsp_solver/resource/single.tsp

@@ -9,7 +9,7 @@ profile = {
 }
 # mac_addr = 'C860008BD249'
 
-state = 'RESUME'     #for control channel (bypass)
+state = 'RESUME'     
 
 SelectedDF = []
 control_channel_timestamp = None
@@ -82,7 +82,7 @@ def register_device(addr):
     if csmapi.register(MAC,profile):
         print ('This device has successfully registered.')
         print ('Device name = ' + profile['d_name'])
-         
+        
         if thx == None:
             print ('Create control threading')
             thx=threading.Thread(target=ControlChannel)     #for control channel
