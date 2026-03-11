@@ -6,6 +6,7 @@
 #include <iostream>
 #include <cstdlib>          // exit
 #include <cmath>            // std::isnan
+#include <memory>
 #include <thread>
 #include <regex>
 #include <cstdint>
@@ -417,6 +418,11 @@ SIP_Sender::SIP_Sender(RTP_Sender *rtp_sender){
     ep.transportCreate(PJSIP_TRANSPORT_UDP, tcfg);
 
     ep.libStart();
+
+    // IoTtalk SDP bridge (optional): listen for SDP via ROS topic
+    ros::NodeHandle nh;
+    sdp_sub_ = std::make_shared<message_filters::Subscriber<std_msgs::String>>(nh, "/sip_sender_sdp", 1);
+    sdp_sub_->registerCallback(&SIP_Sender::Process_Stream2, this);
 }
 SIP_Sender::~SIP_Sender(){}
 
@@ -586,7 +592,9 @@ int main(int argc, char** argv) {
     ros::NodeHandle pnh("~");
 
     bool use_sip = true;
+    bool use_iottalk = false;
     pnh.param("use_sip", use_sip, true);
+    pnh.param("use_iottalk", use_iottalk, false);
 
     pnh.param<std::string>("local_ip",  local_ip,  std::string("127.0.0.1"));
     pnh.param<std::string>("remote_ip", remote_ip, std::string("127.0.0.1"));
@@ -602,6 +610,7 @@ int main(int argc, char** argv) {
     pnh.param("payload_base", payload_base, 96);
 
     ROS_INFO_STREAM("[RTPSender] use_sip=" << (use_sip ? "true" : "false")
+                    << " use_iottalk=" << (use_iottalk ? "true" : "false")
                     << " local_ip=" << local_ip
                     << " remote_ip=" << remote_ip
                     << " base_port=" << base_port
@@ -610,14 +619,18 @@ int main(int argc, char** argv) {
                     << " payload_base=" << payload_base);
 
     RTP_Sender client;
+    std::unique_ptr<SIP_Sender> sip_sender;
 
-    if (!use_sip) {
+    if (use_iottalk) {
+        sip_sender = std::make_unique<SIP_Sender>(&client);
+        ROS_INFO("[RTPSender] IoTtalk SDP enabled. Waiting on /sip_sender_sdp.");
+    } else if (!use_sip) {
         add_default_streams(client, base_port, remote_port_offset, port_step, payload_base);
         client.start_rtp_sender();
         ROS_INFO("[RTPSender] Direct RTP started (SIP bypass).");
     } else {
-        SIP_Sender sip_sender(&client);
-        std::thread sip_thread(&SIP_Sender::SIP_sender_main, &sip_sender);
+        sip_sender = std::make_unique<SIP_Sender>(&client);
+        std::thread sip_thread(&SIP_Sender::SIP_sender_main, sip_sender.get());
         sip_thread.detach();
         ROS_INFO("[RTPSender] SIP signaling started.");
     }

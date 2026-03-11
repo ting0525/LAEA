@@ -126,7 +126,9 @@ public:
 private:
     pj::Endpoint ep;
     bool first_OK = false;
-    int started_port = 10000;
+    // Depth-only SDP starts from stream id=1 (12000/13000), not id=0.
+    // Keep sender local port aligned with current sip.py payload.
+    int started_port = 12000;
     std::vector<StreamData> stream_info;
     RTP_Sender *rtp_sender_; // When the call is confirmed, start the stream
 

@@ -3,6 +3,7 @@
 #include "Codec.h"
 
 // #include <iostream>
+#include <memory>
 
 std::string local_ip = "127.0.0.1";
 std::string remote_ip = "127.0.0.1";
@@ -387,11 +388,10 @@ SIP_Receiver::SIP_Receiver(RTP_Receiver *rtp_receiver){
     // Start the library
     ep.libStart();
 
-    // Iottalk
-    // rtp_receiver_ = rtp_receiver;
-    // ros::NodeHandle nh;
-    // sdp_sub_ = std::make_shared<message_filters::Subscriber<std_msgs::String>>(nh, "/sip_receiver_sdp", 1);
-    // sdp_sub_->registerCallback(&SIP_Receiver::Process_Stream2, this);
+    // IoTtalk SDP bridge (optional): listen for SDP via ROS topic
+    ros::NodeHandle nh;
+    sdp_sub_ = std::make_shared<message_filters::Subscriber<std_msgs::String>>(nh, "/sip_receiver_sdp", 1);
+    sdp_sub_->registerCallback(&SIP_Receiver::Process_Stream2, this);
 }
 
 SIP_Receiver::~SIP_Receiver(){}
@@ -619,7 +619,9 @@ int main(int argc, char **argv){
     ros::NodeHandle pnh("~");
 
     bool use_sip = true;
+    bool use_iottalk = false;
     pnh.param("use_sip", use_sip, true);
+    pnh.param("use_iottalk", use_iottalk, false);
 
     pnh.param<std::string>("local_ip",  local_ip,  std::string("127.0.0.1"));
     pnh.param<std::string>("remote_ip", remote_ip, std::string("127.0.0.1"));
@@ -631,6 +633,7 @@ int main(int argc, char **argv){
     pnh.param("payload_base", payload_base, 96);
 
     ROS_INFO_STREAM("[RTPReceiver] use_sip=" << (use_sip?"true":"false")
+                    << " use_iottalk=" << (use_iottalk ? "true" : "false")
                     << " local_ip=" << local_ip
                     << " remote_ip=" << remote_ip
                     << " base_port=" << base_port
@@ -639,15 +642,19 @@ int main(int argc, char **argv){
                     << " payload_base=" << payload_base);
 
     RTP_Receiver client;
+    std::unique_ptr<SIP_Receiver> sip_receiver;
 
-    if (!use_sip) {
+    if (use_iottalk) {
+        sip_receiver = std::make_unique<SIP_Receiver>(&client);
+        ROS_INFO("[RTPReceiver] IoTtalk SDP enabled. Waiting on /sip_receiver_sdp.");
+    } else if (!use_sip) {
         add_default_streams_receiver(client, base_port, remote_port_offset, port_step, payload_base);
         client.start_rtp_receiver();   // ← 你的 Receiver 啟動函式名稱可能略不同，需對齊
         ROS_INFO("[RTPReceiver] Direct RTP started (SIP bypass).");
     } else {
         // 保留你原本 SIP 既有流程
-        SIP_Receiver sip_receiver(&client);
-        std::thread sip_thread(&SIP_Receiver::SIP_receiver_main, &sip_receiver);
+        sip_receiver = std::make_unique<SIP_Receiver>(&client);
+        std::thread sip_thread(&SIP_Receiver::SIP_receiver_main, sip_receiver.get());
         sip_thread.detach();
         ROS_INFO("[RTPReceiver] SIP signaling started.");
     }

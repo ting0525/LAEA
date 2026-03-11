@@ -78,6 +78,9 @@ genpy/
 3rd/Zdepth/
 3rd/nlohmann_json/json/
 
+# === Nested tool logs (do not track) ===
+laea_twin_tools/laea_logs/
+
 # === IDE / ??? / OS ??? ===
 .vscode/
 .idea/
@@ -92,3 +95,7 @@ Thumbs.db
 !*.rviz
 !*.sdf
 !*.world
+
+# === LKH single-run artifacts ===
+laea_planner/utils/lkh_tsp_solver/resource/single.txt
+laea_planner/utils/lkh_tsp_solver/resource/single.tsp

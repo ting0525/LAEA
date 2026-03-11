@@ -1,9 +1,15 @@
 <launch>
   <param name="/use_sim_time" value="true"/>
+  <arg name="use_sip" default="false"/>
+  <arg name="use_iottalk" default="false"/>
+  <arg name="local_ip" default="127.0.0.1"/>
+  <arg name="remote_ip" default="127.0.0.1"/>
+
   <node pkg="rtp_gazebo" type="RTPReceiver" name="rtp_receiver" output="screen">
-    <param name="use_sip" value="false"/>
-    <param name="local_ip" value="127.0.0.1"/>
-    <param name="remote_ip" value="127.0.0.1"/>
+    <param name="use_sip" value="$(arg use_sip)"/>
+    <param name="use_iottalk" value="$(arg use_iottalk)"/>
+    <param name="local_ip" value="$(arg local_ip)"/>
+    <param name="remote_ip" value="$(arg remote_ip)"/>
   </node>
   <node pkg="rtp_gazebo" type="Synchronizer" name="rtp_sync" output="screen"/>
 </launch>
