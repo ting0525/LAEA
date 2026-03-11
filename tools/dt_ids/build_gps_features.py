@@ -102,7 +102,7 @@ def main():
     parser.add_argument(
         "--input",
         nargs="+",
-        default=["/home/tim/laea/src/LAEA/laea_twin_tools/laea_logs/kpi_log_*.csv"],
+        default=["/home/tim/laea/src/LAEA/laea_twin_tools/laea_logs/nosip/kpi_log_run_*.csv"],
         help="Input CSV file(s) or glob(s).",
     )
     parser.add_argument("--out", required=True, help="Output feature CSV path.")

@@ -1,22 +1,50 @@
 # dt_ids tools
 
-Utilities for generating normal-flight datasets and GPS anomaly-detection features.
+Utilities for generating normal-flight datasets, run manifests, train/val/test splits, and GPS anomaly-detection features.
+
+## Recommended preparation flow
+
+### 1) Build a run manifest and quality flags
+
+```bash
+python3 tools/dt_ids/build_run_manifest.py \
+  --input "/home/tim/laea/src/LAEA/laea_twin_tools/laea_logs/nosip/kpi_log_run_*.csv" \
+  --out data/run_manifest.csv
+```
+
+This creates one row per run with:
+- `duration_s`, `num_rows`
+- `gps_nan_ratio`, `gps_valid_ratio`
+- `e_pos_mean`, `e_pos_p95`, `e_pos_max`
+- `quality_ok`
+
+### 2) Collect baseline normal-flight rows
+
+```bash
+python3 tools/dt_ids/collect_normal_dataset.py \
+  --log-dir /home/tim/laea/src/LAEA/laea_twin_tools/laea_logs/nosip \
+  --out data/normal_gps_baseline.csv \
+  --feature-set gps_baseline \
+  --max-e-pos 2.0 \
+  --include-mission-id
+```
 
 ## 1) Collect normal rows from `kpi_log_*.csv`
 
 ```bash
 python3 tools/dt_ids/collect_normal_dataset.py \
-  --log-dir /home/tim/laea/src/LAEA/laea_twin_tools/laea_logs \
+  --log-dir /home/tim/laea/src/LAEA/laea_twin_tools/laea_logs/nosip \
   --out data/normal_gps_baseline.csv \
   --feature-set gps_baseline \
-  --max-e-pos 2.0
+  --max-e-pos 2.0 \
+  --include-mission-id
 ```
 
 ## 2) Build derived GPS features
 
 ```bash
 python3 tools/dt_ids/build_gps_features.py \
-  --input "/home/tim/laea/src/LAEA/laea_twin_tools/laea_logs/kpi_log_*.csv" \
+  --input "/home/tim/laea/src/LAEA/laea_twin_tools/laea_logs/nosip/kpi_log_run_*.csv" \
   --out data/normal_gps_features.csv \
   --drop-na
 ```
@@ -26,6 +54,44 @@ python3 tools/dt_ids/build_gps_features.py \
 - `gps_heading`, `heading_gap`
 - `local_step_m`, `gps_step_m`, `step_gap`
 - `sat_change`, `sat_drop`, `fix_bad`, `dt`
+
+## 3) Split datasets by run
+
+Use `mission_id` to avoid leaking rows from the same run into both train and test.
+
+```bash
+python3 tools/dt_ids/split_dataset_by_run.py \
+  --input data/normal_gps_baseline.csv \
+  --manifest data/run_manifest.csv \
+  --out-dir data/splits \
+  --prefix normal_gps_baseline
+```
+
+This writes:
+- `data/splits/normal_gps_baseline_train.csv`
+- `data/splits/normal_gps_baseline_val.csv`
+- `data/splits/normal_gps_baseline_test.csv`
+- `data/splits/normal_gps_baseline_splits.csv`
+
+## 4) Train a normal-only Isolation Forest
+
+Train on the `gps_derived` split files and keep `t`, `mission_id`, `split`, and `label` out of model inputs.
+
+```bash
+python3 tools/dt_ids/train_isolation_forest.py \
+  --train data/splits/normal_gps_features_train.csv \
+  --val data/splits/normal_gps_features_val.csv \
+  --test data/splits/normal_gps_features_test.csv \
+  --out-dir data/models/iforest_gps_v1
+```
+
+Outputs:
+- `isolation_forest.joblib`
+- `feature_columns.json`
+- `training_config.json`
+- `score_summary.csv`
+
+Add `--write-scored-csv` if you want per-row anomaly scores for inspection.
 
 ## Feature Reference
 
@@ -65,5 +131,6 @@ python3 tools/dt_ids/build_gps_features.py \
 
 ## Notes
 
-- Logs are now configured to write to `/home/tim/laea/src/LAEA/laea_twin_tools/laea_logs`.
+- Logs are now configured to write to `/home/tim/laea/src/LAEA/laea_twin_tools/laea_logs/nosip`.
 - `label` is appended as `0` by default (normal samples).
+- `collect_normal_dataset.py` can append `mission_id`; use this for by-run splitting.

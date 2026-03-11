@@ -18,10 +18,17 @@ def load_feature_set(path: Path, name: str):
 def resolve_log_dir(p: Path):
     if p.is_dir():
         return p
+    if p.name != "nosip":
+        nosip = p / "nosip"
+        if nosip.is_dir():
+            return nosip
     # fallback for historical path without workspace /LAEA
     alt = Path("/home/tim/laea/src/laea_twin_tools/laea_logs")
     if alt.is_dir():
         return alt
+    alt_nosip = Path("/home/tim/laea/src/LAEA/laea_twin_tools/laea_logs/nosip")
+    if alt_nosip.is_dir():
+        return alt_nosip
     return p
 
 
@@ -31,7 +38,7 @@ def main():
     )
     parser.add_argument(
         "--log-dir",
-        default="/home/tim/laea/src/LAEA/laea_twin_tools/laea_logs",
+        default="/home/tim/laea/src/LAEA/laea_twin_tools/laea_logs/nosip",
         help="Directory containing kpi_log_*.csv",
     )
     parser.add_argument(
@@ -71,6 +78,11 @@ def main():
         type=int,
         default=0,
         help="Optional minimum rows per file (skip if fewer)",
+    )
+    parser.add_argument(
+        "--include-mission-id",
+        action="store_true",
+        help="Append mission_id column derived from each source CSV filename.",
     )
     args = parser.parse_args()
 
@@ -115,6 +127,9 @@ def main():
             print(f"[collect] skip {path.name}: rows {len(sub)} < min_rows", file=sys.stderr)
             skipped += 1
             continue
+
+        if args.include_mission_id:
+            sub["mission_id"] = path.stem
 
         frames.append(sub)
 
