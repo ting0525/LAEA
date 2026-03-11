@@ -8,6 +8,9 @@ import math
 
 from gazebo_msgs.msg import ModelStates
 from geometry_msgs.msg import PoseStamped
+from geometry_msgs.msg import TwistStamped
+from sensor_msgs.msg import NavSatFix
+from std_msgs.msg import UInt32
 
 
 class SlamKpiLogger(object):
@@ -22,7 +25,7 @@ class SlamKpiLogger(object):
 
         self.output_dir = rospy.get_param(
             "/slam_kpi_logger/output_dir",
-            "/home/tim/laea/src/laea_twin_tools/laea_logs"
+            "/home/tim/laea/src/LAEA/laea_twin_tools/laea_logs"
         )
 
         # output_name 會被 launch 組成：kpi_log_<run_id>，例如 kpi_log_test_001
@@ -66,13 +69,24 @@ class SlamKpiLogger(object):
             "t",
             "px_gt", "py_gt", "pz_gt",
             "px_est", "py_est", "pz_est",
-            "e_pos"
+            "e_pos",
+            "pos_x", "pos_y", "pos_z",
+            "vel_x", "vel_y", "vel_z",
+            "yaw",
+            "gps_lat", "gps_lon", "gps_alt",
+            "gps_vx", "gps_vy", "gps_vz",
+            "gps_fix", "gps_sat"
         ])
         self.csv_file.flush()
 
         # 最新 ground truth / estimate
         self.latest_gt = None   # (t, x, y, z)
         self.latest_est = None  # (t, x, y, z)
+        self.latest_yaw = float("nan")
+        self.latest_local_vel = None  # (vx, vy, vz)
+        self.latest_gps_fix = None    # (lat, lon, alt, fix)
+        self.latest_gps_vel = None    # (vx, vy, vz)
+        self.latest_gps_sat = float("nan")
 
         # =========================
         # Subscribers
@@ -82,6 +96,18 @@ class SlamKpiLogger(object):
         )
         self.sub_pose = rospy.Subscriber(
             "/mavros/local_position/pose", PoseStamped, self.cb_pose, queue_size=50
+        )
+        self.sub_vel_local = rospy.Subscriber(
+            "/mavros/local_position/velocity_local", TwistStamped, self.cb_vel_local, queue_size=50
+        )
+        self.sub_gps_fix = rospy.Subscriber(
+            "/mavros/global_position/raw/fix", NavSatFix, self.cb_gps_fix, queue_size=20
+        )
+        self.sub_gps_vel = rospy.Subscriber(
+            "/mavros/global_position/raw/gps_vel", TwistStamped, self.cb_gps_vel, queue_size=20
+        )
+        self.sub_gps_sat = rospy.Subscriber(
+            "/mavros/global_position/raw/satellites", UInt32, self.cb_gps_sat, queue_size=20
         )
 
         # Timer（以 ROS simulated time 為主）
@@ -108,6 +134,29 @@ class SlamKpiLogger(object):
         t = msg.header.stamp.to_sec() if msg.header.stamp else rospy.get_time()
         p = msg.pose.position
         self.latest_est = (t, p.x, p.y, p.z)
+        q = msg.pose.orientation
+        self.latest_yaw = self._yaw_from_quat(q.x, q.y, q.z, q.w)
+
+    def cb_vel_local(self, msg):
+        v = msg.twist.linear
+        self.latest_local_vel = (v.x, v.y, v.z)
+
+    def cb_gps_fix(self, msg):
+        # NavSatStatus.status: fix quality indicator (integer)
+        self.latest_gps_fix = (msg.latitude, msg.longitude, msg.altitude, msg.status.status)
+
+    def cb_gps_vel(self, msg):
+        v = msg.twist.linear
+        self.latest_gps_vel = (v.x, v.y, v.z)
+
+    def cb_gps_sat(self, msg):
+        self.latest_gps_sat = float(msg.data)
+
+    @staticmethod
+    def _yaw_from_quat(x, y, z, w):
+        siny_cosp = 2.0 * (w * z + x * y)
+        cosy_cosp = 1.0 - 2.0 * (y * y + z * z)
+        return math.atan2(siny_cosp, cosy_cosp)
 
     def cb_timer(self, event):
         if self.latest_gt is None or self.latest_est is None:
@@ -125,11 +174,32 @@ class SlamKpiLogger(object):
             (z_gt - z_est) ** 2
         )
 
+        if self.latest_local_vel is not None:
+            vx, vy, vz = self.latest_local_vel
+        else:
+            vx, vy, vz = float("nan"), float("nan"), float("nan")
+
+        if self.latest_gps_fix is not None:
+            gps_lat, gps_lon, gps_alt, gps_fix = self.latest_gps_fix
+        else:
+            gps_lat, gps_lon, gps_alt, gps_fix = float("nan"), float("nan"), float("nan"), float("nan")
+
+        if self.latest_gps_vel is not None:
+            gps_vx, gps_vy, gps_vz = self.latest_gps_vel
+        else:
+            gps_vx, gps_vy, gps_vz = float("nan"), float("nan"), float("nan")
+
         self.writer.writerow([
             t,
             x_gt, y_gt, z_gt,
             x_est, y_est, z_est,
-            e_pos
+            e_pos,
+            x_est, y_est, z_est,
+            vx, vy, vz,
+            self.latest_yaw,
+            gps_lat, gps_lon, gps_alt,
+            gps_vx, gps_vy, gps_vz,
+            gps_fix, self.latest_gps_sat
         ])
 
         # 每筆 flush：確保中途 kill logger 也不太會丟資料

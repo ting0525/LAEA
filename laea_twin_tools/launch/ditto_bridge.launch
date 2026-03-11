@@ -1,0 +1,57 @@
+<launch>
+  <!-- Ditto HTTP API endpoint -->
+  <arg name="base_url" default="http://localhost:8080/api/2" />
+  <arg name="username" default="ditto" />
+  <arg name="password" default="ditto" />
+
+  <!-- Target Thing -->
+  <arg name="thing_id" default="laea:iris_0" />
+  <arg name="policy_id" default="" />
+  <arg name="auto_create_thing" default="true" />
+
+  <!-- Sync behavior -->
+  <arg name="publish_rate_hz" default="1.0" />
+  <arg name="request_timeout_s" default="2.0" />
+
+  <!-- Feature names -->
+  <arg name="pose_feature" default="pose_local" />
+  <arg name="gps_feature" default="gps" />
+  <arg name="slam_feature" default="slam" />
+
+  <!-- Sensor topics -->
+  <arg name="model_name" default="iris_0" />
+  <arg name="gt_topic" default="/gazebo/model_states" />
+  <arg name="pose_topic" default="/mavros/local_position/pose" />
+  <arg name="vel_topic" default="/mavros/local_position/velocity_local" />
+  <arg name="gps_fix_topic" default="/mavros/global_position/raw/fix" />
+  <arg name="gps_vel_topic" default="/mavros/global_position/raw/gps_vel" />
+  <arg name="gps_sat_topic" default="/mavros/global_position/raw/satellites" />
+
+  <node pkg="laea_twin_tools"
+        type="ditto_bridge.py"
+        name="ditto_bridge"
+        output="screen">
+    <param name="base_url" value="$(arg base_url)" />
+    <param name="username" value="$(arg username)" />
+    <param name="password" value="$(arg password)" />
+
+    <param name="thing_id" value="$(arg thing_id)" />
+    <param name="policy_id" value="$(arg policy_id)" />
+    <param name="auto_create_thing" value="$(arg auto_create_thing)" />
+
+    <param name="publish_rate_hz" value="$(arg publish_rate_hz)" />
+    <param name="request_timeout_s" value="$(arg request_timeout_s)" />
+
+    <param name="pose_feature" value="$(arg pose_feature)" />
+    <param name="gps_feature" value="$(arg gps_feature)" />
+    <param name="slam_feature" value="$(arg slam_feature)" />
+
+    <param name="model_name" value="$(arg model_name)" />
+    <param name="gt_topic" value="$(arg gt_topic)" />
+    <param name="pose_topic" value="$(arg pose_topic)" />
+    <param name="vel_topic" value="$(arg vel_topic)" />
+    <param name="gps_fix_topic" value="$(arg gps_fix_topic)" />
+    <param name="gps_vel_topic" value="$(arg gps_vel_topic)" />
+    <param name="gps_sat_topic" value="$(arg gps_sat_topic)" />
+  </node>
+</launch>
