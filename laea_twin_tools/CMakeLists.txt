@@ -10,7 +10,9 @@ project(laea_twin_tools)
 find_package(catkin REQUIRED COMPONENTS
   gazebo_msgs
   geometry_msgs
+  rosgraph_msgs
   rospy
+  sensor_msgs
   std_msgs
 )
 
@@ -206,7 +208,7 @@ include_directories(
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
 catkin_package(
-  CATKIN_DEPENDS rospy std_msgs geometry_msgs gazebo_msgs
+  CATKIN_DEPENDS rospy std_msgs geometry_msgs gazebo_msgs sensor_msgs rosgraph_msgs
 )
 
 catkin_install_python(
@@ -215,5 +217,6 @@ catkin_install_python(
     scripts/summarize_missions.py
     scripts/label_missions.py
     scripts/experiment_manager.py
+    scripts/ditto_bridge.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
