@@ -99,3 +99,7 @@ Thumbs.db
 # === LKH single-run artifacts ===
 laea_planner/utils/lkh_tsp_solver/resource/single.txt
 laea_planner/utils/lkh_tsp_solver/resource/single.tsp
+
+
+# === UAV training data ===
+data/
