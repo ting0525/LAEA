@@ -2,8 +2,8 @@
 #include "Codec.h"
 
 // ip 設定
-std::string local_ip = "140.114.77.83";
-std::string remote_ip = "140.114.77.83";
+std::string local_ip = "127.0.0.1";
+std::string remote_ip = "127.0.0.1";
 
 RTPSession *session = new RTPSession();
 VideoCodec *rgb_codec = new VideoCodec();

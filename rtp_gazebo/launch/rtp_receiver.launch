@@ -11,4 +11,5 @@
     <param name="local_ip" value="$(arg local_ip)"/>
     <param name="remote_ip" value="$(arg remote_ip)"/>
   </node>
+  <node pkg="rtp_gazebo" type="Synchronizer" name="rtp_sync" output="screen"/>
 </launch>

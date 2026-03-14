@@ -154,9 +154,11 @@ set(PJPROJECT_PRIVATE_LIBS
 # ==============================
 add_executable(RTPSender src/RTPSender.cpp)
 add_executable(RTPReceiver src/RTPReceiver.cpp)
+add_executable(Synchronizer src/Synchronizer.cpp)
 
 add_dependencies(RTPSender rtp)
 add_dependencies(RTPReceiver rtp)
+add_dependencies(Synchronizer ${catkin_EXPORTED_TARGETS})
 
 target_link_libraries(RTPSender
   ${COMMON_LIBS}
@@ -172,4 +174,8 @@ target_link_libraries(RTPReceiver
   ${PJPROJECT_LIBRARIES}
   -Wl,--end-group
   ${PJPROJECT_PRIVATE_LIBS}
+)
+
+target_link_libraries(Synchronizer
+  ${catkin_LIBRARIES}
 )
