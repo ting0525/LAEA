@@ -178,7 +178,7 @@ class DittoBridge:
 
         payload = {
             "attributes": {
-                "source": "laea_twin_tools/ditto_bridge.py",
+                "source": "laea_ditto_bridge/ditto_bridge.py",
                 "model_name": self.model_name,
             }
         }

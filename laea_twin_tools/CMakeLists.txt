@@ -217,6 +217,5 @@ catkin_install_python(
     scripts/summarize_missions.py
     scripts/label_missions.py
     scripts/experiment_manager.py
-    scripts/ditto_bridge.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
