@@ -81,6 +81,9 @@ genpy/
 # === Nested tool logs (do not track) ===
 laea_twin_tools/laea_logs/
 
+# === Nested repos / external projects ===
+AIoTtalk_plus/
+
 # === IDE / ??? / OS ??? ===
 .vscode/
 .idea/
