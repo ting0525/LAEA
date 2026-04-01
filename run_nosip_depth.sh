@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 # ========= User-tunable params =========
 EXP_NUM_RUNS="${EXP_NUM_RUNS:-1}"
 EXP_SLEEP_BETWEEN_RUNS="${EXP_SLEEP_BETWEEN_RUNS:-2.0}"
@@ -14,6 +16,8 @@ LAEA_LOG_DIR="${LAEA_LOG_DIR:-/home/tim/laea/src/LAEA/laea_twin_tools/laea_logs/
 LAEA_SYS_LOG_DIR="${LAEA_SYS_LOG_DIR:-/tmp/laea_nosip_logs}"
 ROUND_STATUS_FILE="${ROUND_STATUS_FILE:-${LAEA_LOG_DIR}/last_round_status.env}"
 ENABLE_RVIZ="${ENABLE_RVIZ:-1}"
+ENABLE_DITTO_BRIDGE="${ENABLE_DITTO_BRIDGE:-1}"
+DITTO_ENABLE_SLAM="${DITTO_ENABLE_SLAM:-false}"
 
 mkdir -p "${LAEA_LOG_DIR}" "${LAEA_SYS_LOG_DIR}"
 
@@ -42,6 +46,7 @@ launch_bg() {
 }
 
 cleanup() {
+  local pid
   for pid in "${BG_PIDS[@]:-}"; do
     kill "${pid}" >/dev/null 2>&1 || true
   done
@@ -50,6 +55,88 @@ trap cleanup EXIT
 
 count_kept_logs() {
   find "${LAEA_LOG_DIR}" -maxdepth 1 -type f -name "kpi_log_run_*.csv" | wc -l
+}
+
+wait_for_topic() {
+  local topic="$1"
+  local timeout_s="${2:-60}"
+  local start_ts="${SECONDS}"
+  echo "[run_nosip_depth] waiting for topic ${topic} (timeout ${timeout_s}s)"
+  until rostopic list 2>/dev/null | grep -Fxq "${topic}"; do
+    if (( SECONDS - start_ts >= timeout_s )); then
+      echo "[run_nosip_depth] ERROR: timed out waiting for topic ${topic}" >&2
+      return 1
+    fi
+    sleep 1
+  done
+}
+
+wait_for_service() {
+  local service="$1"
+  local timeout_s="${2:-60}"
+  local start_ts="${SECONDS}"
+  echo "[run_nosip_depth] waiting for service ${service} (timeout ${timeout_s}s)"
+  until rosservice list 2>/dev/null | grep -Fxq "${service}"; do
+    if (( SECONDS - start_ts >= timeout_s )); then
+      echo "[run_nosip_depth] ERROR: timed out waiting for service ${service}" >&2
+      return 1
+    fi
+    sleep 1
+  done
+}
+
+set_offboard_mode() {
+  local out
+  out="$(rosservice call /mavros/set_mode "{base_mode: 0, custom_mode: 'OFFBOARD'}" 2>&1)" || {
+    echo "${out}" >&2
+    return 1
+  }
+  echo "${out}"
+  grep -q "mode_sent: True" <<<"${out}"
+}
+
+arm_vehicle() {
+  local out
+  out="$(rosservice call /mavros/cmd/arming "{value: true}" 2>&1)" || {
+    echo "${out}" >&2
+    return 1
+  }
+  echo "${out}"
+  grep -q "success: True" <<<"${out}"
+}
+
+prepare_offboard_and_arm() {
+  local attempts="${1:-5}"
+  local attempt
+
+  wait_for_service /mavros/set_mode 60
+  wait_for_service /mavros/cmd/arming 60
+
+  for attempt in $(seq 1 "${attempts}"); do
+    echo "[run_nosip_depth] set OFFBOARD attempt ${attempt}/${attempts}"
+    if set_offboard_mode; then
+      break
+    fi
+    if [ "${attempt}" -eq "${attempts}" ]; then
+      echo "[run_nosip_depth] ERROR: failed to set OFFBOARD mode" >&2
+      return 1
+    fi
+    sleep 2
+  done
+
+  sleep 2
+
+  for attempt in $(seq 1 "${attempts}"); do
+    echo "[run_nosip_depth] arm attempt ${attempt}/${attempts}"
+    if arm_vehicle; then
+      return 0
+    fi
+    if [ "${attempt}" -eq "${attempts}" ]; then
+      echo "[run_nosip_depth] ERROR: failed to arm vehicle" >&2
+      return 1
+    fi
+    sleep 2
+  done
 }
 
 echo "[run_nosip_depth] logs: ${LAEA_SYS_LOG_DIR}"
@@ -62,7 +149,19 @@ launch_bg "px4_gazebo" roslaunch px4_gazebo laea_gazebo_lidar.launch
 sleep 5
 
 launch_bg "controller" roslaunch px4_gazebo controller.launch
-sleep 5
+wait_for_topic /mavros/state 60
+wait_for_topic /mavros/local_position/pose 60
+wait_for_topic /mavros/local_position/velocity_local 60
+wait_for_topic /mavros/imu/data 60
+wait_for_topic /mavros/global_position/raw/fix 60
+wait_for_topic /mavros/global_position/raw/gps_vel 60
+wait_for_topic /mavros/global_position/raw/satellites 60
+sleep 2
+
+if [ "${ENABLE_DITTO_BRIDGE}" = "1" ]; then
+  launch_bg "ditto_bridge" roslaunch laea_ditto_bridge ditto_bridge.launch enable_slam:="${DITTO_ENABLE_SLAM}"
+  sleep 3
+fi
 
 # No SIP / No IoTtalk: direct RTP stream config
 launch_bg "rtp_receiver" roslaunch rtp_gazebo rtp_receiver.launch use_iottalk:=false use_sip:=false
@@ -83,14 +182,11 @@ if [ "${ENABLE_RVIZ}" = "1" ]; then
 fi
 
 # ========= 2) OFFBOARD + ARM =========
-rosrun mavros mavsys mode -c OFFBOARD || true
-sleep 3
-rosrun mavros mavsafety arm || true
-sleep 3
+prepare_offboard_and_arm
 
 # ========= 3) Experiment manager (foreground) =========
 set +e
-rosrun laea_twin_tools experiment_manager.py \
+python3 "${SCRIPT_DIR}/laea_twin_tools/scripts/experiment_manager.py" \
   _start_topic:=/traj_start_trigger \
   _start_frame_id:=map \
   _max_duration_s:="${EXP_MAX_DURATION_S}" \

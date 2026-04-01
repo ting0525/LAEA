@@ -4,13 +4,14 @@ project(laea_ditto_bridge)
 find_package(catkin REQUIRED COMPONENTS
   gazebo_msgs
   geometry_msgs
+  mavros_msgs
   rospy
   sensor_msgs
   std_msgs
 )
 
 catkin_package(
-  CATKIN_DEPENDS gazebo_msgs geometry_msgs rospy sensor_msgs std_msgs
+  CATKIN_DEPENDS gazebo_msgs geometry_msgs mavros_msgs rospy sensor_msgs std_msgs
 )
 
 include_directories(

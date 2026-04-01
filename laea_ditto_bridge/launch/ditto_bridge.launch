@@ -1,24 +1,27 @@
 <launch>
-  <!-- Ditto HTTP API endpoint -->
   <arg name="base_url" default="http://localhost:8080/api/2" />
   <arg name="username" default="ditto" />
   <arg name="password" default="ditto" />
 
-  <!-- Target Thing -->
   <arg name="thing_id" default="laea:iris_0" />
   <arg name="policy_id" default="" />
   <arg name="auto_create_thing" default="true" />
 
-  <!-- Sync behavior -->
-  <arg name="publish_rate_hz" default="1.0" />
+  <arg name="publish_rate_hz" default="2.0" />
   <arg name="request_timeout_s" default="2.0" />
 
-  <!-- Feature names -->
+  <arg name="enable_pose" default="true" />
+  <arg name="enable_gps" default="true" />
+  <arg name="enable_imu" default="true" />
+  <arg name="enable_nav_aux" default="true" />
+  <arg name="enable_slam" default="false" />
+
   <arg name="pose_feature" default="pose_local" />
   <arg name="gps_feature" default="gps" />
+  <arg name="imu_feature" default="imu" />
+  <arg name="nav_aux_feature" default="nav_aux" />
   <arg name="slam_feature" default="slam" />
 
-  <!-- Sensor topics -->
   <arg name="model_name" default="iris_0" />
   <arg name="gt_topic" default="/gazebo/model_states" />
   <arg name="pose_topic" default="/mavros/local_position/pose" />
@@ -26,6 +29,11 @@
   <arg name="gps_fix_topic" default="/mavros/global_position/raw/fix" />
   <arg name="gps_vel_topic" default="/mavros/global_position/raw/gps_vel" />
   <arg name="gps_sat_topic" default="/mavros/global_position/raw/satellites" />
+  <arg name="imu_topic" default="/mavros/imu/data" />
+  <arg name="state_topic" default="/mavros/state" />
+  <arg name="extended_state_topic" default="/mavros/extended_state" />
+  <arg name="mag_topic" default="/mavros/imu/mag" />
+  <arg name="static_pressure_topic" default="/mavros/imu/static_pressure" />
 
   <node pkg="laea_ditto_bridge"
         type="ditto_bridge.py"
@@ -42,8 +50,16 @@
     <param name="publish_rate_hz" value="$(arg publish_rate_hz)" />
     <param name="request_timeout_s" value="$(arg request_timeout_s)" />
 
+    <param name="enable_pose" value="$(arg enable_pose)" />
+    <param name="enable_gps" value="$(arg enable_gps)" />
+    <param name="enable_imu" value="$(arg enable_imu)" />
+    <param name="enable_nav_aux" value="$(arg enable_nav_aux)" />
+    <param name="enable_slam" value="$(arg enable_slam)" />
+
     <param name="pose_feature" value="$(arg pose_feature)" />
     <param name="gps_feature" value="$(arg gps_feature)" />
+    <param name="imu_feature" value="$(arg imu_feature)" />
+    <param name="nav_aux_feature" value="$(arg nav_aux_feature)" />
     <param name="slam_feature" value="$(arg slam_feature)" />
 
     <param name="model_name" value="$(arg model_name)" />
@@ -53,5 +69,10 @@
     <param name="gps_fix_topic" value="$(arg gps_fix_topic)" />
     <param name="gps_vel_topic" value="$(arg gps_vel_topic)" />
     <param name="gps_sat_topic" value="$(arg gps_sat_topic)" />
+    <param name="imu_topic" value="$(arg imu_topic)" />
+    <param name="state_topic" value="$(arg state_topic)" />
+    <param name="extended_state_topic" value="$(arg extended_state_topic)" />
+    <param name="mag_topic" value="$(arg mag_topic)" />
+    <param name="static_pressure_topic" value="$(arg static_pressure_topic)" />
   </node>
 </launch>
