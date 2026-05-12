@@ -1,0 +1,74 @@
+<!--login.html-->
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <title>ACtalk Device</title>
+        <style type="text/css">
+            body {
+                font-size: 32px
+            }
+        </style>
+    </head>
+
+    <body>
+        {% if devicename %}
+        <p>Hello, ip: {{modeladdress}},device: {{devicename}} ,MAC: {{MAC}},IDF: {{IDF}},ODF: {{ODF}}</p>
+        {% else %}
+        <form action="/login" method="POST">
+            <table align="center" style="width:60%;font-size:20px">
+                <tbody>
+                    <tr>
+                        <td style="text-align:center;font-size:8px">&nbsp;</td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:center;font-size:30px">ACtalk</td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:center;font-size:14px">&nbsp;</td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:center"><input style="width:30%;font-size:24px" type="modeladdress"
+                                name="modeladdress" placeholder="modeladdress ip:port"></td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:center"><input style="width:30%;font-size:24px" type="devicename"
+                                name="devicename" placeholder="devicename"></td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:center"><input style="width:30%;font-size:24px" type="devicemodel"
+                                name="devicemodel" placeholder="devicemodel"></td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:center"><input style="width:30%;font-size:24px" type="MAC"
+                                name="MAC" placeholder="MAC"></td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:center"><input style="width:30%;font-size:24px" type="IDF"
+                                name="IDF" placeholder="IDF"></td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:center"><input style="width:30%;font-size:24px" type="ODF"
+                                name="ODF" placeholder="ODF"></td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:center">
+                            <select style="width:30%;font-size:24px;background-color: #a9f3fd" name="datatype">
+                                <option value="">Choose type</option>
+                                <option value="scalar">scalar</option>
+                                <option value="scalar_long">scalar_long</option>      
+                                <option value="multimedia">multimedia</option>       
+                            </select>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:center"><input style="width:30%;font-size:24px" type="submit"
+                                name="send" value="Register"></td>
+                    </tr>
+                </tbody>
+            </table>
+        </form>
+	    {% endif %}
+        <!-- <a href="/login">Register</a> -->
+    </body>
+
+</html>

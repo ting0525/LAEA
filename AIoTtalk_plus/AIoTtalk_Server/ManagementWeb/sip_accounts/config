@@ -1,0 +1,11 @@
+Accounts:
+    siptalktest@140.114.77.83:
+        enabled = true
+        auth:
+            password = 123
+
+        sip:
+            outbound_proxy = "140.114.77.84:5566;transport=udp"
+
+
+

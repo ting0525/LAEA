@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% block content %}
+{% if session['logged_in'] %}
+<script>
+    var provider = "";
+
+    // 在網頁中所有元素(包括頁面中圖片,css檔案等所有關聯檔案)完全載入到瀏覽器後才執行
+    $(window).load(function () {
+        {% if session['provider'] %}
+        document.getElementById("AccountManagement").style.display = "block";
+        {% else %}
+        document.getElementById("AccountManagement").style.display = "none";
+        {% endif %}
+
+        {% if session['IDAExecution'] %}
+        document.getElementById("GroupManagement").style.display = "block";
+        document.getElementById("ModelManagement").style.display = "block";
+        document.getElementById("FeatureManagement").style.display = "block";
+        {% else %}
+        document.getElementById("GroupManagement").style.display = "none";
+        document.getElementById("ModelManagement").style.display = "none";
+        document.getElementById("FeatureManagement").style.display = "none";
+        {% endif %}
+    });
+
+    function ServiceProviderGet(e) {
+        // console.log(e.id)
+        provider = e.id;
+        // document是指html文件，id是 div id= "OOO"的部分
+        document.getElementById("Provider").style.display = "none";
+
+        // jQuery.getJSON( url [, data ] [, success ] )
+        // 執行到ServiceProviderGet這個url之後，會跳至managementweb.y
+        $.getJSON($SCRIPT_ROOT + '/ServiceProviderGet', {
+            provider: provider
+        },
+            // /ServiceProviderGet的 return function
+            function (data) {
+                //alert(data.result);
+                console.log(data) // {result: {type: 0or1}}
+                if (data.result.type == 0) {
+                    document.location.href = "/AccountManagement";
+                }
+                else if (data.result.type == 1) {
+                    if (data.result.ExecutionState != "Success") {
+                        //alert("Service Error:"+data.result.ExecutionState);
+                        document.location.href = "/AccountManagement";
+                    }
+                    else {
+                        document.location.href = "/DeviceGroupManagement";
+                    }
+                }
+            });
+    }; 
+</script>
+
+<p>&nbsp;</p>
+<div id="Provider" style="display:''">
+    <table align="center" border="0" cellpadding="1" cellspacing="1"
+        style="width:100%;text-align:center;font-size:30px">
+        <tbody>
+            <tr id="SelectServiceProvider">
+                <td style="border-color:rgb(0, 0, 0); text-align:center">
+                    <h2><span style="color:black"><strong><span style="font-size:36px">Select Service
+                                    Provider</span></strong></span></h2>
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <table align="center" border="3" cellpadding="1" cellspacing="1"
+                        style="width:25%;text-align:center;font-size:30px">
+                        <tbody>
+                            <tr id="SIP" onclick=ServiceProviderGet(this)>
+                                <td
+                                    style="background-color:rgb(38, 156, 203); border-color:rgb(0, 0, 0); text-align:center">
+                                    <h2><span style="color:#FFFFFF"><strong><span
+                                                    style="font-size:30px">SIP</span></strong></span></h2>
+                                </td>
+                            </tr>
+                            <tr id="NHR" onclick=ServiceProviderGet(this)>
+                                <td style="background-color:rgb(38, 156, 203); border-color:rgb(0, 0, 0); text-align:center">
+                                    <h2><span style="color:#FFFFFF"><strong><span style="font-size:30px">NHR</span></strong></span></h2>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+{% else %}
+    <p>Not login!</p>
+    <a href="/login">Login</a> <!--顯示login reference-->
+{% endif %}
+{% endblock %}

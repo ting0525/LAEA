@@ -1,0 +1,32 @@
+pull error
+pull error
+Traceback (most recent call last):
+  File "ManagementWeb.py", line 967, in GroupManual
+    print(json.dumps(pipeinfo), file=childprocess[username][Provider].stdin, flush=True)
+KeyError: 'siptalk'
+Traceback (most recent call last):
+  File "ManagementWeb.py", line 1081, in IMEIListofModelGet
+    print(json.dumps(pipeinfo), file=childprocess[username][Provider].stdin, flush=True)
+KeyError: 'siptalk'
+Traceback (most recent call last):
+  File "ManagementWeb.py", line 257, in ServiceProviderSave
+    print(json.dumps(pipeinfo),
+BrokenPipeError: [Errno 32] Broken pipe
+pull error
+pull error
+Traceback (most recent call last):
+  File "ManagementWeb.py", line 257, in ServiceProviderSave
+    print(json.dumps(pipeinfo),
+BrokenPipeError: [Errno 32] Broken pipe
+Traceback (most recent call last):
+  File "ManagementWeb.py", line 257, in ServiceProviderSave
+    print(json.dumps(pipeinfo),
+BrokenPipeError: [Errno 32] Broken pipe
+Traceback (most recent call last):
+  File "ManagementWeb.py", line 257, in ServiceProviderSave
+    print(json.dumps(pipeinfo),
+BrokenPipeError: [Errno 32] Broken pipe
+Traceback (most recent call last):
+  File "ManagementWeb.py", line 1683, in <module>
+    print(json.dumps(pipeinfo), file=childprocess[provider.username][provider.Provider].stdin, flush=True)
+BrokenPipeError: [Errno 32] Broken pipe

@@ -1,0 +1,250 @@
+Accounts:
+    deviceatest10@127.0.0.1:
+        enabled = true
+        auth:
+            password = 123
+
+        sip:
+            outbound_proxy = "127.0.0.1:5060;transport=tcp"
+
+
+    deviceatest1@127.0.0.1:
+        enabled = true
+        auth:
+            password = 123
+
+        sip:
+            outbound_proxy = "127.0.0.1:5060;transport=tcp"
+
+
+    deviceatest2@127.0.0.1:
+        enabled = true
+        auth:
+            password = 123
+
+        sip:
+            outbound_proxy = "127.0.0.1:5060;transport=tcp"
+
+
+    deviceatest3@127.0.0.1:
+        enabled = true
+        auth:
+            password = 123
+
+        sip:
+            outbound_proxy = "127.0.0.1:5060;transport=tcp"
+
+
+    deviceatest4@127.0.0.1:
+        enabled = true
+        auth:
+            password = 123
+
+        sip:
+            outbound_proxy = "127.0.0.1:5060;transport=tcp"
+
+
+    deviceatest5@127.0.0.1:
+        enabled = true
+        auth:
+            password = 123
+
+        sip:
+            outbound_proxy = "127.0.0.1:5060;transport=tcp"
+
+
+    deviceatest6@127.0.0.1:
+        enabled = true
+        auth:
+            password = 123
+
+        sip:
+            outbound_proxy = "127.0.0.1:5060;transport=tcp"
+
+
+    deviceatest7@127.0.0.1:
+        enabled = true
+        auth:
+            password = 123
+
+        sip:
+            outbound_proxy = "127.0.0.1:5060;transport=tcp"
+
+
+    deviceatest8@127.0.0.1:
+        enabled = true
+        auth:
+            password = 123
+
+        sip:
+            outbound_proxy = "127.0.0.1:5060;transport=tcp"
+
+
+    deviceatest9@127.0.0.1:
+        enabled = true
+        auth:
+            password = 123
+
+        sip:
+            outbound_proxy = "127.0.0.1:5060;transport=tcp"
+
+
+    devicetest10@127.0.0.1:
+        enabled = true
+        auth:
+            password = 123
+
+        sip:
+            outbound_proxy = "127.0.0.1:5060;transport=tcp"
+
+
+    devicetest1@127.0.0.1:
+        enabled = true
+        auth:
+            password = 123
+
+        sip:
+            outbound_proxy = "127.0.0.1:5060;transport=tcp"
+
+
+    devicetest1@140.114.77.72:
+        enabled = true
+        auth:
+            password = 123
+
+        sip:
+            outbound_proxy = "140.114.77.72:5060;transport=tcp"
+
+
+    devicetest2@127.0.0.1:
+        enabled = true
+        auth:
+            password = 123
+
+        sip:
+            outbound_proxy = "127.0.0.1:5060;transport=tcp"
+
+
+    devicetest2@140.114.77.72:
+        enabled = true
+        auth:
+            password = 123
+
+        sip:
+            outbound_proxy = "140.114.77.72:5060;transport=tcp"
+
+
+    devicetest3@127.0.0.1:
+        enabled = true
+        auth:
+            password = 123
+
+        sip:
+            outbound_proxy = "127.0.0.1:5060;transport=tcp"
+
+
+    devicetest3@140.114.77.72:
+        enabled = true
+        auth:
+            password = 123
+
+        sip:
+            outbound_proxy = "140.114.77.72:5060;transport=tcp"
+
+
+    devicetest4@127.0.0.1:
+        enabled = true
+        auth:
+            password = 123
+
+        sip:
+            outbound_proxy = "127.0.0.1:5060;transport=tcp"
+
+
+    devicetest4@140.114.77.72:
+        enabled = true
+        auth:
+            password = 123
+
+        sip:
+            outbound_proxy = "140.114.77.72:5060;transport=tcp"
+
+
+    devicetest5@127.0.0.1:
+        enabled = true
+        auth:
+            password = 123
+
+        sip:
+            outbound_proxy = "127.0.0.1:5060;transport=tcp"
+
+
+    devicetest6@127.0.0.1:
+        enabled = true
+        auth:
+            password = 123
+
+        sip:
+            outbound_proxy = "127.0.0.1:5060;transport=tcp"
+
+
+    devicetest7@127.0.0.1:
+        enabled = true
+        auth:
+            password = 123
+
+        sip:
+            outbound_proxy = "127.0.0.1:5060;transport=tcp"
+
+
+    devicetest8@127.0.0.1:
+        enabled = true
+        auth:
+            password = 123
+
+        sip:
+            outbound_proxy = "127.0.0.1:5060;transport=tcp"
+
+
+    devicetest9@127.0.0.1:
+        enabled = true
+        auth:
+            password = 123
+
+        sip:
+            outbound_proxy = "127.0.0.1:5060;transport=tcp"
+
+
+    siptalktest@127.0.0.1:
+        enabled = true
+        auth:
+            password = 123
+
+        sip:
+            outbound_proxy = "127.0.0.1:5060;transport=tcp"
+
+
+
+SIPSimpleSettings:
+    default_account = bonjour@local
+    instance_id = "urn:uuid:46ccfdfd-97a7-43aa-a850-d1aa9df2675d"
+    audio:
+        alert_device =
+        input_device =
+        output_device =
+
+    logs:
+        trace_msrp = false
+        trace_notifications = false
+        trace_pjsip = false
+        trace_sip = false
+
+    tls:
+        ca_list = /home/james/.sipclient/tls/ca.crt
+        certificate = /home/james/.sipclient/tls/default.crt
+        verify_server = true
+
+    video:
+        device = "Colorbar generator"
+
+

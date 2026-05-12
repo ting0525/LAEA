@@ -1,0 +1,328 @@
+<!--base.html-->
+<!DOCTYPE html>
+<html>
+  <head>
+  	<meta charset="utf-8" />
+    <title>SIPtalk Device Management</title>
+    <link rel="stylesheet" href="static/css/df_creation.css">
+    <link rel="stylesheet" href="static/bootstrap/css/bootstrap.min.css">
+    <link rel="stylesheet" href="static/bootstrap/css/bootstrap-theme.min.css">
+    <link rel="stylesheet" href="static/jquery-ui/jquery-ui.min.css">
+
+    <link rel="stylesheet" href="static/css/style.css">
+    <link rel="stylesheet" href="static/css/other/fading.css">
+    <link rel="stylesheet" href="static/css/other/main.css">
+    <link rel="stylesheet" href="static/css/object.css">
+    <link rel="stylesheet" href="static/css/wa_set_mapping_function.css">
+    <link rel="stylesheet" href="static/css/wa_set_parameter.css">
+    <link rel="stylesheet" href="static/css/idf_module.css">
+    <link rel="stylesheet" href="static/css/odf_module.css">
+    <link rel="stylesheet" href="static/css/join_module.css">
+    <link rel="stylesheet" href="static/css/dm_creation.css">
+    <link rel="stylesheet" href="static/css/manage.css">
+
+    <script src="static/js/jquery-1.11.1.min.js"></script>
+    <script src="static/bootstrap/js/bootstrap.min.js"></script>
+    <script src="static/jquery-ui/jquery-ui.min.js"></script>
+    <script src="static/js/prettify.js"></script>
+    <script src="static/js/main.js"></script>
+    <script src="static/js/plugin.js"></script>
+
+    <script src="static/management/manage_event_handler.js"></script>
+    <script src="static/management/manage_html_maker.js"></script>
+    <script src="static/management/manage_ajax.js"></script>
+    <script type="text/javascript" src="http://malsup.github.io/jquery.blockUI.js"></script>
+    <script type=text/javascript>  
+		var $SCRIPT_ROOT = {{request.script_root|tojson|safe}};  
+	</script>  
+    
+    <!--  <script> $(function(){ init(); });</script>-->
+    <style type="text/css">
+    	body{font-size:30px}
+    	li{  
+			font-size:24px;  
+		}
+    	ul{  
+			margin:0px;  
+			padding:0px;  
+			list-style-type:none;  
+			vertical-align:middle;  
+		}	
+        .containerall {
+            width: 800px;
+            height: 800px;
+        }
+        /*上面兩個樣式不是重點*/
+
+        /*背景底*/
+        /*加!important覆寫原本樣式*/
+        .blockOverlay {
+            background-color: #fff !important; /*白色底，視自己需求看要不要加*/
+            cursor: default !important; /*預設游標*/
+        }
+        /*loading icon*/
+        .blockMsg {
+            width: 100px; /*width、height改變圓的直徑大小*/
+            height: 100px;
+            display: inline-block !important;
+            animation: containerall-rotate 1568ms linear infinite;
+        }
+
+        .spinner-layer {
+            height: 100%;
+            animation: fill-unfill-rotate 5332ms cubic-bezier(0.4,0,0.2,1) infinite both;
+        }
+
+        .circle-clipper {
+            display: inline-block;
+            position: relative;
+            width: 50%;
+            height: 100%;
+            overflow: hidden;
+        }
+
+            .circle-clipper .circle {
+                box-sizing: border-box;
+                width: 200%;
+                border-width: 7px; /*線條粗細*/
+                border-style: solid;
+                border-color: #4285f4;
+                border-bottom-color: transparent !important;
+                border-radius: 50%;
+                position: absolute;
+                top: 0;
+                right: 0;
+                bottom: 0;
+            }
+
+            .circle-clipper.left .circle {
+                left: 0;
+                border-right-color: transparent !important;
+                animation: left-spin 1333ms cubic-bezier(0.4,0,0.2,1) infinite both
+            }
+
+            .circle-clipper.right .circle {
+                border-left-color: transparent !important;
+                animation: right-spin 1333ms cubic-bezier(0.4,0,0.2,1) infinite both
+            }
+
+        /*定義動畫*/
+        @keyframes containerall-rotate {
+            to {
+                transform: rotate(360deg)
+            }
+        }
+
+        @keyframes fill-unfill-rotate {
+            12.5% {
+                transform: rotate(135deg)
+            }
+
+            25% {
+                transform: rotate(270deg)
+            }
+
+            37.5% {
+                transform: rotate(405deg)
+            }
+
+            50% {
+                transform: rotate(540deg)
+            }
+
+            62.5% {
+                transform: rotate(675deg)
+            }
+
+            75% {
+                transform: rotate(810deg)
+            }
+
+            87.5% {
+                transform: rotate(945deg)
+            }
+
+            to {
+                transform: rotate(1080deg)
+            }
+        }
+
+        @keyframes left-spin {
+            from {
+                transform: rotate(130deg)
+            }
+
+            50% {
+                transform: rotate(-5deg)
+            }
+
+            to {
+                transform: rotate(130deg)
+            }
+        }
+
+        @keyframes right-spin {
+            from {
+                transform: rotate(-130deg)
+            }
+
+            50% {
+                transform: rotate(5deg)
+            }
+
+            to {
+                transform: rotate(-130deg)
+            }
+        }
+    </style>
+    
+    <script>
+		$( window ).resize(function() {
+		    
+			var POS1 = $("#ServiceProvider").offset();
+            //var POS1_1 = $("#ServiceProvider").outerWidth();
+            var POS2 = $("#menu").outerWidth();
+            var POS3 = $("#Logout").outerWidth();
+            var POS4 = $("#AccountManagement").outerWidth();
+            var POS5 = $("#ModelManagement").outerWidth();
+            //var POS5 = POS4 - 90;
+            var POS6 = $("#FeatureManagement").outerWidth();
+            var POS7 = $("#GroupManagement").outerWidth();
+		    /*
+		    console.log("POS1: "+POS1);
+			console.log("POS2: "+POS2);
+			console.log("POS3: "+POS3);
+			console.log("POS4: "+POS4);
+			console.log("POS5: "+POS5);
+			console.log("POS6: "+POS6);
+		    */
+            $("#Logout").css({
+                position: 'absolute',
+                //display: 'none',
+                top: POS1.top - 2,
+                left: POS2 - POS3,
+            });
+
+            $("#AccountManagement").css({
+                position: 'absolute',
+                //display: 'none',
+                top: POS1.top - 2,
+                left: POS2 - POS3 - POS4,
+            });
+
+            $("#ModelManagement").css({
+                position: 'absolute',
+                //display: 'none',
+                top: POS1.top - 2,
+                left: POS2 - POS3 - POS4 - POS5,
+            });
+
+            $("#FeatureManagement").css({
+                position: 'absolute',
+                //display: 'none',
+                top: POS1.top - 2,
+                left: POS2 - POS3 - POS4 - POS5 - POS6,
+            });
+            $("#GroupManagement").css({
+                position: 'absolute',
+                //display: 'none',
+                top: POS1.top - 2,
+                left: POS2 - POS3 - POS4 - POS5 - POS6 - POS7,
+            });
+		});
+    </script>
+    <script type="text/javascript">
+        //
+        //window.onload=init;
+		function init(){
+			{% if session['provider'] %}
+				document.getElementById("AccountManagement").style.display = "block";
+			{% else %}
+				document.getElementById("AccountManagement").style.display = "none";
+			{% endif %}
+			
+			{% if session['IDAExecution'] %}
+				document.getElementById("GroupManagement").style.display = "block";
+				document.getElementById("ModelManagement").style.display = "block";
+				document.getElementById("FeatureManagement").style.display = "block";
+			{% else %}
+				document.getElementById("GroupManagement").style.display = "none";
+				document.getElementById("ModelManagement").style.display = "none";
+				document.getElementById("FeatureManagement").style.display = "none";
+			{% endif %}
+		}
+	</script>
+
+  </head>
+  <body>
+    <div class="containerall" style="width:101%; height:100%; position: relative; left: 0;">
+	    <div id="wrapper">
+	      <div id="header">
+	        <nav id="nav" class="navigation lcyan" style="position: relative; left: 0;">
+	          <div class="container" style="width:100%; padding:0 0 0 0;">
+	            <div class="row">
+	               <div class="col-md-12">
+	                 <ul id="menu" class="menu fading l_tinynav1">
+	                   <li id="ServiceProvider"><a href="/">Service Provider</a></li>
+	                   <li id="GroupManagement" style="display:none"><a href="/DeviceGroupManagement">Device Group Management</a></li>
+	                   <li id="FeatureManagement" style="display:none"><a href="DeviceFeatureManagement">Device Feature</a></li>
+	                   <li id="ModelManagement" style="display:none"><a href="/DeviceModelManagement">Device Model</a></li>
+	                   <li id="AccountManagement" style="display:none"><a href="/AccountManagement">AccountManagement</a></li>
+	                   <li id="Logout"><a href="/logout" style="color:black">Logout</a></li>
+	                   	<script> 
+		        		    var POS1 = $("#ServiceProvider").offset();
+                            //var POS1_1 = $("#ServiceProvider").outerWidth();
+                            var POS2 = $("#menu").outerWidth();
+                            var POS3 = $("#Logout").outerWidth();
+                            var POS4 = $("#AccountManagement").outerWidth();
+                            var POS5 = $("#ModelManagement").outerWidth();
+                            //var POS5 = POS4 - 90;
+                            var POS6 = $("#FeatureManagement").outerWidth();
+                            var POS7 = $("#GroupManagement").outerWidth();
+
+                            $("#Logout").css({
+                                position: 'absolute',
+                                //display: 'none',
+                                top: POS1.top - 2,
+                                left: POS2 - POS3,
+                            });
+
+                            $("#AccountManagement").css({
+                                position: 'absolute',
+                                //display: 'none',
+                                top: POS1.top - 2,
+                                left: POS2 - POS3 - POS4,
+                            });
+
+                            $("#ModelManagement").css({
+                                position: 'absolute',
+                                //display: 'none',
+                                top: POS1.top - 2,
+                                left: POS2 - POS3 - POS4 - POS5,
+                            });
+
+                            $("#FeatureManagement").css({
+                                position: 'absolute',
+                                //display: 'none',
+                                top: POS1.top - 2,
+                                left: POS2 - POS3 - POS4 - POS5 - POS6,
+                            });
+
+                            $("#GroupManagement").css({
+                                position: 'absolute',
+                                //display: 'none',
+                                top: POS1.top - 2,
+                                left: POS2 - POS3 - POS4 - POS5 - POS6 - POS7,
+                            });
+						</script>
+	                   </ul>
+	               </div>
+	            </div>
+	          </div>
+	        </nav>
+	      </div>
+		</div>
+	   {% block content %}{% endblock content %}
+   </div>
+  </body>
+</html>

@@ -1,0 +1,59 @@
+<!--login.html-->
+<html>
+{% block content %}
+    <head>
+        <meta charset="utf-8" />
+        <title>SIPtalk Device Management Account Login</title>
+        <style type="text/css">
+            body {
+                font-size: 32px
+            }
+        </style>
+    </head>
+
+    <body>
+        {% if session['logged_in'] %}
+        <p>You're logged in already!</p>
+        {% else %}
+        <!--The action attribute specifies where to send the form-data when a form is submitted.-->
+        <form action="/login" method="POST">
+            <table align="center" style="width:60%;font-size:20px">
+                <tbody>
+                    <tr>
+                        <td style="text-align:center;font-size:8px">&nbsp;</td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:center;font-size:30px">SIPtalk Device Management Login</td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:center;font-size:14px">&nbsp;</td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:center"><input style="width:30%;font-size:24px" type="username"
+                                name="username" placeholder="Username"></td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:center"><input style="width:30%;font-size:24px" type="password"
+                                name="password" placeholder="Password"></td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:center"><input style="width:30%;font-size:24px" type="submit" value="Login">
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:center">
+                            <div>The account of this system is the same as your account for IoTtalk.</div>
+                            <!--_top: 在整个窗口中打开被链接文档。-->
+                            <div>If You don&rsquo;t have one, please come to <a href="/register" target="_top">here</a>.
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </form>
+        <!-- <a href="/register">Register</a> -->
+        {% endif %}
+        {% endblock %}
+    </body>
+
+</html>

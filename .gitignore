@@ -81,10 +81,18 @@ genpy/
 # === Nested tool logs (do not track) ===
 laea_twin_tools/laea_logs/
 
-# === Nested repos / external projects ===
-AIoTtalk_plus/
-AIoTtalk_SIP_RTP_STARTUP_PREP.md
-# === IDE / ??? / OS ??? ===
+# === Local environment / temp ===
+.venv_aiottalk_plus/
+.build_sipsimple/
+.codex
+
+# === Binary / document files (not suitable for git) ===
+*.pdf
+
+# === Workspace-local markers ===
+laea_planner/utils/multi_map_server/quadrotor_msgs/CATKIN_IGNORE
+
+# === IDE / OS ===
 .vscode/
 .idea/
 *.swp

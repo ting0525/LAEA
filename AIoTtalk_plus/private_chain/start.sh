@@ -1,0 +1,1 @@
+geth --datadir data --port 30301 --authrpc.port 8550 --http --http.addr "0.0.0.0" --http.port "9000" --http.corsdomain "*" --http.api "admin,eth,personal,miner,net,txpool" --miner.gasprice 0 --nodiscover --miner.gasprice "0" --port "8000" --allow-insecure-unlock console

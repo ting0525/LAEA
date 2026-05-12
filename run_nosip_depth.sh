@@ -32,7 +32,44 @@ if [ -f /home/tim/laea/devel/setup.bash ]; then
   source /home/tim/laea/devel/setup.bash
 fi
 
-export ROS_PACKAGE_PATH="/home/tim/laea/src/LAEA:/home/tim/laea/src:/opt/ros/noetic/share"
+export PYTHONPATH="/usr/lib/python3/dist-packages:${PYTHONPATH:-}"
+
+LOCAL_ROS_PACKAGE_PATHS=(
+  "${SCRIPT_DIR}/px4_gazebo"
+  "/home/tim/PX4-Autopilot"
+  "${SCRIPT_DIR}/rtp_gazebo"
+  "${SCRIPT_DIR}/rtp"
+  "${SCRIPT_DIR}/laea_ditto_bridge"
+  "${SCRIPT_DIR}/laea_twin_tools"
+  "${SCRIPT_DIR}/rtabmap/kinect_publisher"
+  "${SCRIPT_DIR}/mavros_controllers/mavros_controllers"
+  "${SCRIPT_DIR}/mavros_controllers/controller_msgs"
+  "${SCRIPT_DIR}/mavros_controllers/geometric_controller"
+  "${SCRIPT_DIR}/mavros_controllers/trajectory_publisher"
+  "${SCRIPT_DIR}/laea_planner/poly_traj"
+  "${SCRIPT_DIR}/laea_planner/plan_env"
+  "${SCRIPT_DIR}/laea_planner/octomap_mapping/octomap_mapping"
+  "${SCRIPT_DIR}/laea_planner/octomap_mapping/octomap_server"
+  "${SCRIPT_DIR}/laea_planner/active_perception"
+  "${SCRIPT_DIR}/laea_planner/path_searching"
+  "${SCRIPT_DIR}/laea_planner/plan_manage"
+  "${SCRIPT_DIR}/laea_planner/traj_utils"
+  "${SCRIPT_DIR}/laea_planner/bspline_opt"
+  "${SCRIPT_DIR}/laea_planner/bspline"
+  "${SCRIPT_DIR}/laea_planner/exploration_manager"
+  "${SCRIPT_DIR}/laea_planner/utils/rviz_plugins"
+  "${SCRIPT_DIR}/laea_planner/utils/quadrotor_msgs"
+  "${SCRIPT_DIR}/laea_planner/utils/waypoint_generator"
+  "${SCRIPT_DIR}/laea_planner/utils/uav_utils"
+  "${SCRIPT_DIR}/laea_planner/utils/laserscan_to_pointcloud"
+  "${SCRIPT_DIR}/laea_planner/utils/pose_utils"
+  "${SCRIPT_DIR}/laea_planner/utils/lkh_tsp_solver"
+  "${SCRIPT_DIR}/laea_planner/utils/cmake_utils"
+  "${SCRIPT_DIR}/laea_planner/utils/ldlidar_stl_ros"
+  "${SCRIPT_DIR}/laea_planner/utils/odom_visualization"
+  "${SCRIPT_DIR}/laea_planner/utils/depthimage_to_laserscan"
+)
+export ROS_PACKAGE_PATH="$(IFS=:; echo "${LOCAL_ROS_PACKAGE_PATHS[*]}"):/opt/ros/noetic/share"
 
 declare -a BG_PIDS=()
 

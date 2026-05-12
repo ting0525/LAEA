@@ -1,0 +1,6 @@
+#IoTtalkServer = "192.168.122.243"
+#IoTtalkServerPort = "9999"
+#NBIoTtalkPort = "11101"
+IoTtalkServer = "140.114.77.93"
+IoTtalkServerPort="9999"
+NBIoTtalkPort="11101"

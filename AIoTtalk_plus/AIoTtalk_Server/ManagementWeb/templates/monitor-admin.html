@@ -1,0 +1,292 @@
+<head>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="http://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+    <!-- <style>
+    label, input { display:block; }
+    input.text { margin-bottom:12px; width:95%; padding: .4em; }
+    fieldset { padding:0; border:0; margin-top:25px; }
+    h1 { font-size: 1.2em; margin: .6em 0; }
+    div#users-contain { width: 350px; margin: 20px 0; }
+    div#users-contain table { margin: 1em 0; border-collapse: collapse; width: 100%; }
+    div#users-contain table td, div#users-contain table th { border: 1px solid #eee; padding: .6em 10px; text-align: left; }
+    .ui-dialog .ui-state-error { padding: .3em; }
+    .validateTips { border: 1px solid transparent; padding: 0.3em; }
+  </style>-->
+    <style type="text/css">
+        .containerall {
+            width: 800px;
+            height: 800px;
+        }
+
+        /*上面兩個樣式不是重點*/
+
+        /*背景底*/
+        /*加!important覆寫原本樣式*/
+        .blockOverlay {
+            background-color: #fff !important;
+            /*白色底，視自己需求看要不要加*/
+            cursor: default !important;
+            /*預設游標*/
+        }
+
+        /*loading icon*/
+        .blockMsg {
+            width: 100px;
+            /*width、height改變圓的直徑大小*/
+            height: 100px;
+            display: inline-block !important;
+            animation: containerall-rotate 1568ms linear infinite;
+        }
+
+        .spinner-layer {
+            height: 100%;
+            animation: fill-unfill-rotate 5332ms cubic-bezier(0.4, 0, 0.2, 1) infinite both;
+        }
+
+        .circle-clipper {
+            display: inline-block;
+            position: relative;
+            width: 50%;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        .circle-clipper .circle {
+            box-sizing: border-box;
+            width: 200%;
+            border-width: 7px;
+            /*線條粗細*/
+            border-style: solid;
+            border-color: #4285f4;
+            border-bottom-color: transparent !important;
+            border-radius: 50%;
+            position: absolute;
+            top: 0;
+            right: 0;
+            bottom: 0;
+        }
+
+        .circle-clipper.left .circle {
+            left: 0;
+            border-right-color: transparent !important;
+            animation: left-spin 1333ms cubic-bezier(0.4, 0, 0.2, 1) infinite both
+        }
+
+        .circle-clipper.right .circle {
+            border-left-color: transparent !important;
+            animation: right-spin 1333ms cubic-bezier(0.4, 0, 0.2, 1) infinite both
+        }
+
+        /*定義動畫*/
+        @keyframes containerall-rotate {
+            to {
+                transform: rotate(360deg)
+            }
+        }
+
+        @keyframes fill-unfill-rotate {
+            12.5% {
+                transform: rotate(135deg)
+            }
+
+            25% {
+                transform: rotate(270deg)
+            }
+
+            37.5% {
+                transform: rotate(405deg)
+            }
+
+            50% {
+                transform: rotate(540deg)
+            }
+
+            62.5% {
+                transform: rotate(675deg)
+            }
+
+            75% {
+                transform: rotate(810deg)
+            }
+
+            87.5% {
+                transform: rotate(945deg)
+            }
+
+            to {
+                transform: rotate(1080deg)
+            }
+        }
+
+        @keyframes left-spin {
+            from {
+                transform: rotate(130deg)
+            }
+
+            50% {
+                transform: rotate(-5deg)
+            }
+
+            to {
+                transform: rotate(130deg)
+            }
+        }
+
+        @keyframes right-spin {
+            from {
+                transform: rotate(-130deg)
+            }
+
+            50% {
+                transform: rotate(5deg)
+            }
+
+            to {
+                transform: rotate(-130deg)
+            }
+        }
+    </style>
+    <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
+    <!--<script src="/static/js/jquery-1.8.3.min.js"></script>-->
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+    <!--[if lte IE 8]><script src="/js/flot/excanvas.min.js"></script><![endif]-->
+    <script src="/static/js/jquery.flot.min.js"></script>
+    <script src="/static/js/jquery.flot.time.js"></script>
+    <!--<script src="/static/js/js/jshashtable-2.1.js"></script>  -->
+    <!--<script src="/static/js/js/jquery.numberformatter-1.2.3.min.js"></script> -->
+    <script src="/static/js/jquery.flot.symbol.js"></script>
+    <script src="/static/js/jquery.flot.axislabels.js"></script>
+    <script>
+        var $SCRIPT_ROOT = {{ request.script_root| tojson | safe}};
+        reloadboolen = true;
+        var data = [];
+        var dataset = [];
+        var options = {};
+
+
+        Date.prototype.Format = function (timestr) {
+            var o = {
+                "M+": this.getMonth() + 1,
+                "d+": this.getDate(),
+                "h+": this.getHours(),
+                "m+": this.getMinutes(),
+                "s+": this.getSeconds(),
+                "q+": Math.floor((this.getMonth() + 3) / 3),
+                "S": this.getMilliseconds()
+            };
+            if (/(y+)/.test(timestr)) timestr = timestr.replace(RegExp.$1, (this.getFullYear() + "").substr(4 - RegExp.$1.length));
+            for (var k in o)
+                if (new RegExp("(" + k + ")").test(timestr)) timestr = timestr.replace(RegExp.$1, (RegExp.$1.length == 1) ? (o[k]) : (("00" + o[k]).substr(("" + o[k]).length)));
+            return timestr;
+        }
+
+        var previousPoint = null, previousLabel = null;
+        $.fn.UseTooltip = function () {
+            $(this).bind("plothover", function (event, pos, item) {
+                if (item) {
+                    if ((previousLabel != item.series.label) || (previousPoint != item.dataIndex)) {
+                        previousPoint = item.dataIndex;
+                        previousLabel = item.series.label;
+                        $("#tooltip").remove();
+
+                        var x = item.datapoint[0];
+                        var y = item.datapoint[1];
+                        var date = new Date(new Date(x).getTime() - (3600000 * 8));
+                        var color = item.series.color;
+
+                        showTooltip(item.pageX, item.pageY, color,
+                            "<strong>" + item.series.label + "</strong><br>" +
+                            "<strong> Time: " + (date.getMonth() + 1) + "/" + date.getDate() + " " + date.getHours() + ":" + date.getMinutes() +
+                            " , Status: " + y + "</strong>");
+                    }
+                } else {
+                    $("#tooltip").remove();
+                    previousPoint = null;
+                }
+            });
+        };
+
+        function showTooltip(x, y, color, contents) {
+            var POS = $("#flot-placeholder").offset();
+            //console.log("top: "+POS.top , "left: "+POS.left);
+            $('<div id="tooltip">' + contents + '</div>').css({
+                position: 'absolute',
+                //display: 'none',
+                top: y - POS.top,
+                left: x - POS.left,
+                border: '2px solid ' + color,
+                padding: '3px',
+                'font-size': '9px',
+                'border-radius': '5px',
+                'background-color': '#fff',
+                'font-family': 'Verdana, Arial, Helvetica, Tahoma, sans-serif',
+                opacity: 0.9
+            }).appendTo(".flot-placeholder-body").fadeIn(200);
+        }
+
+        function clearRows(tbodyID) {
+            var bodyObj = document.getElementById(tbodyID);
+            if (bodyObj == null) {
+                alert("Body of Table not Exist!");
+                return;
+            }
+
+            for (var i = 0; i < bodyObj.rows.length;)
+                bodyObj.deleteRow(i);
+        }
+        function DeleteData(id) {
+            $.getJSON($SCRIPT_ROOT + '/DeleteHistories', {
+                id: id
+            },
+                function (recvdata) {
+                    //alert(data.result.status);
+                    if (recvdata.result.status == "Sucess") {
+                        window.location.reload();
+                    }
+                    else {
+                        alert("Network connection error");
+                    }
+
+                });
+        }
+
+        function refresh() {
+            if (reloadboolen)
+                window.location.reload();
+        }
+
+        setTimeout("refresh()", 60000);
+    </script>
+</head>
+<h1 align="center" style="color:black;">Device Presence Status</h1>
+<table align="center" border="1" cellpadding="1" cellspacing="1" style="color:black;width:1000px">
+    <thead>
+        <tr>
+            <th style="width:20%">DeviceID</th>
+            <th style="width:15%">Presence Status</th>
+            <th style="width:37%">Note</th>
+            <th style="width:20%">LastUpdateTime</th>
+            <th style="width:8%">Delete</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for history in histories %}
+        <tr>
+            <td align='center' valign="middle">{{ history.DeviceID}}
+            </td>
+            {% if history.len == -1 %}
+            <td align='center' valign="middle"></td>
+            <td align='center' valign="middle"></td>
+            {% else %}
+            <td align='center' valign="middle"><img style="width:20px"
+                    src="data:image/png;base64,{{history.png[history.len]}}"></td>
+            <td align='center' valign="middle">{{ history.PSNote}}</td>
+            <td align='center' valign="middle">{{ history.TimeStamp[history.len]}}</td>
+            {% endif %}
+            <td align='center' valign="middle">
+                <button value="" onclick="DeleteData({{history.id}})">Delete</button>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>

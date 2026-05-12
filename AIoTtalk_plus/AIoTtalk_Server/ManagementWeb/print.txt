@@ -1,0 +1,403 @@
+SIP_IDA start
+Start time: Mon Jul 29 20:36:21 2024
+SIP_IDA start
+Start time: Mon Jul 29 20:40:55 2024
+SIP_IDA start
+Start time: Mon Jul 29 20:41:15 2024
+SIP_IDA start
+Start time: Wed Aug 21 14:51:52 2024
+register_PIPE start
+state is ExecutionState
+exit_check start, can start to receive message
+state is UpdateModelName
+state is DeviceList
+state is DeviceList
+state is Deregister
+state is Register
+DeviceGroupList: {'ScalarG2ElecMap': {'DeviceList': ['actuator1-deviceatest1@140.114.77.83', 'actuator1-deviceatest2@140.114.77.83'], 'SIPDfList': [], 'DfList': ['PredictedSpeed-O', 'SIPDevStatus-O'], 'DeviceModel': 'ElecMap', 'DeviceGroup': 'ScalarG2', 'RegisterModel': 'SIP', 'Iottalk_dev': None, 'Lat': 20.0, 'Lng': 121.0}}
+IoTtalk_devlist: {}
+Register to IoTtalk server:http://140.114.77.93:9999
+state is DeviceList
+state is Deregister
+state is Register
+DeviceGroupList: {'ScalarG2ElecMap': {'DeviceList': ['actuator1-deviceatest1@140.114.77.83', 'actuator1-deviceatest2@140.114.77.83'], 'SIPDfList': [], 'DfList': ['PredictedSpeed-O', 'SIPDevStatus-O'], 'DeviceModel': 'ElecMap', 'DeviceGroup': 'ScalarG2', 'RegisterModel': 'SIP', 'Iottalk_dev': None, 'Lat': 20.0, 'Lng': 121.0}, 'ScalarG1RoadSensor': {'DeviceList': ['sensor1-devicetest1@140.114.77.83', 'sensor1-devicetest2@140.114.77.83'], 'SIPDfList': [], 'DfList': ['RoadAvgSpeed-I', 'SIPDevStatus-I'], 'DeviceModel': 'RoadSensor', 'DeviceGroup': 'ScalarG1', 'RegisterModel': 'SIP', 'Iottalk_dev': None, 'Lat': 20.0, 'Lng': 121.0}}
+IoTtalk_devlist: {'ScalarG2ElecMap': {'DeviceModel': 'ElecMap', 'DeviceGroup': 'ScalarG2', 'Iottalk_dev': <DAI.DAI object at 0x7f343ccfcc40>, 'RegisterModel': 'SIP', 'DeviceList': ['actuator1-deviceatest1@140.114.77.83', 'actuator1-deviceatest2@140.114.77.83'], 'DfList': ['PredictedSpeed-O', 'SIPDevStatus-O'], 'SIPDfList': [], 'Lat': 20.0, 'Lng': 121.0}}
+Register to IoTtalk server:http://140.114.77.93:9999
+mac_addr is: SIP-ScalarG1
+df_name is: __Ctl_I__
+mac_addr is: SIP-ScalarG2
+df_name is: __Ctl_I__
+exit start, deregister device from iottalk
+SIP_IDA start
+Start time: Wed Aug 21 16:03:40 2024
+SIP_IDA start
+Start time: Wed Aug 21 16:04:22 2024
+register_PIPE start
+state is ExecutionState
+exit_check start, can start to receive message
+state is UpdateModelName
+state is DeviceList
+state is DeviceList
+state is Deregister
+state is Register
+DeviceGroupList: {'ScalarG1ElecMap': {'DeviceList': ['actuator1-deviceatest1@140.114.77.83', 'actuator1-deviceatest2@140.114.77.83'], 'SIPDfList': [], 'DfList': ['PredictedSpeed-O', 'SIPDevStatus-O'], 'DeviceModel': 'ElecMap', 'DeviceGroup': 'ScalarG1', 'RegisterModel': 'SIP', 'Iottalk_dev': None, 'Lat': 20.0, 'Lng': 121.0}}
+IoTtalk_devlist: {}
+Register to IoTtalk server:http://140.114.77.93:9999
+state is DeviceList
+state is Deregister
+state is Register
+DeviceGroupList: {'ScalarG1ElecMap': {'DeviceList': ['actuator1-deviceatest1@140.114.77.83', 'actuator1-deviceatest2@140.114.77.83'], 'SIPDfList': [], 'DfList': ['PredictedSpeed-O', 'SIPDevStatus-O'], 'DeviceModel': 'ElecMap', 'DeviceGroup': 'ScalarG1', 'RegisterModel': 'SIP', 'Iottalk_dev': None, 'Lat': 20.0, 'Lng': 121.0}, 'ScalarG2RoadSensor': {'DeviceList': ['sensor1-devicetest1@140.114.77.83', 'sensor1-devicetest2@140.114.77.83'], 'SIPDfList': [], 'DfList': ['RoadAvgSpeed-I', 'SIPDevStatus-I'], 'DeviceModel': 'RoadSensor', 'DeviceGroup': 'ScalarG2', 'RegisterModel': 'SIP', 'Iottalk_dev': None, 'Lat': 20.0, 'Lng': 121.0}}
+IoTtalk_devlist: {'ScalarG1ElecMap': {'DeviceModel': 'ElecMap', 'DeviceGroup': 'ScalarG1', 'Iottalk_dev': <DAI.DAI object at 0x7f5514e9ec40>, 'RegisterModel': 'SIP', 'DeviceList': ['actuator1-deviceatest1@140.114.77.83', 'actuator1-deviceatest2@140.114.77.83'], 'DfList': ['PredictedSpeed-O', 'SIPDevStatus-O'], 'SIPDfList': [], 'Lat': 20.0, 'Lng': 121.0}}
+Register to IoTtalk server:http://140.114.77.93:9999
+mac_addr is: SIP-ScalarG1
+df_name is: __Ctl_I__
+mac_addr is: SIP-ScalarG2
+df_name is: __Ctl_I__
+exit start, deregister device from iottalk
+SIP_IDA start
+Start time: Wed Aug 21 16:10:18 2024
+SIP_IDA start
+Start time: Wed Aug 21 16:10:29 2024
+exit start, deregister device from iottalk
+SIP_IDA start
+Start time: Wed Aug 21 16:11:21 2024
+register_PIPE start
+state is ExecutionState
+exit_check start, can start to receive message
+state is UpdateModelName
+state is DeviceList
+state is DeviceList
+state is Deregister
+state is Register
+DeviceGroupList: {'ScalarG1ElecMap': {'DeviceList': ['actuator1-deviceatest1@140.114.77.83', 'actuator1-deviceatest2@140.114.77.83', 'actuator1-deviceatest3@140.114.77.83', 'actuator1-deviceatest4@140.114.77.83', 'actuator1-deviceatest5@140.114.77.83', 'actuator1-deviceatest6@140.114.77.83', 'actuator1-deviceatest7@140.114.77.83'], 'SIPDfList': [], 'DfList': ['PredictedSpeed-O', 'SIPDevStatus-O'], 'DeviceModel': 'ElecMap', 'DeviceGroup': 'ScalarG1', 'RegisterModel': 'SIP', 'Iottalk_dev': None, 'Lat': 20.0, 'Lng': 121.0}}
+IoTtalk_devlist: {}
+Register to IoTtalk server:http://140.114.77.93:9999
+state is DeviceList
+state is Deregister
+state is Register
+DeviceGroupList: {'ScalarG1ElecMap': {'DeviceList': ['actuator1-deviceatest1@140.114.77.83', 'actuator1-deviceatest2@140.114.77.83', 'actuator1-deviceatest3@140.114.77.83', 'actuator1-deviceatest4@140.114.77.83', 'actuator1-deviceatest5@140.114.77.83', 'actuator1-deviceatest6@140.114.77.83', 'actuator1-deviceatest7@140.114.77.83'], 'SIPDfList': [], 'DfList': ['PredictedSpeed-O', 'SIPDevStatus-O'], 'DeviceModel': 'ElecMap', 'DeviceGroup': 'ScalarG1', 'RegisterModel': 'SIP', 'Iottalk_dev': None, 'Lat': 20.0, 'Lng': 121.0}, 'ScalarG2RoadSensor': {'DeviceList': ['sensor1-devicetest1@140.114.77.83', 'sensor1-devicetest2@140.114.77.83', 'sensor1-devicetest3@140.114.77.83', 'sensor1-devicetest4@140.114.77.83', 'sensor1-devicetest5@140.114.77.83', 'sensor1-devicetest6@140.114.77.83', 'sensor1-devicetest7@140.114.77.83'], 'SIPDfList': [], 'DfList': ['RoadAvgSpeed-I', 'SIPDevStatus-I'], 'DeviceModel': 'RoadSensor', 'DeviceGroup': 'ScalarG2', 'RegisterModel': 'SIP', 'Iottalk_dev': None, 'Lat': 20.0, 'Lng': 121.0}}
+IoTtalk_devlist: {'ScalarG1ElecMap': {'DeviceModel': 'ElecMap', 'DeviceGroup': 'ScalarG1', 'Iottalk_dev': <DAI.DAI object at 0x7f6436f01c40>, 'RegisterModel': 'SIP', 'DeviceList': ['actuator1-deviceatest1@140.114.77.83', 'actuator1-deviceatest2@140.114.77.83', 'actuator1-deviceatest3@140.114.77.83', 'actuator1-deviceatest4@140.114.77.83', 'actuator1-deviceatest5@140.114.77.83', 'actuator1-deviceatest6@140.114.77.83', 'actuator1-deviceatest7@140.114.77.83'], 'DfList': ['PredictedSpeed-O', 'SIPDevStatus-O'], 'SIPDfList': [], 'Lat': 20.0, 'Lng': 121.0}}
+Register to IoTtalk server:http://140.114.77.93:9999
+state is Deregister
+state is DeviceList
+state is DeviceList
+state is DeviceList
+state is DeviceList
+state is DeviceList
+state is Deregister
+state is DeviceList
+state is DeviceList
+state is Deregister
+state is Register
+DeviceGroupList: {'ScalarG2ElecMap': {'DeviceList': ['actuator1-deviceatest1@140.114.77.83', 'actuator1-deviceatest2@140.114.77.83', 'actuator1-deviceatest3@140.114.77.83', 'actuator1-deviceatest4@140.114.77.83', 'actuator1-deviceatest5@140.114.77.83', 'actuator1-deviceatest6@140.114.77.83', 'actuator1-deviceatest7@140.114.77.83'], 'SIPDfList': [], 'DfList': ['PredictedSpeed-O', 'SIPDevStatus-O'], 'DeviceModel': 'ElecMap', 'DeviceGroup': 'ScalarG2', 'RegisterModel': 'SIP', 'Iottalk_dev': None, 'Lat': 20.0, 'Lng': 121.0}}
+IoTtalk_devlist: {}
+Register to IoTtalk server:http://140.114.77.93:9999
+state is DeviceList
+state is Deregister
+state is Register
+DeviceGroupList: {'ScalarG2ElecMap': {'DeviceList': ['actuator1-deviceatest1@140.114.77.83', 'actuator1-deviceatest2@140.114.77.83', 'actuator1-deviceatest3@140.114.77.83', 'actuator1-deviceatest4@140.114.77.83', 'actuator1-deviceatest5@140.114.77.83', 'actuator1-deviceatest6@140.114.77.83', 'actuator1-deviceatest7@140.114.77.83'], 'SIPDfList': [], 'DfList': ['PredictedSpeed-O', 'SIPDevStatus-O'], 'DeviceModel': 'ElecMap', 'DeviceGroup': 'ScalarG2', 'RegisterModel': 'SIP', 'Iottalk_dev': None, 'Lat': 20.0, 'Lng': 121.0}, 'ScalarG1RoadSensor': {'DeviceList': ['sensor1-devicetest1@140.114.77.83', 'sensor1-devicetest2@140.114.77.83', 'sensor1-devicetest3@140.114.77.83', 'sensor1-devicetest4@140.114.77.83', 'sensor1-devicetest5@140.114.77.83', 'sensor1-devicetest6@140.114.77.83', 'sensor1-devicetest7@140.114.77.83'], 'SIPDfList': [], 'DfList': ['RoadAvgSpeed-I', 'SIPDevStatus-I'], 'DeviceModel': 'RoadSensor', 'DeviceGroup': 'ScalarG1', 'RegisterModel': 'SIP', 'Iottalk_dev': None, 'Lat': 20.0, 'Lng': 121.0}}
+IoTtalk_devlist: {'ScalarG2ElecMap': {'DeviceModel': 'ElecMap', 'DeviceGroup': 'ScalarG2', 'Iottalk_dev': <DAI.DAI object at 0x7f64366d2c70>, 'RegisterModel': 'SIP', 'DeviceList': ['actuator1-deviceatest1@140.114.77.83', 'actuator1-deviceatest2@140.114.77.83', 'actuator1-deviceatest3@140.114.77.83', 'actuator1-deviceatest4@140.114.77.83', 'actuator1-deviceatest5@140.114.77.83', 'actuator1-deviceatest6@140.114.77.83', 'actuator1-deviceatest7@140.114.77.83'], 'DfList': ['PredictedSpeed-O', 'SIPDevStatus-O'], 'SIPDfList': [], 'Lat': 20.0, 'Lng': 121.0}}
+Register to IoTtalk server:http://140.114.77.93:9999
+mac_addr is: SIP-ScalarG1
+df_name is: __Ctl_I__
+mac_addr is: SIP-ScalarG2
+df_name is: __Ctl_I__
+exit start, deregister device from iottalk
+SIP_IDA start
+Start time: Wed Aug 21 20:49:56 2024
+register_PIPE start
+state is ExecutionState
+exit_check start, can start to receive message
+state is UpdateModelName
+state is DeviceList
+state is DeviceList
+state is Deregister
+state is Register
+DeviceGroupList: {'ScalarLongG1FrontImage': {'DeviceList': ['sensor2-devicetest1@140.114.77.83', 'sensor2-devicetest2@140.114.77.83', 'sensor2-devicetest3@140.114.77.83', 'sensor2-devicetest4@140.114.77.83', 'sensor2-devicetest5@140.114.77.83', 'sensor2-devicetest6@140.114.77.83', 'sensor2-devicetest7@140.114.77.83'], 'SIPDfList': [], 'DfList': ['Image-I', 'SIPDevStatus-I'], 'DeviceModel': 'FrontImage', 'DeviceGroup': 'ScalarLongG1', 'RegisterModel': 'SIP', 'Iottalk_dev': None, 'Lat': 20.0, 'Lng': 121.0}}
+IoTtalk_devlist: {}
+Register to IoTtalk server:http://140.114.77.93:9999
+state is DeviceList
+state is DeviceList
+state is DeviceList
+state is DeviceList
+state is DeviceList
+state is Deregister
+state is Register
+DeviceGroupList: {'ScalarLongG1FrontImage': {'DeviceList': ['sensor2-devicetest1@140.114.77.83', 'sensor2-devicetest2@140.114.77.83', 'sensor2-devicetest3@140.114.77.83', 'sensor2-devicetest4@140.114.77.83', 'sensor2-devicetest5@140.114.77.83', 'sensor2-devicetest6@140.114.77.83', 'sensor2-devicetest7@140.114.77.83'], 'SIPDfList': [], 'DfList': ['Image-I', 'SIPDevStatus-I'], 'DeviceModel': 'FrontImage', 'DeviceGroup': 'ScalarLongG1', 'RegisterModel': 'SIP', 'Iottalk_dev': None, 'Lat': 20.0, 'Lng': 121.0}, 'ScalarLongG2PreImage': {'DeviceList': ['actuator2-deviceatest1@140.114.77.83', 'actuator2-deviceatest2@140.114.77.83', 'actuator2-deviceatest3@140.114.77.83', 'actuator2-deviceatest4@140.114.77.83', 'actuator2-deviceatest5@140.114.77.83', 'actuator2-deviceatest6@140.114.77.83', 'actuator2-deviceatest7@140.114.77.83'], 'SIPDfList': [], 'DfList': ['Image-O', 'SIPDevStatus-O'], 'DeviceModel': 'PreImage', 'DeviceGroup': 'ScalarLongG2', 'RegisterModel': 'SIP', 'Iottalk_dev': None, 'Lat': 20.0, 'Lng': 121.0}}
+IoTtalk_devlist: {'ScalarLongG1FrontImage': {'DeviceModel': 'FrontImage', 'DeviceGroup': 'ScalarLongG1', 'Iottalk_dev': <DAI.DAI object at 0x7f2203648c40>, 'RegisterModel': 'SIP', 'DeviceList': ['sensor2-devicetest1@140.114.77.83', 'sensor2-devicetest2@140.114.77.83', 'sensor2-devicetest3@140.114.77.83', 'sensor2-devicetest4@140.114.77.83', 'sensor2-devicetest5@140.114.77.83', 'sensor2-devicetest6@140.114.77.83', 'sensor2-devicetest7@140.114.77.83'], 'DfList': ['Image-I', 'SIPDevStatus-I'], 'SIPDfList': [], 'Lat': 20.0, 'Lng': 121.0}}
+Register to IoTtalk server:http://140.114.77.93:9999
+mac_addr is: SIP-ScalarLongG1
+df_name is: __Ctl_I__
+mac_addr is: SIP-ScalarLongG2
+df_name is: __Ctl_I__
+exit start, deregister device from iottalk
+SIP_IDA start
+Start time: Fri Aug 23 16:47:23 2024
+register_PIPE start
+state is ExecutionState
+exit_check start, can start to receive message
+exit start, deregister device from iottalk
+SIP_IDA start
+Start time: Fri Aug 23 16:48:07 2024
+SIP_IDA start
+Start time: Fri Aug 23 16:48:32 2024
+register_PIPE start
+state is ExecutionState
+exit_check start, can start to receive message
+exit start, deregister device from iottalk
+SIP_IDA start
+Start time: Fri Aug 23 16:49:46 2024
+register_PIPE start
+state is ExecutionState
+exit_check start, can start to receive message
+exit start, deregister device from iottalk
+SIP_IDA start
+Start time: Fri Aug 23 16:54:10 2024
+exit start, deregister device from iottalk
+SIP_IDA start
+Start time: Fri Aug 23 16:56:21 2024
+register_PIPE start
+exit_check start, can start to receive message
+state is ExecutionState
+exit start, deregister device from iottalk
+SIP_IDA start
+Start time: Fri Aug 23 16:57:11 2024
+register_PIPE start
+state is ExecutionState
+exit_check start, can start to receive message
+state is UpdateModelName
+state is DeviceList
+state is DeviceList
+state is Deregister
+state is Register
+DeviceGroupList: {'ScalarLongG1FrontImage': {'DeviceList': ['sensor2-devicetest1@140.114.77.83', 'sensor2-devicetest2@140.114.77.83', 'sensor2-devicetest3@140.114.77.83', 'sensor2-devicetest4@140.114.77.83', 'sensor2-devicetest5@140.114.77.83', 'sensor2-devicetest6@140.114.77.83', 'sensor2-devicetest7@140.114.77.83'], 'SIPDfList': [], 'DfList': ['Image-I', 'SIPDevStatus-I'], 'DeviceModel': 'FrontImage', 'DeviceGroup': 'ScalarLongG1', 'RegisterModel': 'SIP', 'Iottalk_dev': None, 'Lat': 20.0, 'Lng': 121.0}}
+IoTtalk_devlist: {}
+Register to IoTtalk server:http://140.114.77.93:9999
+state is DeviceList
+state is Deregister
+state is Register
+DeviceGroupList: {'ScalarLongG1FrontImage': {'DeviceList': ['sensor2-devicetest1@140.114.77.83', 'sensor2-devicetest2@140.114.77.83', 'sensor2-devicetest3@140.114.77.83', 'sensor2-devicetest4@140.114.77.83', 'sensor2-devicetest5@140.114.77.83', 'sensor2-devicetest6@140.114.77.83', 'sensor2-devicetest7@140.114.77.83'], 'SIPDfList': [], 'DfList': ['Image-I', 'SIPDevStatus-I'], 'DeviceModel': 'FrontImage', 'DeviceGroup': 'ScalarLongG1', 'RegisterModel': 'SIP', 'Iottalk_dev': None, 'Lat': 20.0, 'Lng': 121.0}, 'ScalarLongG2PreImage': {'DeviceList': ['actuator2-deviceatest1@140.114.77.83', 'actuator2-deviceatest2@140.114.77.83', 'actuator2-deviceatest3@140.114.77.83', 'actuator2-deviceatest4@140.114.77.83', 'actuator2-deviceatest5@140.114.77.83', 'actuator2-deviceatest6@140.114.77.83', 'actuator2-deviceatest7@140.114.77.83'], 'SIPDfList': [], 'DfList': ['Image-O', 'SIPDevStatus-O'], 'DeviceModel': 'PreImage', 'DeviceGroup': 'ScalarLongG2', 'RegisterModel': 'SIP', 'Iottalk_dev': None, 'Lat': 20.0, 'Lng': 121.0}}
+IoTtalk_devlist: {'ScalarLongG1FrontImage': {'DeviceModel': 'FrontImage', 'DeviceGroup': 'ScalarLongG1', 'Iottalk_dev': <DAI.DAI object at 0x7f70f8d1d1c0>, 'RegisterModel': 'SIP', 'DeviceList': ['sensor2-devicetest1@140.114.77.83', 'sensor2-devicetest2@140.114.77.83', 'sensor2-devicetest3@140.114.77.83', 'sensor2-devicetest4@140.114.77.83', 'sensor2-devicetest5@140.114.77.83', 'sensor2-devicetest6@140.114.77.83', 'sensor2-devicetest7@140.114.77.83'], 'DfList': ['Image-I', 'SIPDevStatus-I'], 'SIPDfList': [], 'Lat': 20.0, 'Lng': 121.0}}
+Register to IoTtalk server:http://140.114.77.93:9999
+exit start, deregister device from iottalk
+SIP_IDA start
+Start time: Fri Aug 23 17:05:03 2024
+register_PIPE start
+state is ExecutionState
+exit_check start, can start to receive message
+state is UpdateModelName
+state is DeviceList
+state is DeviceList
+state is Deregister
+state is Register
+DeviceGroupList: {'ScalarLongG1FrontImage': {'DeviceList': ['sensor2-devicetest1@140.114.77.83', 'sensor2-devicetest2@140.114.77.83', 'sensor2-devicetest3@140.114.77.83', 'sensor2-devicetest4@140.114.77.83', 'sensor2-devicetest5@140.114.77.83', 'sensor2-devicetest6@140.114.77.83', 'sensor2-devicetest7@140.114.77.83'], 'SIPDfList': [], 'DfList': ['Image-I', 'SIPDevStatus-I'], 'DeviceModel': 'FrontImage', 'DeviceGroup': 'ScalarLongG1', 'RegisterModel': 'SIP', 'Iottalk_dev': None, 'Lat': 20.0, 'Lng': 121.0}}
+IoTtalk_devlist: {}
+Register to IoTtalk server:http://140.114.77.93:9999
+state is DeviceList
+state is Deregister
+state is Register
+DeviceGroupList: {'ScalarLongG1FrontImage': {'DeviceList': ['sensor2-devicetest1@140.114.77.83', 'sensor2-devicetest2@140.114.77.83', 'sensor2-devicetest3@140.114.77.83', 'sensor2-devicetest4@140.114.77.83', 'sensor2-devicetest5@140.114.77.83', 'sensor2-devicetest6@140.114.77.83', 'sensor2-devicetest7@140.114.77.83'], 'SIPDfList': [], 'DfList': ['Image-I', 'SIPDevStatus-I'], 'DeviceModel': 'FrontImage', 'DeviceGroup': 'ScalarLongG1', 'RegisterModel': 'SIP', 'Iottalk_dev': None, 'Lat': 20.0, 'Lng': 121.0}, 'ScalarLongG2PreImage': {'DeviceList': ['actuator2-deviceatest1@140.114.77.83', 'actuator2-deviceatest2@140.114.77.83', 'actuator2-deviceatest3@140.114.77.83', 'actuator2-deviceatest4@140.114.77.83', 'actuator2-deviceatest5@140.114.77.83', 'actuator2-deviceatest6@140.114.77.83', 'actuator2-deviceatest7@140.114.77.83'], 'SIPDfList': [], 'DfList': ['Image-O', 'SIPDevStatus-O'], 'DeviceModel': 'PreImage', 'DeviceGroup': 'ScalarLongG2', 'RegisterModel': 'SIP', 'Iottalk_dev': None, 'Lat': 20.0, 'Lng': 121.0}}
+IoTtalk_devlist: {'ScalarLongG1FrontImage': {'DeviceModel': 'FrontImage', 'DeviceGroup': 'ScalarLongG1', 'Iottalk_dev': <DAI.DAI object at 0x7f92cf37e1c0>, 'RegisterModel': 'SIP', 'DeviceList': ['sensor2-devicetest1@140.114.77.83', 'sensor2-devicetest2@140.114.77.83', 'sensor2-devicetest3@140.114.77.83', 'sensor2-devicetest4@140.114.77.83', 'sensor2-devicetest5@140.114.77.83', 'sensor2-devicetest6@140.114.77.83', 'sensor2-devicetest7@140.114.77.83'], 'DfList': ['Image-I', 'SIPDevStatus-I'], 'SIPDfList': [], 'Lat': 20.0, 'Lng': 121.0}}
+Register to IoTtalk server:http://140.114.77.93:9999
+exit start, deregister device from iottalk
+SIP_IDA start
+Start time: Fri Aug 23 17:09:31 2024
+register_PIPE start
+state is ExecutionState
+exit_check start, can start to receive message
+exit start, deregister device from iottalk
+SIP_IDA start
+Start time: Fri Aug 23 17:12:25 2024
+register_PIPE start
+state is ExecutionState
+exit_check start, can start to receive message
+exit start, deregister device from iottalk
+SIP_IDA start
+Start time: Fri Aug 23 17:17:03 2024
+SIP_IDA start
+Start time: Fri Aug 23 17:17:29 2024
+SIP_IDA start
+Start time: Fri Aug 23 17:21:29 2024
+SIP_IDA start
+Start time: Fri Aug 23 17:26:34 2024
+SIP_IDA start
+Start time: Fri Aug 23 17:28:29 2024
+register_PIPE start
+state is ExecutionState
+exit_check start, can start to receive message
+exit start, deregister device from iottalk
+SIP_IDA start
+Start time: Fri Aug 23 17:30:58 2024
+register_PIPE start
+state is ExecutionState
+exit_check start, can start to receive message
+exit start, deregister device from iottalk
+SIP_IDA start
+Start time: Fri Aug 23 17:32:00 2024
+register_PIPE start
+state is ExecutionState
+exit_check start, can start to receive message
+exit start, deregister device from iottalk
+SIP_IDA start
+Start time: Fri Aug 23 17:34:30 2024
+register_PIPE start
+state is ExecutionState
+exit_check start, can start to receive message
+exit start, deregister device from iottalk
+SIP_IDA start
+Start time: Fri Aug 23 17:36:14 2024
+register_PIPE start
+state is ExecutionState
+exit_check start, can start to receive message
+exit start, deregister device from iottalk
+SIP_IDA start
+Start time: Fri Aug 23 17:37:27 2024
+register_PIPE start
+state is ExecutionState
+exit_check start, can start to receive message
+exit start, deregister device from iottalk
+SIP_IDA start
+Start time: Fri Aug 23 17:39:18 2024
+register_PIPE start
+state is ExecutionState
+exit_check start, can start to receive message
+exit start, deregister device from iottalk
+SIP_IDA start
+Start time: Fri Aug 23 17:40:15 2024
+register_PIPE start
+state is ExecutionState
+exit_check start, can start to receive message
+exit start, deregister device from iottalk
+SIP_IDA start
+Start time: Fri Aug 23 17:47:33 2024
+register_PIPE start
+state is ExecutionState
+exit_check start, can start to receive message
+exit start, deregister device from iottalk
+SIP_IDA start
+Start time: Fri Aug 23 17:49:14 2024
+register_PIPE start
+state is ExecutionState
+exit_check start, can start to receive message
+exit start, deregister device from iottalk
+SIP_IDA start
+Start time: Fri Aug 23 17:50:32 2024
+register_PIPE start
+state is ExecutionState
+exit_check start, can start to receive message
+state is UpdateModelName
+state is DeviceList
+state is DeviceList
+state is Deregister
+state is Register
+DeviceGroupList: {'ScalarLongG1FrontImage': {'DeviceList': ['sensor2-devicetest1@140.114.77.83', 'sensor2-devicetest2@140.114.77.83', 'sensor2-devicetest3@140.114.77.83', 'sensor2-devicetest4@140.114.77.83', 'sensor2-devicetest5@140.114.77.83', 'sensor2-devicetest6@140.114.77.83', 'sensor2-devicetest7@140.114.77.83'], 'SIPDfList': [], 'DfList': ['Image-I', 'SIPDevStatus-I'], 'DeviceModel': 'FrontImage', 'DeviceGroup': 'ScalarLongG1', 'RegisterModel': 'SIP', 'Iottalk_dev': None, 'Lat': 20.0, 'Lng': 121.0}}
+IoTtalk_devlist: {}
+Register to IoTtalk server:http://140.114.77.93:9999
+state is DeviceList
+state is Deregister
+state is Register
+DeviceGroupList: {'ScalarLongG1FrontImage': {'DeviceList': ['sensor2-devicetest1@140.114.77.83', 'sensor2-devicetest2@140.114.77.83', 'sensor2-devicetest3@140.114.77.83', 'sensor2-devicetest4@140.114.77.83', 'sensor2-devicetest5@140.114.77.83', 'sensor2-devicetest6@140.114.77.83', 'sensor2-devicetest7@140.114.77.83'], 'SIPDfList': [], 'DfList': ['Image-I', 'SIPDevStatus-I'], 'DeviceModel': 'FrontImage', 'DeviceGroup': 'ScalarLongG1', 'RegisterModel': 'SIP', 'Iottalk_dev': None, 'Lat': 20.0, 'Lng': 121.0}, 'ScalarLongG2PreImage': {'DeviceList': ['actuator2-deviceatest1@140.114.77.83', 'actuator2-deviceatest2@140.114.77.83', 'actuator2-deviceatest3@140.114.77.83', 'actuator2-deviceatest4@140.114.77.83', 'actuator2-deviceatest5@140.114.77.83', 'actuator2-deviceatest6@140.114.77.83', 'actuator2-deviceatest7@140.114.77.83'], 'SIPDfList': [], 'DfList': ['Image-O', 'SIPDevStatus-O'], 'DeviceModel': 'PreImage', 'DeviceGroup': 'ScalarLongG2', 'RegisterModel': 'SIP', 'Iottalk_dev': None, 'Lat': 20.0, 'Lng': 121.0}}
+IoTtalk_devlist: {'ScalarLongG1FrontImage': {'DeviceModel': 'FrontImage', 'DeviceGroup': 'ScalarLongG1', 'Iottalk_dev': <DAI.DAI object at 0x7fe0723dadf0>, 'RegisterModel': 'SIP', 'DeviceList': ['sensor2-devicetest1@140.114.77.83', 'sensor2-devicetest2@140.114.77.83', 'sensor2-devicetest3@140.114.77.83', 'sensor2-devicetest4@140.114.77.83', 'sensor2-devicetest5@140.114.77.83', 'sensor2-devicetest6@140.114.77.83', 'sensor2-devicetest7@140.114.77.83'], 'DfList': ['Image-I', 'SIPDevStatus-I'], 'SIPDfList': [], 'Lat': 20.0, 'Lng': 121.0}}
+Register to IoTtalk server:http://140.114.77.93:9999
+mac_addr is: SIP-ScalarLongG1
+df_name is: __Ctl_I__
+mac_addr is: SIP-ScalarLongG2
+df_name is: __Ctl_I__
+exit start, deregister device from iottalk
+SIP_IDA start
+Start time: Fri Aug 23 18:00:28 2024
+register_PIPE start
+state is ExecutionState
+exit_check start, can start to receive message
+state is UpdateModelName
+state is DeviceList
+state is DeviceList
+state is Deregister
+state is Register
+DeviceGroupList: {'ScalarLongG1FrontImage': {'DeviceList': ['sensor2-devicetest1@140.114.77.83', 'sensor2-devicetest2@140.114.77.83', 'sensor2-devicetest3@140.114.77.83', 'sensor2-devicetest4@140.114.77.83', 'sensor2-devicetest5@140.114.77.83', 'sensor2-devicetest6@140.114.77.83', 'sensor2-devicetest7@140.114.77.83'], 'SIPDfList': [], 'DfList': ['Image-I', 'SIPDevStatus-I'], 'DeviceModel': 'FrontImage', 'DeviceGroup': 'ScalarLongG1', 'RegisterModel': 'SIP', 'Iottalk_dev': None, 'Lat': 20.0, 'Lng': 121.0}}
+IoTtalk_devlist: {}
+Register to IoTtalk server:http://140.114.77.93:9999
+state is DeviceList
+state is Deregister
+state is Register
+DeviceGroupList: {'ScalarLongG1FrontImage': {'DeviceList': ['sensor2-devicetest1@140.114.77.83', 'sensor2-devicetest2@140.114.77.83', 'sensor2-devicetest3@140.114.77.83', 'sensor2-devicetest4@140.114.77.83', 'sensor2-devicetest5@140.114.77.83', 'sensor2-devicetest6@140.114.77.83', 'sensor2-devicetest7@140.114.77.83'], 'SIPDfList': [], 'DfList': ['Image-I', 'SIPDevStatus-I'], 'DeviceModel': 'FrontImage', 'DeviceGroup': 'ScalarLongG1', 'RegisterModel': 'SIP', 'Iottalk_dev': None, 'Lat': 20.0, 'Lng': 121.0}, 'ScalarLongG2PreImage': {'DeviceList': ['actuator2-deviceatest1@140.114.77.83', 'actuator2-deviceatest2@140.114.77.83', 'actuator2-deviceatest3@140.114.77.83', 'actuator2-deviceatest4@140.114.77.83', 'actuator2-deviceatest5@140.114.77.83', 'actuator2-deviceatest6@140.114.77.83', 'actuator2-deviceatest7@140.114.77.83'], 'SIPDfList': [], 'DfList': ['Image-O', 'SIPDevStatus-O'], 'DeviceModel': 'PreImage', 'DeviceGroup': 'ScalarLongG2', 'RegisterModel': 'SIP', 'Iottalk_dev': None, 'Lat': 20.0, 'Lng': 121.0}}
+IoTtalk_devlist: {'ScalarLongG1FrontImage': {'DeviceModel': 'FrontImage', 'DeviceGroup': 'ScalarLongG1', 'Iottalk_dev': <DAI.DAI object at 0x7fb20af74df0>, 'RegisterModel': 'SIP', 'DeviceList': ['sensor2-devicetest1@140.114.77.83', 'sensor2-devicetest2@140.114.77.83', 'sensor2-devicetest3@140.114.77.83', 'sensor2-devicetest4@140.114.77.83', 'sensor2-devicetest5@140.114.77.83', 'sensor2-devicetest6@140.114.77.83', 'sensor2-devicetest7@140.114.77.83'], 'DfList': ['Image-I', 'SIPDevStatus-I'], 'SIPDfList': [], 'Lat': 20.0, 'Lng': 121.0}}
+Register to IoTtalk server:http://140.114.77.93:9999
+mac_addr is: SIP-ScalarLongG1
+df_name is: __Ctl_I__
+mac_addr is: SIP-ScalarLongG2
+df_name is: __Ctl_I__
+exit start, deregister device from iottalk
+SIP_IDA start
+Start time: Fri Aug 23 18:05:25 2024
+register_PIPE start
+state is ExecutionState
+exit_check start, can start to receive message
+state is UpdateModelName
+state is DeviceList
+state is DeviceList
+state is Deregister
+state is Register
+DeviceGroupList: {'ScalarLongG1FrontImage': {'DeviceList': ['sensor2-devicetest1@140.114.77.83', 'sensor2-devicetest2@140.114.77.83', 'sensor2-devicetest3@140.114.77.83', 'sensor2-devicetest4@140.114.77.83', 'sensor2-devicetest5@140.114.77.83', 'sensor2-devicetest6@140.114.77.83', 'sensor2-devicetest7@140.114.77.83'], 'SIPDfList': [], 'DfList': ['Image-I', 'SIPDevStatus-I'], 'DeviceModel': 'FrontImage', 'DeviceGroup': 'ScalarLongG1', 'RegisterModel': 'SIP', 'Iottalk_dev': None, 'Lat': 20.0, 'Lng': 121.0}}
+IoTtalk_devlist: {}
+Register to IoTtalk server:http://140.114.77.93:9999
+state is DeviceList
+state is Deregister
+state is Register
+DeviceGroupList: {'ScalarLongG1FrontImage': {'DeviceList': ['sensor2-devicetest1@140.114.77.83', 'sensor2-devicetest2@140.114.77.83', 'sensor2-devicetest3@140.114.77.83', 'sensor2-devicetest4@140.114.77.83', 'sensor2-devicetest5@140.114.77.83', 'sensor2-devicetest6@140.114.77.83', 'sensor2-devicetest7@140.114.77.83'], 'SIPDfList': [], 'DfList': ['Image-I', 'SIPDevStatus-I'], 'DeviceModel': 'FrontImage', 'DeviceGroup': 'ScalarLongG1', 'RegisterModel': 'SIP', 'Iottalk_dev': None, 'Lat': 20.0, 'Lng': 121.0}, 'ScalarLongG2PreImage': {'DeviceList': ['actuator2-deviceatest1@140.114.77.83', 'actuator2-deviceatest2@140.114.77.83', 'actuator2-deviceatest3@140.114.77.83', 'actuator2-deviceatest4@140.114.77.83', 'actuator2-deviceatest5@140.114.77.83', 'actuator2-deviceatest6@140.114.77.83', 'actuator2-deviceatest7@140.114.77.83'], 'SIPDfList': [], 'DfList': ['Image-O', 'SIPDevStatus-O'], 'DeviceModel': 'PreImage', 'DeviceGroup': 'ScalarLongG2', 'RegisterModel': 'SIP', 'Iottalk_dev': None, 'Lat': 20.0, 'Lng': 121.0}}
+IoTtalk_devlist: {'ScalarLongG1FrontImage': {'DeviceModel': 'FrontImage', 'DeviceGroup': 'ScalarLongG1', 'Iottalk_dev': <DAI.DAI object at 0x7f555402fdf0>, 'RegisterModel': 'SIP', 'DeviceList': ['sensor2-devicetest1@140.114.77.83', 'sensor2-devicetest2@140.114.77.83', 'sensor2-devicetest3@140.114.77.83', 'sensor2-devicetest4@140.114.77.83', 'sensor2-devicetest5@140.114.77.83', 'sensor2-devicetest6@140.114.77.83', 'sensor2-devicetest7@140.114.77.83'], 'DfList': ['Image-I', 'SIPDevStatus-I'], 'SIPDfList': [], 'Lat': 20.0, 'Lng': 121.0}}
+Register to IoTtalk server:http://140.114.77.93:9999
+mac_addr is: SIP-ScalarLongG1
+df_name is: __Ctl_I__
+mac_addr is: SIP-ScalarLongG2
+df_name is: __Ctl_I__
+exit start, deregister device from iottalk
+SIP_IDA start
+Start time: Fri Aug 23 18:10:27 2024
+register_PIPE start
+state is ExecutionState
+exit_check start, can start to receive message
+state is UpdateModelName
+state is DeviceList
+state is DeviceList
+state is Deregister
+state is Register
+DeviceGroupList: {'ScalarLongG1FrontImage': {'DeviceList': ['sensor2-devicetest1@140.114.77.83', 'sensor2-devicetest2@140.114.77.83', 'sensor2-devicetest3@140.114.77.83', 'sensor2-devicetest4@140.114.77.83', 'sensor2-devicetest5@140.114.77.83', 'sensor2-devicetest6@140.114.77.83', 'sensor2-devicetest7@140.114.77.83'], 'SIPDfList': [], 'DfList': ['Image-I', 'SIPDevStatus-I'], 'DeviceModel': 'FrontImage', 'DeviceGroup': 'ScalarLongG1', 'RegisterModel': 'SIP', 'Iottalk_dev': None, 'Lat': 20.0, 'Lng': 121.0}}
+IoTtalk_devlist: {}
+Register to IoTtalk server:http://140.114.77.93:9999
+state is DeviceList
+state is Deregister
+state is Register
+DeviceGroupList: {'ScalarLongG1FrontImage': {'DeviceList': ['sensor2-devicetest1@140.114.77.83', 'sensor2-devicetest2@140.114.77.83', 'sensor2-devicetest3@140.114.77.83', 'sensor2-devicetest4@140.114.77.83', 'sensor2-devicetest5@140.114.77.83', 'sensor2-devicetest6@140.114.77.83', 'sensor2-devicetest7@140.114.77.83'], 'SIPDfList': [], 'DfList': ['Image-I', 'SIPDevStatus-I'], 'DeviceModel': 'FrontImage', 'DeviceGroup': 'ScalarLongG1', 'RegisterModel': 'SIP', 'Iottalk_dev': None, 'Lat': 20.0, 'Lng': 121.0}, 'ScalarLongG2PreImage': {'DeviceList': ['actuator2-deviceatest1@140.114.77.83', 'actuator2-deviceatest2@140.114.77.83', 'actuator2-deviceatest3@140.114.77.83', 'actuator2-deviceatest4@140.114.77.83', 'actuator2-deviceatest5@140.114.77.83', 'actuator2-deviceatest6@140.114.77.83', 'actuator2-deviceatest7@140.114.77.83'], 'SIPDfList': [], 'DfList': ['Image-O', 'SIPDevStatus-O'], 'DeviceModel': 'PreImage', 'DeviceGroup': 'ScalarLongG2', 'RegisterModel': 'SIP', 'Iottalk_dev': None, 'Lat': 20.0, 'Lng': 121.0}}
+IoTtalk_devlist: {'ScalarLongG1FrontImage': {'DeviceModel': 'FrontImage', 'DeviceGroup': 'ScalarLongG1', 'Iottalk_dev': <DAI.DAI object at 0x7fe229748df0>, 'RegisterModel': 'SIP', 'DeviceList': ['sensor2-devicetest1@140.114.77.83', 'sensor2-devicetest2@140.114.77.83', 'sensor2-devicetest3@140.114.77.83', 'sensor2-devicetest4@140.114.77.83', 'sensor2-devicetest5@140.114.77.83', 'sensor2-devicetest6@140.114.77.83', 'sensor2-devicetest7@140.114.77.83'], 'DfList': ['Image-I', 'SIPDevStatus-I'], 'SIPDfList': [], 'Lat': 20.0, 'Lng': 121.0}}
+Register to IoTtalk server:http://140.114.77.93:9999
+mac_addr is: SIP-ScalarLongG1
+df_name is: __Ctl_I__
+mac_addr is: SIP-ScalarLongG2
+df_name is: __Ctl_I__
+exit start, deregister device from iottalk
+SIP_IDA start
+Start time: Fri Aug 23 18:15:41 2024
+SIP_IDA start
+Start time: Fri Aug 23 18:16:20 2024
+register_PIPE start
+state is ExecutionState
+exit_check start, can start to receive message
+state is UpdateModelName
+state is DeviceList
+state is DeviceList
+state is Deregister
+state is Register
+DeviceGroupList: {'ScalarLongG1FrontImage': {'DeviceList': ['sensor2-devicetest1@140.114.77.83', 'sensor2-devicetest2@140.114.77.83', 'sensor2-devicetest3@140.114.77.83', 'sensor2-devicetest4@140.114.77.83', 'sensor2-devicetest5@140.114.77.83', 'sensor2-devicetest6@140.114.77.83', 'sensor2-devicetest7@140.114.77.83'], 'SIPDfList': [], 'DfList': ['Image-I', 'SIPDevStatus-I'], 'DeviceModel': 'FrontImage', 'DeviceGroup': 'ScalarLongG1', 'RegisterModel': 'SIP', 'Iottalk_dev': None, 'Lat': 20.0, 'Lng': 121.0}}
+IoTtalk_devlist: {}
+Register to IoTtalk server:http://140.114.77.93:9999
+state is DeviceList
+state is Deregister
+state is Register
+DeviceGroupList: {'ScalarLongG1FrontImage': {'DeviceList': ['sensor2-devicetest1@140.114.77.83', 'sensor2-devicetest2@140.114.77.83', 'sensor2-devicetest3@140.114.77.83', 'sensor2-devicetest4@140.114.77.83', 'sensor2-devicetest5@140.114.77.83', 'sensor2-devicetest6@140.114.77.83', 'sensor2-devicetest7@140.114.77.83'], 'SIPDfList': [], 'DfList': ['Image-I', 'SIPDevStatus-I'], 'DeviceModel': 'FrontImage', 'DeviceGroup': 'ScalarLongG1', 'RegisterModel': 'SIP', 'Iottalk_dev': None, 'Lat': 20.0, 'Lng': 121.0}, 'ScalarLongG2PreImage': {'DeviceList': ['actuator2-deviceatest1@140.114.77.83', 'actuator2-deviceatest2@140.114.77.83', 'actuator2-deviceatest3@140.114.77.83', 'actuator2-deviceatest4@140.114.77.83', 'actuator2-deviceatest5@140.114.77.83', 'actuator2-deviceatest6@140.114.77.83', 'actuator2-deviceatest7@140.114.77.83'], 'SIPDfList': [], 'DfList': ['Image-O', 'SIPDevStatus-O'], 'DeviceModel': 'PreImage', 'DeviceGroup': 'ScalarLongG2', 'RegisterModel': 'SIP', 'Iottalk_dev': None, 'Lat': 20.0, 'Lng': 121.0}}
+IoTtalk_devlist: {'ScalarLongG1FrontImage': {'DeviceModel': 'FrontImage', 'DeviceGroup': 'ScalarLongG1', 'Iottalk_dev': <DAI.DAI object at 0x7f54cdf63c40>, 'RegisterModel': 'SIP', 'DeviceList': ['sensor2-devicetest1@140.114.77.83', 'sensor2-devicetest2@140.114.77.83', 'sensor2-devicetest3@140.114.77.83', 'sensor2-devicetest4@140.114.77.83', 'sensor2-devicetest5@140.114.77.83', 'sensor2-devicetest6@140.114.77.83', 'sensor2-devicetest7@140.114.77.83'], 'DfList': ['Image-I', 'SIPDevStatus-I'], 'SIPDfList': [], 'Lat': 20.0, 'Lng': 121.0}}
+Register to IoTtalk server:http://140.114.77.93:9999
+mac_addr is: SIP-ScalarLongG1
+df_name is: __Ctl_I__
+mac_addr is: SIP-ScalarLongG2
+df_name is: __Ctl_I__

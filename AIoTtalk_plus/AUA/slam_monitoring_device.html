@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.89.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/eventemitter2@6.4/lib/eventemitter2.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/roslib@1/build/roslib.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/ros3d@1/build/ros3d.js"></script>
+
+<!--
+1. Install rosbridge_server and tf2_web_republisher
+2. modify the options in the javascript below
+    (1) fixedFrame in tfClient => your tf topic
+    (2) topic in cloudClient => your pointfloud topic
+    (3) topic in odometryClient => your odometry topic
+3. setup the website (via liveserver extension of vscode or anything you prefer)
+4. follow the instructions of the website
+5. pray that it works \|/
+
+Document of ros3djs: https://robotwebtools.github.io/ros3djs/
+-->
+
+<script>
+  /**
+   * Setup all visualization elements when the page is loaded.
+   */
+  var cloudClient;
+  var odometryClient;
+  var pointClient;
+  function init() {
+    // Connect to ROS.
+    var ros = new ROSLIB.Ros({
+      url: 'ws://0.0.0.0:9090'
+    });
+
+    // Create the main viewer.
+    var viewer = new ROS3D.Viewer({
+      divID : 'viewer',
+      width : 800,
+      height : 600,
+      antialias : true
+    });
+
+    // Setup a client to listen to TFs.
+    var tfClient = new ROSLIB.TFClient({
+      ros : ros,
+      angularThres : 0.01,
+      transThres : 0.01,
+      rate : 10.0,
+      fixedFrame : '/camera_init' //TODO: tf topic
+    });
+
+    cloudClient = new ROS3D.PointCloud2({
+        ros: ros,
+        tfClient: tfClient,
+        rootObject: viewer.scene,
+        topic: '/map_points', //TODO: pointcloud topic
+        material: { size: 0.05},
+        colorsrc: 'intensity',  //supports x, y, z and intensity 
+        colormap: (x)=>{  //this function is optional, it changes the color of the point by the value specified at colorsrc
+            let rgb;
+
+            let min = 0.0;
+            let max = 15.0;
+            
+            if(isNaN(x)) {
+                rgb = {
+                    r: 1,
+                    g: 1,
+                    b: 1,
+                    a: 0,
+                };
+            } else {
+                let val = (x - min)/ (max - min);
+                if(val >= 1.0)val = 1.0;
+                else if(val <= 0.0)val = 0.0;
+                
+                var a=(val)/0.2;
+                var X=Math.floor(a);
+                var Y=Math.floor(255*(a-X));
+                switch(X)
+                {
+                    case 0: r=255;g=Y;b=0;break;
+                    case 1: r=255-Y;g=255;b=0;break;
+                    case 2: r=0;g=255;b=Y;break;
+                    case 3: r=0;g=255-Y;b=255;break;
+                    case 4: r=Y;g=0;b=255;break;
+                    case 5: r=255;g=0;b=255;break;
+                    default: r=255;g=255;b=255;break;
+                }
+
+                rgb = {
+                    r: r/256.0,
+                    g: g/256.0,
+                    b: b/256.0,
+                    a: 1.0
+                };
+            }
+
+            return rgb;
+        },
+        max_pts: 5000000  //limit of the amount of points, try to change it if it only shows part of the pointcloud
+    });
+
+    var arrowSize = 0.5
+
+    odometryClient = new ROS3D.Odometry({
+        ros: ros,
+        tfClient: tfClient,
+        rootObject: viewer.scene,
+        topic: '/integrated_to_init', //TODO: topic of odemetry
+        keep: 20, //max amount of arrows
+        color: 0x00ff00,  //some parameters of the arrow
+        length: 20 * arrowSize, 
+        headLength: 4 * arrowSize,
+        shaftDiameter: 1 * arrowSize,
+        headDiameter: 2 * arrowSize
+    });
+
+    pointClient = new ROSLIB.Topic({
+        ros: ros,
+        name: '/rotor_position',
+        messageType: 'geometry_msgs/Point'
+    });
+
+    pointClient.subscribe(function(msg){
+        console.log(msg);
+        document.getElementById("ground_truth").innerHTML = "Ground Truth Position : " + msg.x + " " + msg.y + " " + msg.z;
+
+        var slamPos = odometryClient.options.origin
+        document.getElementById("slam").innerHTML = "SLAM Mapping Position : " + slamPos.x + " " + slamPos.y + " " + slamPos.z;
+        var slamRot = odometryClient.options.direction
+        console.log(slamRot)
+    });
+  }
+</script>
+</head>
+
+<body onload="init()">
+  <h1>SLAM Mapping Monitor</h1>
+  <div id="viewer"></div>
+  <div>
+    <p id="ground_truth"></p>
+    <p id="slam"></p>
+  </div>
+</body>
+</html>

@@ -1,0 +1,214 @@
+Accounts:
+    deviceatest10@140.114.77.83:
+        enabled = true
+        auth:
+            password = 123
+
+        sip:
+            outbound_proxy = "140.114.77.84:5566;transport=tcp"
+
+
+    deviceatest1@140.114.77.84:
+        enabled = true
+        auth:
+            password = 123
+
+        sip:
+            outbound_proxy = "140.114.77.84:5060;transport=tcp"
+
+
+    deviceatest2@140.114.77.83:
+        enabled = true
+        auth:
+            password = 123
+
+        sip:
+            outbound_proxy = "140.114.77.84:5566;transport=tcp"
+
+
+    deviceatest3@140.114.77.83:
+        enabled = true
+        auth:
+            password = 123
+
+        sip:
+            outbound_proxy = "140.114.77.84:5566;transport=tcp"
+
+
+    deviceatest4@140.114.77.83:
+        enabled = true
+        auth:
+            password = 123
+
+        sip:
+            outbound_proxy = "140.114.77.84:5566;transport=tcp"
+
+
+    deviceatest5@140.114.77.83:
+        enabled = true
+        auth:
+            password = 123
+
+        sip:
+            outbound_proxy = "140.114.77.84:5566;transport=tcp"
+
+
+    deviceatest6@140.114.77.83:
+        enabled = true
+        auth:
+            password = 123
+
+        sip:
+            outbound_proxy = "140.114.77.84:5566;transport=tcp"
+
+
+    deviceatest7@140.114.77.83:
+        enabled = true
+        auth:
+            password = 123
+
+        sip:
+            outbound_proxy = "140.114.77.84:5566;transport=tcp"
+
+
+    deviceatest8@140.114.77.83:
+        enabled = true
+        auth:
+            password = 123
+
+        sip:
+            outbound_proxy = "140.114.77.84:5566;transport=tcp"
+
+
+    deviceatest9@140.114.77.83:
+        enabled = true
+        auth:
+            password = 123
+
+        sip:
+            outbound_proxy = "140.114.77.84:5566;transport=tcp"
+
+
+    devicetest10@140.114.77.83:
+        enabled = true
+        auth:
+            password = 123
+
+        sip:
+            outbound_proxy = "140.114.77.84:5566;transport=tcp"
+
+
+    devicetest1@140.114.77.83:
+        enabled = true
+        auth:
+            password = 123
+
+        sip:
+            outbound_proxy = "140.114.77.84:5566;transport=tcp"
+
+
+    devicetest2@140.114.77.83:
+        enabled = true
+        auth:
+            password = 123
+
+        sip:
+            outbound_proxy = "140.114.77.84:5566;transport=tcp"
+
+
+    devicetest3@140.114.77.83:
+        enabled = true
+        auth:
+            password = 123
+
+        sip:
+            outbound_proxy = "140.114.77.84:5566;transport=tcp"
+
+
+    devicetest4@140.114.77.83:
+        enabled = true
+        auth:
+            password = 123
+
+        sip:
+            outbound_proxy = "140.114.77.84:5566;transport=tcp"
+
+
+    devicetest5@140.114.77.83:
+        enabled = true
+        auth:
+            password = 123
+
+        sip:
+            outbound_proxy = "140.114.77.84:5566;transport=tcp"
+
+
+    devicetest6@140.114.77.83:
+        enabled = true
+        auth:
+            password = 123
+
+        sip:
+            outbound_proxy = "140.114.77.84:5566;transport=tcp"
+
+
+    devicetest7@140.114.77.83:
+        enabled = true
+        auth:
+            password = 123
+
+        sip:
+            outbound_proxy = "140.114.77.84:5566;transport=tcp"
+
+
+    devicetest8@140.114.77.83:
+        enabled = true
+        auth:
+            password = 123
+
+        sip:
+            outbound_proxy = "140.114.77.84:5566;transport=tcp"
+
+
+    devicetest9@140.114.77.83:
+        enabled = true
+        auth:
+            password = 123
+
+        sip:
+            outbound_proxy = "140.114.77.84:5566;transport=tcp"
+
+
+    siptalktest@140.114.77.83:
+        enabled = true
+        auth:
+            password = 123
+
+        sip:
+            outbound_proxy = "140.114.77.84:5566;transport=tcp"
+
+
+
+SIPSimpleSettings:
+    default_account = bonjour@local
+    instance_id = "urn:uuid:46ccfdfd-97a7-43aa-a850-d1aa9df2675d"
+    audio:
+        alert_device = system_default
+        input_device = system_default
+        output_device = system_default
+
+    logs:
+        trace_msrp = false
+        trace_notifications = false
+        trace_pjsip = false
+        trace_sip = false
+
+    tls:
+        ca_list = /home/james/.sipclient/tls/ca.crt
+        certificate = /home/james/.sipclient/tls/default.crt
+        verify_server = true
+
+    video:
+        device = "Colorbar generator"
+
+

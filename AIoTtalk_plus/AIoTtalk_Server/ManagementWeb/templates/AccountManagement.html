@@ -1,0 +1,411 @@
+{% extends "base.html" %}
+
+{% block content %}
+	<script>
+		$(window).load(function () {
+			{% if session['IDAExecution'] %}
+				document.getElementById("ModelManagement").style.display = "block";
+				document.getElementById("FeatureManagement").style.display = "block";
+			{% else %}
+				document.getElementById("ModelManagement").style.display = "none";
+				document.getElementById("FeatureManagement").style.display = "none";
+			{% endif %}
+			{% if session['provider'] %}
+				document.getElementById("AccountManagement").style.display = "block";
+				var provider = {{session['provider']|tojson}};
+				//console.log(provider)
+				if (provider == "SIP")
+				{
+					document.getElementById("SIPAccountMang").style.display = "block";
+					var result = {{result|tojson}};
+					//console.log('first: ');
+					//console.log(result);
+					
+					// 此result是跳轉時 帶有的result
+					if(result.type == 0)
+			        {
+						document.getElementById("SIPAccount").defaultValue = null;
+			        	document.getElementById("SIPPassword").defaultValue = null;
+			        	document.getElementById("SIPDomain").defaultValue = null;
+			        	document.getElementById("SIPProxy").defaultValue = null;
+						document.getElementById("SIPProxyPort").defaultValue = null;
+						document.getElementById("SIPPSProxy").defaultValue = null;
+						document.getElementById("SIPPSProxyPort").defaultValue = null;
+						
+			        	document.getElementById("SIPAccount").value = "";
+			        	document.getElementById("SIPPassword").value = "";
+			        	document.getElementById("SIPDomain").value = "";
+			        	document.getElementById("SIPProxy").value = "";
+						document.getElementById("SIPProxyPort").value = "";
+						document.getElementById("SIPPSProxy").value = "";
+						document.getElementById("SIPPSProxyPort").value = "";
+						
+			    		document.getElementById("GroupManagement").style.display = "none";
+			        	document.getElementById("SIPAccountMang").style.display = "block";
+			        }
+			        else if(result.type == 1)
+			        {
+			        	document.getElementById("SIPAccount").defaultValue = result.SIPAccount;
+			        	document.getElementById("SIPPassword").defaultValue = result.SIPPassword;
+			        	document.getElementById("SIPDomain").defaultValue = result.Domain;
+			        	document.getElementById("SIPProxy").defaultValue = result.SIPProxy;
+			        	document.getElementById("SIPProxyPort").defaultValue = result.SIPProxyPort;
+						document.getElementById("SIPPSProxy").defaultValue = result.SIPPSProxy;
+						document.getElementById("SIPPSProxyPort").defaultValue = result.SIPPSProxyPort;
+						
+						document.getElementById("SIPAccount").value = result.SIPAccount;
+						document.getElementById("SIPPassword").value = result.SIPPassword;
+						document.getElementById("SIPDomain").value = result.Domain;
+						document.getElementById("SIPProxy").value = result.SIPProxy;
+						document.getElementById("SIPProxyPort").value = result.SIPProxyPort;
+						document.getElementById("SIPPSProxy").value = result.SIPPSProxy;
+						document.getElementById("SIPPSProxyPort").value = result.SIPPSProxyPort;
+
+			        	if(result.ExecutionState != "Success")
+			        	{
+			        		alert("Service Error : "+result.ExecutionState);
+			        	}
+			        	else
+			        	{
+			        		document.getElementById("GroupManagement").style.display = "block";
+				        	document.getElementById("SIPAccountMang").style.display = "block";	
+			        	}
+			        }
+					
+				}
+				else if (provider == "NHR") {
+					document.getElementById("NHRAccountMang").style.display = "block";
+					var result = {{ result| tojson}};
+					//console.log(result);
+					//console.log(result.type);
+					//console.log(result.type == 0);
+					//console.log(result.MQTTAccount);
+					//console.log({{result}})
+					//document.getElementById("NHRAccountMang").style.display = "block";
+
+					if (result.type == 0) {
+						//console.log({{result.type}} == 0)
+						document.getElementById("NHRMQTTAccount").defaultValue = null;
+						document.getElementById("NHRMQTTPassword").defaultValue = null;
+						document.getElementById("NHRMQTTHost").defaultValue = null;
+						document.getElementById("NHRMQTTPort").defaultValue = null;
+						document.getElementById("NHRMQTTSubscribeTopic").defaultValue = null;
+						document.getElementById("NHRMQTTPublishTopic").defaultValue = null;
+
+						document.getElementById("NHRMQTTAccount").value = "";
+						document.getElementById("NHRMQTTPassword").value = "";
+						document.getElementById("NHRMQTTHost").value = "";
+						document.getElementById("NHRMQTTPort").value = "";
+						document.getElementById("NHRMQTTSubscribeTopic").value = "";
+						document.getElementById("NHRMQTTPublishTopic").value = "";
+						document.getElementById("GroupManagement").style.display = "none";
+						document.getElementById("NHRAccountMang").style.display = "block";
+					}
+					else if (result.type == 1) {
+						document.getElementById("NHRMQTTAccount").defaultValue = result.MQTTAccount;
+						document.getElementById("NHRMQTTPassword").defaultValue = result.MQTTPassword;
+						document.getElementById("NHRMQTTHost").defaultValue = result.MQTTHost;
+						document.getElementById("NHRMQTTPort").defaultValue = result.MQTTPort;
+						document.getElementById("NHRMQTTSubscribeTopic").defaultValue = result.MQTTSubscribeTopic;
+						document.getElementById("NHRMQTTPublishTopic").defaultValue = result.MQTTPublishTopic;
+
+						document.getElementById("NHRMQTTAccount").value = result.MQTTAccount;
+						document.getElementById("NHRMQTTPassword").value = result.MQTTPassword;
+						document.getElementById("NHRMQTTHost").value = result.MQTTHost;
+						document.getElementById("NHRMQTTPort").value = result.MQTTPort;
+						document.getElementById("NHRMQTTSubscribeTopic").value = result.MQTTSubscribeTopic;
+						document.getElementById("NHRMQTTPublishTopic").value = result.MQTTPublishTopic;
+
+						if (result.ExecutionState != "Success") {
+							alert("Service Error : " + result.ExecutionState);
+						}
+						else {
+							document.getElementById("GroupManagement").style.display = "block";
+							document.getElementById("NHRAccountMang").style.display = "block";
+						}
+					}
+					
+				}
+				
+			{% endif %}	
+		});
+	    
+	    function ServiceProviderSave(e) { 
+	    	var provider = {{session['provider']|tojson}};
+	    	var decision =  /^[0-9]*[1-9][0-9]*$/;   //Positive int decision return true or false
+			
+			if (provider == "SIP") {
+				if (!(decision.test(document.getElementById("SIPProxyPort").value))) 
+				{
+					alert("Incorrect Proxy Port format");
+				}
+				else if (document.getElementById("SIPAccount").defaultValue == document.getElementById("SIPAccount").value &&
+						document.getElementById("SIPPassword").defaultValue == document.getElementById("SIPPassword").value &&
+						document.getElementById("SIPDomain").defaultValue == document.getElementById("SIPDomain").value &&
+						document.getElementById("SIPProxy").defaultValue == document.getElementById("SIPProxy").value &&
+						document.getElementById("SIPProxyPort").defaultValue == document.getElementById("SIPProxyPort").value &&
+						document.getElementById("SIPPSProxy").defaultValue == document.getElementById("SIPPSProxy").value &&
+						document.getElementById("SIPPSProxyPort").defaultValue == document.getElementById("SIPPSProxyPort").value
+						) 
+				{
+					// 非第一次到AccountManagement.html(sip資料已填過)
+					var result = {{ result| tojson}};
+					
+					console.log("defaultvalue=value");
+
+					if (result.ExecutionState == "Success") {
+						document.getElementById("GroupManagement").style.display = "block";
+						document.getElementById("ModelManagement").style.display = "block";
+						document.getElementById("FeatureManagement").style.display = "block";
+						//document.location.href="/DeviceGroupManagement";
+						document.location.href = "/DeviceModelManagement";
+					}
+					else {
+						alert("Service Error : " + result.ExecutionState);
+						document.getElementById("GroupManagement").style.display = "none";
+						document.getElementById("ModelManagement").style.display = "none";
+						document.getElementById("FeatureManagement").style.display = "none";
+					}	
+				}
+				else
+				{
+					// 第一次填sip資料
+					console.log("the first time input sip info.")
+					$('div.containerall').block({ message: null });
+					//add some DOM
+					$(".blockMsg").append(
+						"<div class='spinner-layer'>" +
+						"<div class='circle-clipper left'>" +
+						"<div class='circle'></div>" +
+						"</div>" +
+						"<div class='circle-clipper right'>" +
+						"<div class='circle'></div>" +
+						"</div>" +
+						"</div>");
+					//setTimeout("$('div.containerall').unblock()", 3000); 
+
+					console.log("Start /ServiceProviderSave");
+
+					// 後面那些是作為傳遞之參數
+					$.getJSON($SCRIPT_ROOT + '/ServiceProviderSave', {
+						SIPAccount: document.getElementById("SIPAccount").value,
+						SIPPassword: document.getElementById("SIPPassword").value,
+						Domain: document.getElementById("SIPDomain").value,
+						SIPProxy: document.getElementById("SIPProxy").value,
+						SIPProxyPort: document.getElementById("SIPProxyPort").value,
+						PSProxy: document.getElementById("SIPPSProxy").value,
+						PSProxyPort: document.getElementById("SIPPSProxyPort").value,
+						provider: provider
+					},
+					function (data) {
+						// return function
+						//alert(data.result);
+						
+						console.log(data)
+						
+						$('div.containerall').unblock();
+						if (data.result == "Success") {
+
+							document.getElementById("GroupManagement").style.display = "block";
+							document.getElementById("ModelManagement").style.display = "block";
+							document.getElementById("FeatureManagement").style.display = "block";
+							//setTimeout(document.location.href="/DeviceGroupManagement", 5000);
+							setTimeout(document.location.href = "/DeviceModelManagement", 5000);
+							//document.location.href="/DeviceGroupManagement";
+						}
+						else {
+							alert("Service Error : " + data.result);
+							console.log("Service Error : " + data.result)
+							document.getElementById("GroupManagement").style.display = "none";
+							document.getElementById("ModelManagement").style.display = "none";
+							document.getElementById("FeatureManagement").style.display = "none";
+						}
+					});
+				}
+				document.getElementById("SIPAccount").defaultValue = document.getElementById("SIPAccount").value;
+				document.getElementById("SIPPassword").defaultValue = document.getElementById("SIPPassword").value;
+				document.getElementById("SIPDomain").defaultValue = document.getElementById("SIPDomain").value;
+				document.getElementById("SIPProxy").defaultValue = document.getElementById("SIPProxy").value;
+				document.getElementById("SIPProxyPort").defaultValue = document.getElementById("SIPProxyPort").value;
+				document.getElementById("SIPPSProxy").defaultValue = document.getElementById("SIPPSProxy").value;
+				document.getElementById("SIPPSProxyPort").defaultValue = document.getElementById("SIPPSProxyPort").value;
+			}
+			else if(provider == "NHR")
+			{
+				if(!(decision.test(document.getElementById("NHRMQTTPort").value)))
+				{
+					alert("Incorrect MQTT Port format");	
+				}
+				else if(document.getElementById("NHRMQTTAccount").defaultValue == document.getElementById("NHRMQTTAccount").value &&
+		 	    	   document.getElementById("NHRMQTTPassword").defaultValue == document.getElementById("NHRMQTTPassword").value &&
+		 	    	   document.getElementById("NHRMQTTHost").defaultValue == document.getElementById("NHRMQTTHost").value &&
+		 	    	   document.getElementById("NHRMQTTPort").defaultValue == document.getElementById("NHRMQTTPort").value &&
+		 	    	   document.getElementById("NHRMQTTSubscribeTopic").defaultValue == document.getElementById("NHRMQTTSubscribeTopic").value &&
+		 	    	   document.getElementById("NHRMQTTPublishTopic").defaultValue == document.getElementById("NHRMQTTPublishTopic").value
+		 	    		)
+		 	    {
+		 	    	var result = {{result|tojson}};
+		 	    		
+		 	    	if(result.ExecutionState == "Success")
+		 	        {
+		 	        	document.getElementById("GroupManagement").style.display = "block";
+		 	        	document.getElementById("ModelManagement").style.display = "block";
+						document.getElementById("FeatureManagement").style.display = "block";
+		         		//document.location.href="/DeviceGroupManagement";
+		         		document.location.href="/DeviceModelManagement";
+		         	}	
+		 	        else
+		 	        {
+		 	        	alert("Service Error : "+result.ExecutionState);
+		 	        	document.getElementById("GroupManagement").style.display = "none";
+						document.getElementById("ModelManagement").style.display = "none";
+						document.getElementById("FeatureManagement").style.display = "none";
+		 	        }
+		 	    		
+		 	    }
+		 	    else
+		 	    {
+		 		    $('div.containerall').block({ message: null });
+		 	        //add some DOM
+		 	        $(".blockMsg").append(
+		 	        	"<div class='spinner-layer'>" +
+		 	            "<div class='circle-clipper left'>" +
+		 	            "<div class='circle'></div>" +
+		 	            "</div>" +
+		 	            "<div class='circle-clipper right'>" +
+		 	            "<div class='circle'></div>" +
+		 	            "</div>" +
+		 	            "</div>");
+		 	        //setTimeout("$('div.containerall').unblock()", 3000); 
+		 	                	
+		 		    $.getJSON($SCRIPT_ROOT + '/ServiceProviderSave', {
+		 		    	HTTPHost: "",
+		 		        HTTPPort: "",
+		 		        HTTPAccount: "",
+		 		        HTTPPassword: "",
+		 		        MQTTHost: document.getElementById("NHRMQTTHost").value,
+		 		        MQTTPort: document.getElementById("NHRMQTTPort").value,
+		 		        MQTTAccount: document.getElementById("NHRMQTTAccount").value,
+		 		        MQTTPassword: document.getElementById("NHRMQTTPassword").value,
+		 		        MQTTSubscribeTopic: document.getElementById("NHRMQTTSubscribeTopic").value,
+		 		        MQTTPublishTopic: document.getElementById("NHRMQTTPublishTopic").value,
+		 		        provider: provider   
+		 		    },  
+		 		    function(data) {
+		 		        //alert(data.result);
+		 		        $('div.containerall').unblock();
+		 		        if(data.result == "Success")
+		 		        {
+			 	        	document.getElementById("GroupManagement").style.display = "block";
+			 	        	document.getElementById("ModelManagement").style.display = "block";
+							document.getElementById("FeatureManagement").style.display = "block";
+		 		        	//setTimeout(document.location.href="/DeviceGroupManagement", 5000);
+		 		        	setTimeout(document.location.href="/DeviceModelManagement", 5000);
+		 	        		//document.location.href="/DeviceGroupManagement";
+		 	        	}	
+		 		        else
+		 		        {
+		 		        	alert("Service Error : "+data.result);
+			 	        	document.getElementById("GroupManagement").style.display = "none";
+							document.getElementById("ModelManagement").style.display = "none";
+							document.getElementById("FeatureManagement").style.display = "none";
+		 		        }
+		 		    });  	
+		 	    }
+		 	    document.getElementById("NHRMQTTAccount").defaultValue = document.getElementById("NHRMQTTAccount").value;
+		 	    document.getElementById("NHRMQTTPassword").defaultValue = document.getElementById("NHRMQTTPassword").value;
+		 	    document.getElementById("NHRMQTTHost").defaultValue = document.getElementById("NHRMQTTHost").value;
+		 	    document.getElementById("NHRMQTTPort").defaultValue = document.getElementById("NHRMQTTPort").value;
+		 	    document.getElementById("NHRMQTTSubscribeTopic").defaultValue = document.getElementById("NHRMQTTSubscribeTopic").value;
+		 	    document.getElementById("NHRMQTTPublishTopic").defaultValue = document.getElementById("NHRMQTTPublishTopic").value;
+			}
+			
+	    };
+	</script> 
+	<form action="" method="POST">
+		<div id="SIPAccountMang" style="display:none">
+			<p>&nbsp;</p>
+			<table align="center" border="5" cellpadding="1" cellspacing="1" style="background-color:rgb(221, 221, 221);height:400px;width:50%;text-align:center;font-size:30px;color:black; margin-left: auto; margin-right: auto; display:'none'">
+				<tbody>
+					<tr>
+						<td style="color:black; font-size:30px; width: 40%; height: 40px; text-align: center;">SIP Account</td>
+						<td style="color:black; font-size:30px; width: 60%; text-align: center;"><input id="SIPAccount" type="text" name="SIPAccount" style="width:90%;"></td>
+					</tr>
+					<tr>
+						<td style="color:black; font-size:30px; width: 40%; height: 40px; text-align: center;">SIP Password</td>
+						<td style="color:black; font-size:30px; width: 60%; text-align: center;"><input id="SIPPassword" type="text" name="SIPPassword" style="width:90%;"></td>
+					</tr>
+					<tr>
+						<td style="color:black; font-size:30px; width: 40%; height: 40px; text-align: center;">Domain</td>
+						<td style="color:black; font-size:30px; width: 60%; text-align: center;"><input id="SIPDomain" type="text" name="SIPDomain" style="width:90%;"></td>
+					</tr>
+					<tr>
+						<td style="color:black; font-size:30px; width: 40%; height: 40px; text-align: center;">SIP Proxy</td>
+						<td style="color:black; font-size:30px; width: 60%; text-align: center;"><input id="SIPProxy" type="text" name="SIPProxy" style="width:90%;"></td>
+					</tr>
+					<tr>
+						<td style="color:black; font-size:30px; width: 40%; height: 40px; text-align: center;">SIP Proxy Port</td>
+						<td style="color:black; font-size:30px; width: 60%; text-align: center;"><input id="SIPProxyPort" type="text" name="SIPProxyPort" style="width:90%;"></td>
+					</tr>
+					<tr>
+						<td style="color:black; font-size:30px; width: 40%; height: 40px; text-align: center;">Presence Proxy</td>
+						<td style="color:black; font-size:30px; width: 60%; text-align: center;"><input id="SIPPSProxy" type="text"
+								name="SIPPSProxy" style="width:90%;"></td>
+					</tr>
+					<tr>
+						<td style="color:black; font-size:30px; width: 40%; height: 40px; text-align: center;">Presence Proxy Port</td>
+						<td style="color:black; font-size:30px; width: 60%; text-align: center;"><input id="SIPPSProxyPort" type="text"
+								name="SIPPSProxyPort" style="width:90%;"></td>
+					</tr>
+					<tr>
+						<td border="0" style="color:black; font-size:30px; width: 40%; height: 40px; text-align: center;"></td>
+						<td border="0" style="color:black; font-size:30px; width: 60%; height: 40px; text-align: right; vertical-align:middle;">
+						<!-- <input type="submit" value="Save" onclick=save(this)> -->
+						<input type="button" value="OK" onclick=ServiceProviderSave(this)>&nbsp;&nbsp;&nbsp;
+						</td>
+					</tr>
+				</tbody>
+			</table>
+		</div>
+	</form>
+	<form action="" method="POST">
+		<div id="NHRAccountMang" style="display:none">
+			<p>&nbsp;</p>
+		   	<table align="center" border="5" cellpadding="1" cellspacing="1" style="background-color:rgb(221, 221, 221);height:400px;width:50%;text-align:center;font-size:30px;color:black; margin-left: auto; margin-right: auto; display:'none'">
+				<tbody>
+					<tr>
+				      <td style="color:black; font-size:30px; width: 40%; height: 40px; text-align: center;">MQTT Host</td>
+				      <td style="color:black; font-size:30px; width: 60%; text-align: center;"><input id="NHRMQTTHost" type="text" name="NHRMQTTHost" style="width:90%;"></td>
+				    </tr>
+				    <tr>
+				      <td style="color:black; font-size:30px; width: 40%; height: 40px; text-align: center;">MQTT Port</td>
+				      <td style="color:black; font-size:30px; width: 60%; text-align: center;"><input id="NHRMQTTPort" type="text" name="NHRMQTTPort" style="width:90%;"></td>
+				    </tr>
+				    <tr>
+				      <td style="color:black; font-size:30px; width: 40%; height: 40px; text-align: center;">MQTT Account</td>
+				      <td style="color:black; font-size:30px; width: 60%; text-align: center;"><input id="NHRMQTTAccount" type="text" name="NHRMQTTAccount" style="width:90%;"></td>
+				    </tr>
+				    <tr>
+				      <td style="color:black; font-size:30px; width: 40%; height: 40px; text-align: center;">MQTT Password</td>
+				      <td style="color:black; font-size:30px; width: 60%; text-align: center;"><input id="NHRMQTTPassword" type="text" name="NHRMQTTPassword" style="width:90%;"></td>
+				    </tr>
+				    <tr>
+				      <td style="color:black; font-size:30px; width: 40%; height: 40px; text-align: center;">MQTT Subscribe Topic</td>
+				      <td style="color:black; font-size:30px; width: 60%; text-align: center;"><input id="NHRMQTTSubscribeTopic" type="text" name="NHRMQTTSubscribeTopic" style="width:90%;"></td>
+				    </tr>
+				    <tr>
+				      <td style="color:black; font-size:30px; width: 40%; height: 40px; text-align: center;">MQTT Publish Topic</td>
+				      <td style="color:black; font-size:30px; width: 60%; text-align: center;"><input id="NHRMQTTPublishTopic" type="text" name="NHRMQTTPublishTopic" style="width:90%;"></td>
+				    </tr>
+				    <tr>
+				      <td  border="0" style="color:black; font-size:30px; width: 40%; height: 40px; text-align: center;"></td>
+				      <td  border="0" style="color:black; font-size:30px; width: 60%; height: 40px; text-align: right; vertical-align:middle;">
+				      <!-- <input type="submit" value="Save" onclick=save(this)> -->
+				      <input type="button" value="OK" onclick=ServiceProviderSave(this)>&nbsp;&nbsp;&nbsp;
+				      </td>
+				    </tr>
+				</tbody>
+			</table>
+		</div>
+	</form>
+{% endblock content %}

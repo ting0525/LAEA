@@ -1,0 +1,982 @@
+{% extends "base.html" %}
+{% block content %}
+{% if session['logged_in'] %}
+<Script>
+    $(window).load(function () {
+        {% if session['provider'] %}
+        document.getElementById("AccountManagement").style.display = "block";
+        {% else %}
+        document.getElementById("AccountManagement").style.display = "none";
+        {% endif %}
+
+        {% if session['IDAExecution'] %}
+        document.getElementById("GroupManagement").style.display = "block";
+        document.getElementById("ModelManagement").style.display = "block";
+        document.getElementById("FeatureManagement").style.display = "block";
+        {% else %}
+        document.getElementById("GroupManagement").style.display = "none";
+        document.getElementById("ModelManagement").style.display = "none";
+        document.getElementById("FeatureManagement").style.display = "none";
+
+        {% endif %}
+    });
+
+    var devicetypeid = 20;
+    function AddModel()
+    {
+        var tableObj = document.getElementById("devicetypelisttable"); 
+        var rowNums = tableObj.rows.length; 
+
+        devicetypeid = devicetypeid + 10;
+        var s_devicetypeid = devicetypeid.toString();
+        //新增一行
+        var newRow = tableObj.insertRow(rowNums); 
+        var col1 = newRow.insertCell(0); 
+        col1.innerHTML = s_devicetypeid; //col1: devicetype 
+        col1.align = "center"; 
+
+        var col2 = newRow.insertCell(1); 
+        //col2.innerHTML = "DM"; //col2: devicemodel
+        col2.innerHTML = '<input align="center" type="text" name="devicemodelname" value="" style="width:90%;text-align:center;height: 44px;"><input type="hidden" name="devicemodelnamehidden" value="">';
+
+        var col3 = newRow.insertCell(2); 
+        //col3.innerHTML = "SM IoT"; //col3: S/M IoT 
+        col3.align = "center"; 
+        col3.innerHTML = '<input align="left" type="checkbox" name="siot" style="width:20%;text-align:left;height: 30px;"><label for="siot">Scalar IoT</label><input align="left" type="checkbox" name="miot" style="width:20%;text-align:left;height: 30px;"><label for="miot">Multimedia IoT</label>'
+        
+        console.log("ADD NEW DM, ID: %s", s_devicetypeid)
+
+        $.getJSON($SCRIPT_ROOT + '/DeviceModelAdd',{
+            devicetypeid: JSON.stringify(devicetypeid)
+            },
+            function (data) {
+                console.log(data.result.status);
+                if (data.result.status == "Sucess") 
+                {
+                    $('div.containerall').unblock();
+                    //dialog.dialog("close");
+                }
+                else 
+                {
+                    $('div.containerall').unblock();
+                    alert(data.result.status);
+                }
+            }
+        );
+
+        //跳轉至device model頁面
+        //document.location.href = "/DeviceModelManagement";
+    }
+    function SaveModel() {
+        var devicetypenamelist = [];
+        var devicetypeoldnamelist = [];
+        var devicetypelist = [];
+        var bool = true
+
+        //獲得S/M IoT的checkbox value
+
+        var s_id = document.getElementsByName('siot');
+        var m_id = document.getElementsByName('miot');
+        var s_checkbox = new Array();
+        var m_checkbox = new Array();
+        for(var i = 0; i < s_id.length; i++) 
+        {
+            if(s_id[i].checked) s_checkbox.push(s_id[i].value);
+            else s_checkbox.push('off');
+        }
+        for(var i = 0; i < m_id.length; i++) 
+        {
+            if(m_id[i].checked) m_checkbox.push(m_id[i].value);
+            else m_checkbox.push('off');
+        }
+
+        //console.log(smiot_value);
+
+        // getElementById 的devicetypelisttable 是對應下面的html片段
+        var tb = document.getElementById("devicetypelisttable");
+        var rows = tb.rows;
+        console.log("TB.ROWs: %s", tb.rows.length)
+
+        // i = 1為初始，有oldname
+        // 取得第二個cell裡面第一個textbox or hiddenfield的值
+        devicetypenamelist.push(rows[1].cells[1].childNodes[0].value);
+        console.log("devicetypenamelist-rows[1]-cells[1]-childNodes[0] %s", rows[1].cells[1].childNodes[0].value);
+        devicetypeoldnamelist.push(rows[1].cells[0].childNodes[1].value);
+        console.log("devicetypeodlnamelist-rows[1]-cells[0]-childNodes[1] %s", rows[1].cells[0].childNodes[1].value);
+            
+        if (rows[i].cells[0].childNodes[0].value == "") bool = false;
+        
+        // innerHTML是用來取得HTML元素或寫入字串到HTML網頁的語法
+        devicetypelist.push(rows[1].cells[0].childNodes[0].innerHTML);
+        console.log("devicetypenamelist-rows[1]-cells[0]-childNodes[0] %s", rows[1].cells[0].childNodes[0].innerHTML);
+
+        // i從2開始，因為title不用找，1為初始，i為列數
+        for (var i = 2; i < rows.length; i++) 
+        {
+            // 取得第二個cell裡面第一個textbox or hiddenfield的值
+            devicetypenamelist.push(rows[i].cells[1].childNodes[0].value);
+            console.log("devicetypenamelist-cells[1]-childNodes[0] %s", rows[i].cells[1].childNodes[0].value);
+            
+            //只要Add DM, 這裡就會Err
+            //devicetypeoldnamelist.push(rows[i].cells[0].childNodes[1].value);
+            //console.log("devicetypeodlnamelist-cells[0]-childNodes[1] %s", rows[i].cells[0].childNodes[1].value);
+            var tmp = rows.length-i-1;
+            var s_devicetypeid = (devicetypeid - tmp*10).toString();
+            devicetypeoldnamelist.push(s_devicetypeid);
+            console.log("devicetypeodlnamelist-cells[0]-childNodes[1] %s", s_devicetypeid);
+
+            /*
+            if (rows[i].cells[0].childNodes[0].value == "") 
+            {
+                bool = false;
+                break;
+            }
+            */
+            
+            // innerHTML是用來取得HTML元素或寫入字串到HTML網頁的語法
+            devicetypelist.push(s_devicetypeid);
+            console.log("devicetypenamelist-cells[0]-childNodes[0] %s", s_devicetypeid);
+
+        }
+        console.log(bool)
+        if (bool) {
+            var saveajaxbool = false;
+            for (var i = 0; i < devicetypenamelist.length; i++) {
+                if (devicetypenamelist[i] != devicetypeoldnamelist[i]) {
+                    saveajaxbool = true;
+                }
+            }
+            console.log(saveajaxbool)
+            if (saveajaxbool) {
+                $('div.containerall').block({ message: null });
+                //add some DOM
+                $(".blockMsg").append(
+                    "<div class='spinner-layer'>" +
+                    "<div class='circle-clipper left'>" +
+                    "<div class='circle'></div>" +
+                    "</div>" +
+                    "<div class='circle-clipper right'>" +
+                    "<div class='circle'></div>" +
+                    "</div>" +
+                    "</div>");
+
+                $.getJSON($SCRIPT_ROOT + '/DeviceModelSave', {
+                    devicetypenamelist: JSON.stringify(devicetypenamelist),
+                    devicetypeoldnamelist: JSON.stringify(devicetypeoldnamelist),
+                    devicetypelist: JSON.stringify(devicetypelist),
+                    s_checkbox: JSON.stringify(s_checkbox),
+                    m_checkbox: JSON.stringify(m_checkbox)
+                },
+                    function (data) {
+                        //alert(data.result.status);
+                        //console.log(data.result);
+                        if (data.result.status == "Sucess") {
+                            $('div.containerall').unblock();
+                            document.location.href = "/DeviceFeatureManagement";
+                        }
+                        else {
+                            $('div.containerall').unblock();
+                            console.log(data.result);
+                            alert(data.result.status);
+                        }
+                    });
+            }
+            else {
+                //console.log("test");
+                document.location.href = "/DeviceFeatureManagement";
+            }
+        }
+        else {
+            alert("Device model name is null");
+        }
+    }
+
+    function clearRows(tbodyID) {
+        var bodyObj = document.getElementById(tbodyID);
+        if (bodyObj == null) {
+            alert("Body of Table not Exist!");
+            return;
+        }
+
+        for (var i = 0; i < bodyObj.rows.length;)
+            bodyObj.deleteRow(i);
+    }
+
+    function DeviceFeatureManage(DeviceType, CIDstr) {
+        $.getJSON($SCRIPT_ROOT + '/DeviceFeatureManagement', {
+            DeviceType: DeviceType,
+            CIDstr: CIDstr
+        },
+            function (recvdata) {
+                //alert(data.result.status);
+                if (recvdata.result.status == "Sucess") {
+                    clearRows("devicefeaturelisttable");
+                    var bodyObj = document.getElementById("devicefeaturelisttable");
+                    var rowCount = bodyObj.rows.length;
+
+                    for (var i = 0; i < recvdata.result.devicefeaturelist.length; i++) {
+                        //console.log(recvdata.result.devicefeaturelist[i]);
+                        var newRow = bodyObj.insertRow(rowCount++);
+                        var selectstr = '<select name="devicefeaturenameselection" onclick="" onChange="" style="color:black;text-align:center;height: 44px;width:90%" size="1">';
+                        for (var j = 0; j < recvdata.result.devicefeaturenamelist.length; j++) {
+                            if (recvdata.result.devicefeaturelist[i][0] == recvdata.result.devicefeaturenamelist[j]) {
+                                selectstr = selectstr + '<option title="' + recvdata.result.devicefeaturenamelist[j] + '" value ="' + recvdata.result.devicefeaturenamelist[j] + '" SELECTED>' + recvdata.result.devicefeaturenamelist[j] + '</option>';
+                            }
+                            else {
+                                selectstr = selectstr + '<option title="' + recvdata.result.devicefeaturenamelist[j] + '" value ="' + recvdata.result.devicefeaturenamelist[j] + '">' + recvdata.result.devicefeaturenamelist[j] + '</option>';
+                            }
+                        }
+                        selectstr = selectstr + '</select>';
+
+                        newRow.insertCell(0).innerHTML = selectstr;
+                        //newRow.insertCell(1).innerHTML = recvdata.result.devicefeaturelist[i][1];
+                        newRow.insertCell(1).innerHTML = '<input align="center" type="text" name="devicefeature" value="' + recvdata.result.devicefeaturelist[i][1] + '" readonly="readonly" style="width:90%;text-align:center;height: 44px;"><input type="hidden" name="devicefeaturehidden" value="' + recvdata.result.devicefeaturelist[i][0] + '">';
+                        newRow.insertCell(2).setAttribute("style", "text-align:center;height: 50px;");
+                    }
+                    dialog = $("#FeatureShowFormDialog").dialog({
+                        autoOpen: false,
+                        //title: "DeviceFeatureManagement",
+                        height: 900,
+                        width: 1200,
+                        modal: true,
+                        close: function () {
+                            dialog.dialog("close");
+                        }
+                    });
+                    dialog.dialog("open");
+                }
+                else {
+                    alert("Network connection error");
+                }
+            });
+    }
+    function SaveFeature() {
+        var devicefeaturenamelist = [];
+        var devicefeatureoldnamelist = [];
+        var devicefeaturelist = [];
+        var bool = true
+
+        var tb = document.getElementById("devicefeaturelisttable");
+        var rows = tb.rows;
+        for (var i = 0; i < rows.length; i++) {
+            devicefeaturenamelist.push(rows[i].cells[0].childNodes[0].value);
+            //console.log(rows[i].cells[0].childNodes);
+            devicefeatureoldnamelist.push(rows[i].cells[1].childNodes[1].value);
+            if (rows[i].cells[0].childNodes[0].value == "") {
+                bool = false;
+                break;
+            }
+
+            devicefeaturelist.push(rows[i].cells[1].childNodes[0].value);
+
+        }
+        //console.log(devicefeaturenamelist);
+        //console.log(devicefeatureoldnamelist);
+        //console.log(devicefeaturelist);
+        //console.log("1");
+        if (bool) {
+            var saveajaxbool = false;
+            //console.log("2");
+            for (var i = 0; i < devicefeaturenamelist.length; i++) {
+                if (devicefeaturenamelist[i] != devicefeatureoldnamelist[i]) {
+                    saveajaxbool = true;
+                }
+            }
+            if (saveajaxbool) {
+                //console.log("3");
+                dialog = $("#FeatureShowFormDialog");
+                //console.log("4");
+                $('div.containerall').block({ message: null });
+                //add some DOM
+                $(".blockMsg").append(
+                    "<div class='spinner-layer'>" +
+                    "<div class='circle-clipper left'>" +
+                    "<div class='circle'></div>" +
+                    "</div>" +
+                    "<div class='circle-clipper right'>" +
+                    "<div class='circle'></div>" +
+                    "</div>" +
+                    "</div>");
+                //console.log("5");
+                $.getJSON($SCRIPT_ROOT + '/DeviceFeatureSave', {
+                    devicefeaturenamelist: JSON.stringify(devicefeaturenamelist),
+                    devicefeatureoldnamelist: JSON.stringify(devicefeatureoldnamelist),
+                    devicefeaturelist: JSON.stringify(devicefeaturelist)
+                },
+                    function (data) {
+                        //alert(data.result.status);
+                        //console.log("6");
+                        //console.log(data.result.status);
+                        if (data.result.status == "Sucess") {
+                            $('div.containerall').unblock();
+                            dialog.dialog("close");
+                        }
+                        else {
+                            $('div.containerall').unblock();
+                            alert(data.result.status);
+                        }
+                    });
+            }
+            else {
+                dialog.dialog("close");
+            }
+        }
+        else {
+            alert("Device feature name is null");
+        }
+    }
+
+    function GetModelNameList() {
+        $('div.containerall').block({ message: null });
+        //add some DOM
+        $(".blockMsg").append(
+            "<div class='spinner-layer'>" +
+            "<div class='circle-clipper left'>" +
+            "<div class='circle'></div>" +
+            "</div>" +
+            "<div class='circle-clipper right'>" +
+            "<div class='circle'></div>" +
+            "</div>" +
+            "</div>");
+        $.getJSON($SCRIPT_ROOT + '/GetModelNameList', {
+
+        },
+            function (recvdata) {
+                //alert(data.result.status);
+                if (recvdata.result.status == "Sucess") {
+                    clearRows("devicemodeledittable");
+                    var bodyObj = document.getElementById("devicemodeledittable");
+                    var rowCount = bodyObj.rows.length;
+
+                    for (var i = 0; i < recvdata.result.devicenamelist.length; i++) {
+                        var newRow = bodyObj.insertRow(rowCount++);
+
+                        if (recvdata.result.devicenamelist[i].canchangebool) {
+                            newRow.insertCell(0).innerHTML = '<input align="center" type="text" name="devicemodelname" value="' + recvdata.result.devicenamelist[i].DeviceName + '" style="width:90%;text-align:center;height: 44px;"><input type="hidden" name="devicemodelnamehidden" value="' + recvdata.result.devicenamelist[i].DeviceName + '">';
+                            //newRow.insertCell(1).innerHTML = recvdata.result.devicefeaturelist[i][1];
+                            newRow.insertCell(1).innerHTML = '<input type="button" value="Delete" onclick="ModelNameDelete(\'' + recvdata.result.devicenamelist[i].DeviceName + '\',this)" style="height:44px;color:black;">'
+                        }
+                        else {
+                            newRow.insertCell(0).innerHTML = '<input align="center" type="text" name="devicemodelname" value="' + recvdata.result.devicenamelist[i].DeviceName + '" style="width:90%;text-align:center;height: 44px;" disabled><input type="hidden" name="devicemodelnamehidden" value="' + recvdata.result.devicenamelist[i].DeviceName + '">';
+                            //newRow.insertCell(1).innerHTML = recvdata.result.devicefeaturelist[i][1];
+                            newRow.insertCell(1).innerHTML = '<input type="button" value="Disable(in use)" onclick="ModelNameDelete(\'' + recvdata.result.devicenamelist[i].DeviceName + '\',this)" style="height:44px;color:red;" disabled>'
+
+                        }
+                        newRow.insertCell(2).setAttribute("style", "text-align:center;height: 50px;");
+                    }
+                    var dialog = $("#ModelEditFormDialog").dialog({
+                        autoOpen: false,
+                        //title: "DeviceModelName editor page",
+                        height: 600,
+                        width: 800,
+                        modal: true,
+                        close: function () {
+                            dialog.dialog("close");
+                        }
+                    });
+                    $('div.containerall').unblock();
+                    dialog.dialog("open");
+                }
+                else {
+                    $('div.containerall').unblock();
+                    alert("Network connection error");
+                }
+            });
+    }
+    function AddModelNameList() {
+        var bodyObj = document.getElementById("devicemodeledittable");
+        var rowCount = bodyObj.rows.length;
+
+        var newRow = bodyObj.insertRow(rowCount++);
+        newRow.insertCell(0).innerHTML = '<input align="center" type="text" name="devicemodelname" value="" style="width:90%;text-align:center;height: 44px;"><input type="hidden" name="devicemodelnamehidden" value="">';
+        newRow.insertCell(1).innerHTML = '<input type="button" value="Delete" onclick="ModelNameDelete(\'\',this)" style="height:44px;color:black;">';
+        newRow.insertCell(2).setAttribute("style", "text-align:center;height: 50px;");
+    }
+    function SaveModelNameList() {
+        var devicemodelnamelist = [];
+        var devicemodeloldnamelist = [];
+        var dialog = $("#ModelEditFormDialog");
+
+        var tb = document.getElementById("devicemodeledittable");
+        var rows = tb.rows;
+        for (var i = 0; i < rows.length; i++) {
+            if (rows[i].cells[0].childNodes[0].value == "" && rows[i].cells[0].childNodes[1].value != "") {
+                alert("The DeviceModelName(" + rows[i].cells[0].childNodes[1].value + ") cannot be changed to null");
+            }
+            else if (rows[i].cells[0].childNodes[0].value == "" && rows[i].cells[0].childNodes[1].value == "") {
+
+            }
+            else {
+                devicemodelnamelist.push(rows[i].cells[0].childNodes[0].value);
+                devicemodeloldnamelist.push(rows[i].cells[0].childNodes[1].value);
+            }
+        }
+
+        var nary = devicemodelnamelist.sort();
+        var duplicatebool = false;
+        for (var i = 0; i < nary.length; i++) {
+            if (nary[i] == nary[i + 1]) {
+                alert("Duplicate ModelName(" + nary[i] + ")");
+                duplicatebool = true;
+                break;
+            }
+        }
+        //console.log(devicemodelnamelist);
+        //console.log(devicemodeloldnamelist);
+        if (duplicatebool == false) {
+            $(".blockMsg").append(
+                "<div class='spinner-layer'>" +
+                "<div class='circle-clipper left'>" +
+                "<div class='circle'></div>" +
+                "</div>" +
+                "<div class='circle-clipper right'>" +
+                "<div class='circle'></div>" +
+                "</div>" +
+                "</div>");
+            $.getJSON($SCRIPT_ROOT + '/SaveModelNameList', {
+                devicemodelnamelist: JSON.stringify(devicemodelnamelist),
+                devicemodeloldnamelist: JSON.stringify(devicemodeloldnamelist)
+            },
+                function (recvdata) {
+                    //alert(data.result.status);
+                    if (recvdata.result.status == "Sucess") {
+                        var selectlist = document.getElementsByName("devicetypenameselection");
+                        for (var i = 0; i < selectlist.length; i++) {
+                            for (var k = 0; k < devicemodelnamelist.length; k++) {
+                                optionexitbool = false;
+                                selectlistvalue = selectlist[i].value;
+                                for (var j = 0; j < selectlist[i].options.length; j++) {
+                                    if ((devicemodeloldnamelist[k] == selectlist[i].options[j].value) && (devicemodeloldnamelist[k] != devicemodelnamelist[k])) {
+                                        selectlist[i].options[j].value = devicemodelnamelist[k];
+                                        selectlist[i].options[j].text = devicemodelnamelist[k];
+                                    }
+                                    if (devicemodelnamelist[k] == selectlist[i].options[j].value) {
+                                        optionexitbool = true;
+                                        break;
+                                    }
+                                }
+                                if (optionexitbool == false) {
+                                    var new_option = new Option(devicemodelnamelist[k], devicemodelnamelist[k]);
+                                    selectlist[i].options.add(new_option);
+                                }
+
+                                for (var j = 0; j < selectlist[i].options.length; j++) {
+                                    if (selectlist[i].options[j].value == selectlistvalue) {
+                                        selectlist[i].selectedIndex = j;
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                        $('div.containerall').unblock();
+                        dialog.dialog("close");
+                    }
+                    else {
+                        $('div.containerall').unblock();
+                        alert(recvdata.result.status);
+                    }
+                });
+        }
+    }
+    function ModelNameDelete(DeviceModelName, btnobj) {
+        //console.log(DeviceModelName=="");
+        if (DeviceModelName != "") {
+            $(".blockMsg").append(
+                "<div class='spinner-layer'>" +
+                "<div class='circle-clipper left'>" +
+                "<div class='circle'></div>" +
+                "</div>" +
+                "<div class='circle-clipper right'>" +
+                "<div class='circle'></div>" +
+                "</div>" +
+                "</div>");
+            $.getJSON($SCRIPT_ROOT + '/ModelNameDelete', {
+                DeviceModelName: DeviceModelName
+            },
+                function (recvdata) {
+                    //alert(data.result.status);
+                    if (recvdata.result.status == "Sucess") {
+                        var clickRow = btnobj.parentElement.parentNode.rowIndex;
+                        var bodyObj = document.getElementById("devicemodeledittable");
+                        bodyObj.deleteRow(clickRow - 1);
+                        var selectlist = document.getElementsByName("devicetypenameselection");
+                        for (var i = 0; i < selectlist.length; i++) {
+                            var selectedvalue = selectlist[i].value;
+                            for (var j = 0; j < selectlist[i].options.length; j++) {
+                                if (selectlist[i].options[j].value == DeviceModelName) {
+                                    selectlist[i].options.remove(j);
+                                    break;
+                                }
+                            }
+                        }
+                        $('div.containerall').unblock();
+                    }
+                    else {
+                        $('div.containerall').unblock();
+                        alert(recvdata.result.status);
+                    }
+                });
+        }
+        else {
+            var clickRow = btnobj.parentElement.parentNode.rowIndex;
+            var bodyObj = document.getElementById("devicemodeledittable");
+            bodyObj.deleteRow(clickRow - 1);
+        }
+    }
+
+    function GetFeatureNameList() {
+        $('div.containerall').block({ message: null });
+        //add some DOM
+        $(".blockMsg").append(
+            "<div class='spinner-layer'>" +
+            "<div class='circle-clipper left'>" +
+            "<div class='circle'></div>" +
+            "</div>" +
+            "<div class='circle-clipper right'>" +
+            "<div class='circle'></div>" +
+            "</div>" +
+            "</div>");
+        $.getJSON($SCRIPT_ROOT + '/GetFeatureNameList', {
+
+        },
+            function (recvdata) {
+                //alert(data.result.status);
+                if (recvdata.result.status == "Sucess") {
+                    clearRows("devicefeatureedittable");
+                    var bodyObj = document.getElementById("devicefeatureedittable");
+                    var rowCount = bodyObj.rows.length;
+                    //console.log(recvdata.result.featurenamelist);
+                    for (var i = 0; i < recvdata.result.featurenamelist.length; i++) {
+                        var newRow = bodyObj.insertRow(rowCount++);
+
+                        if (recvdata.result.featurenamelist[i].canchangebool) {
+                            newRow.insertCell(0).innerHTML = '<input align="center" type="text" name="devicefeaturename" value="' + recvdata.result.featurenamelist[i].ServiceName + '" style="width:90%;text-align:center;height: 44px;"><input type="hidden" name="devicefeaturenamehidden" value="' + recvdata.result.featurenamelist[i].ServiceName + '">';
+
+                            var selectstr = '<select name="devicefeaturedimension" onclick="" onChange="" style="color:black;text-align:center;height: 44px;width:90%" size="1">';
+                            for (var m = 1; m < 6; m++) {
+                                //console.log(recvdata.result.featurenamelist[i]);
+                                if (recvdata.result.featurenamelist[i].Dimension == m) {
+                                    selectstr = selectstr + '<option title="' + m + '" value ="' + m + '" SELECTED>' + m + '</option>';
+                                }
+                                else {
+                                    selectstr = selectstr + '<option title="' + m + '" value ="' + m + '">' + m + '</option>';
+                                }
+                            }
+                            selectstr = selectstr + '</select>';
+                            //newRow.insertCell(1).innerHTML = '<input align="center" type="text" name="devicefeaturedimension" value="'+recvdata.result.featurenamelist[i].Dimension+'" style="width:90%;text-align:center;height: 44px;"><input type="hidden" name="devicefeaturedimensionhidden" value="'+recvdata.result.featurenamelist[i].Dimension+'">';	
+                            newRow.insertCell(1).innerHTML = selectstr;
+
+                            selectstr = '<select name="devicefeaturedataType" onclick="" onChange="" style="color:black;text-align:center;height: 44px;width:90%" size="1">';
+
+                            if (recvdata.result.featurenamelist[i].DataType == "float") {
+                                selectstr = selectstr + '<option title="float" value ="float" SELECTED>float</option>';
+                            }
+                            else {
+                                selectstr = selectstr + '<option title="float" value ="float">float</option>';
+                            }
+                            if (recvdata.result.featurenamelist[i].DataType == "int") {
+                                selectstr = selectstr + '<option title="int" value ="int" SELECTED>int</option>';
+                            }
+                            else {
+                                selectstr = selectstr + '<option title="int" value ="int">int</option>';
+                            }
+                            if (recvdata.result.featurenamelist[i].DataType == "str") {
+                                selectstr = selectstr + '<option title="str" value ="str" SELECTED>str</option>';
+                            }
+                            else {
+                                selectstr = selectstr + '<option title="str" value ="str">str</option>';
+                            }
+
+                            selectstr = selectstr + '</select>';
+
+                            //newRow.insertCell(2).innerHTML = '<input align="center" type="text" name="devicefeaturedataType" value="'+recvdata.result.featurenamelist[i].DataType+'" style="width:90%;text-align:center;height: 44px;"><input type="hidden" name="devicefeaturedataTypehidden" value="'+recvdata.result.featurenamelist[i].DataType+'">';	
+                            newRow.insertCell(2).innerHTML = selectstr;
+                            //newRow.insertCell(3).innerHTML = recvdata.result.devicefeaturelist[i][1];
+                            newRow.insertCell(3).innerHTML = '<input type="button" value="Delete" onclick="FeatureNameDelete(\'' + recvdata.result.featurenamelist[i].ServiceName + '\',this)" style="height:44px;color:black;">';
+                        }
+                        else {
+                            newRow.insertCell(0).innerHTML = '<input align="center" type="text" name="devicefeaturename" value="' + recvdata.result.featurenamelist[i].ServiceName + '" style="width:90%;text-align:center;height: 44px;" disabled><input type="hidden" name="devicefeaturenamehidden" value="' + recvdata.result.featurenamelist[i].ServiceName + '">';
+
+                            var selectstr = '<select name="devicefeaturedimension" onclick="" onChange="" style="color:black;text-align:center;height: 44px;width:90%" size="1" disabled>';
+                            for (var m = 1; m < 6; m++) {
+                                //console.log(recvdata.result.featurenamelist[i]);
+                                if (recvdata.result.featurenamelist[i].Dimension == m) {
+                                    selectstr = selectstr + '<option title="' + m + '" value ="' + m + '" SELECTED>' + m + '</option>';
+                                }
+                                else {
+                                    selectstr = selectstr + '<option title="' + m + '" value ="' + m + '">' + m + '</option>';
+                                }
+                            }
+                            selectstr = selectstr + '</select>';
+                            //newRow.insertCell(1).innerHTML = '<input align="center" type="text" name="devicefeaturedimension" value="'+recvdata.result.featurenamelist[i].Dimension+'" style="width:90%;text-align:center;height: 44px;"><input type="hidden" name="devicefeaturedimensionhidden" value="'+recvdata.result.featurenamelist[i].Dimension+'">';	
+                            newRow.insertCell(1).innerHTML = selectstr;
+
+                            selectstr = '<select name="devicefeaturedataType" onclick="" onChange="" style="color:black;text-align:center;height: 44px;width:90%" size="1" disabled>';
+
+                            if (recvdata.result.featurenamelist[i].DataType == "float") {
+                                selectstr = selectstr + '<option title="float" value ="float" SELECTED>float</option>';
+                            }
+                            else {
+                                selectstr = selectstr + '<option title="float" value ="float">float</option>';
+                            }
+                            if (recvdata.result.featurenamelist[i].DataType == "int") {
+                                selectstr = selectstr + '<option title="int" value ="int" SELECTED>int</option>';
+                            }
+                            else {
+                                selectstr = selectstr + '<option title="int" value ="int">int</option>';
+                            }
+                            if (recvdata.result.featurenamelist[i].DataType == "str") {
+                                selectstr = selectstr + '<option title="str" value ="str" SELECTED>str</option>';
+                            }
+                            else {
+                                selectstr = selectstr + '<option title="str" value ="str">str</option>';
+                            }
+
+                            selectstr = selectstr + '</select>';
+
+                            //newRow.insertCell(2).innerHTML = '<input align="center" type="text" name="devicefeaturedataType" value="'+recvdata.result.featurenamelist[i].DataType+'" style="width:90%;text-align:center;height: 44px;" disabled><input type="hidden" name="devicefeaturedataTypehidden" value="'+recvdata.result.featurenamelist[i].DataType+'">';		
+                            newRow.insertCell(2).innerHTML = selectstr;
+                            //newRow.insertCell(3).innerHTML = recvdata.result.devicefeaturelist[i][1];
+                            newRow.insertCell(3).innerHTML = '<input type="button" value="Disable(in use)" onclick="FeatureNameDelete(\'' + recvdata.result.featurenamelist[i].DeviceName + '\',this)" style="height:44px;color:red;" disabled>';
+                        }
+                        newRow.insertCell(4).setAttribute("style", "text-align:center;height: 50px;");
+                    }
+                    var dialog = $("#FeatureEditFormDialog").dialog({
+                        autoOpen: false,
+                        //title: "DeviceFeatureName editor page",
+                        height: 900,
+                        width: 1200,
+                        modal: true,
+                        close: function () {
+                            dialog.dialog("close");
+                        }
+                    });
+                    $('div.containerall').unblock();
+                    dialog.dialog("open");
+                }
+                else {
+                    $('div.containerall').unblock();
+                    alert("Network connection error");
+                }
+            });
+    }
+
+    function AddFeatureNameList() {
+        var bodyObj = document.getElementById("devicefeatureedittable");
+        var rowCount = bodyObj.rows.length;
+
+        var newRow = bodyObj.insertRow(rowCount++);
+        newRow.insertCell(0).innerHTML = '<input align="center" type="text" name="devicefeaturename" value="" style="width:90%;text-align:center;height: 44px;"><input type="hidden" name="devicefeaturenamehidden" value="">';
+
+        var selectstr = '<select name="devicefeaturedimension" onclick="" onChange="" style="color:black;text-align:center;height: 44px;width:90%" size="1">';
+        for (var m = 1; m < 6; m++) {
+            if (m == 1) {
+                selectstr = selectstr + '<option title="' + m + '" value ="' + m + '" SELECTED>' + m + '</option>';
+            }
+            else {
+                selectstr = selectstr + '<option title="' + m + '" value ="' + m + '">' + m + '</option>';
+            }
+        }
+        selectstr = selectstr + '</select>';
+        //newRow.insertCell(1).innerHTML = '<input align="center" type="text" name="devicefeaturedimension" value="'+recvdata.result.featurenamelist[i].Dimension+'" style="width:90%;text-align:center;height: 44px;"><input type="hidden" name="devicefeaturedimensionhidden" value="'+recvdata.result.featurenamelist[i].Dimension+'">';	
+        newRow.insertCell(1).innerHTML = selectstr;
+
+        selectstr = '<select name="devicefeaturedataType" onclick="" onChange="" style="color:black;text-align:center;height: 44px;width:90%" size="1">';
+
+        selectstr = selectstr + '<option title="float" value ="float" SELECTED>float</option>';
+        selectstr = selectstr + '<option title="int" value ="int">int</option>';
+        selectstr = selectstr + '<option title="str" value ="str">str</option>';
+        selectstr = selectstr + '</select>';
+
+        //newRow.insertCell(2).innerHTML = '<input align="center" type="text" name="devicefeaturedataType" value="'+recvdata.result.featurenamelist[i].DataType+'" style="width:90%;text-align:center;height: 44px;"><input type="hidden" name="devicefeaturedataTypehidden" value="'+recvdata.result.featurenamelist[i].DataType+'">';	
+        newRow.insertCell(2).innerHTML = selectstr;
+        //newRow.insertCell(3).innerHTML = recvdata.result.devicefeaturelist[i][1];
+        newRow.insertCell(3).innerHTML = '<input type="button" value="Delete" onclick="FeatureNameDelete(\'\',this)" style="height:44px;color:black;">';
+        newRow.insertCell(4).setAttribute("style", "text-align:center;height: 50px;");
+    }
+
+    function SaveFeatureNameList() {
+        var devicefeaturenamelist = [];
+        var devicefeatureoldnamelist = [];
+        var devicefeaturedimensionlist = [];
+        var devicefeaturedatatypelist = [];
+        var dialog = $("#FeatureEditFormDialog");
+
+        var tb = document.getElementById("devicefeatureedittable");
+        var rows = tb.rows;
+        for (var i = 0; i < rows.length; i++) {
+            if (rows[i].cells[0].childNodes[0].value == "" && rows[i].cells[0].childNodes[1].value != "") {
+                alert("The FeatureName(" + rows[i].cells[0].childNodes[1].value + ") cannot be changed to null");
+            }
+            else if (rows[i].cells[0].childNodes[0].value == "" && rows[i].cells[0].childNodes[1].value == "") {
+
+            }
+            else {
+                devicefeaturenamelist.push(rows[i].cells[0].childNodes[0].value);
+                devicefeatureoldnamelist.push(rows[i].cells[0].childNodes[1].value);
+                devicefeaturedimensionlist.push(rows[i].cells[1].childNodes[0].value);
+                devicefeaturedatatypelist.push(rows[i].cells[2].childNodes[0].value);
+            }
+        }
+
+        var nary = devicefeaturenamelist.sort();
+        var duplicatebool = false;
+        for (var i = 0; i < nary.length; i++) {
+            if (nary[i] == nary[i + 1]) {
+                alert("Duplicate FeatureName(" + nary[i] + ")");
+                duplicatebool = true;
+                break;
+            }
+        }
+        //console.log(devicemodelnamelist);
+        //console.log(devicemodeloldnamelist);
+        if (duplicatebool == false) {
+            $(".blockMsg").append(
+                "<div class='spinner-layer'>" +
+                "<div class='circle-clipper left'>" +
+                "<div class='circle'></div>" +
+                "</div>" +
+                "<div class='circle-clipper right'>" +
+                "<div class='circle'></div>" +
+                "</div>" +
+                "</div>");
+            $.getJSON($SCRIPT_ROOT + '/SaveFeatureNameList', {
+                devicefeaturenamelist: JSON.stringify(devicefeaturenamelist),
+                devicefeatureoldnamelist: JSON.stringify(devicefeatureoldnamelist),
+                devicefeaturedimensionlist: JSON.stringify(devicefeaturedimensionlist),
+                devicefeaturedatatypelist: JSON.stringify(devicefeaturedatatypelist)
+            },
+                function (recvdata) {
+                    //alert(data.result.status);
+                    if (recvdata.result.status == "Sucess") {
+                        var selectlist = document.getElementsByName("devicefeaturenameselection");
+                        for (var i = 0; i < selectlist.length; i++) {
+                            for (var k = 0; k < devicefeaturenamelist.length; k++) {
+                                optionexitbool = false;
+                                selectlistvalue = selectlist[i].value;
+                                for (var j = 0; j < selectlist[i].options.length; j++) {
+                                    if ((devicefeatureoldnamelist[k] == selectlist[i].options[j].value) && (devicefeatureoldnamelist[k] != devicefeaturenamelist[k])) {
+                                        selectlist[i].options[j].value = devicefeaturenamelist[k];
+                                        selectlist[i].options[j].text = devicefeaturenamelist[k];
+                                    }
+                                    if (devicefeaturenamelist[k] == selectlist[i].options[j].value) {
+                                        optionexitbool = true;
+                                        break;
+                                    }
+                                }
+                                if (optionexitbool == false) {
+                                    var new_option = new Option(devicefeaturenamelist[k], devicefeaturenamelist[k]);
+                                    selectlist[i].options.add(new_option);
+                                }
+
+                                for (var j = 0; j < selectlist[i].options.length; j++) {
+                                    if (selectlist[i].options[j].value == selectlistvalue) {
+                                        selectlist[i].selectedIndex = j;
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                        $('div.containerall').unblock();
+                        dialog.dialog("close");
+                    }
+                    else {
+                        $('div.containerall').unblock();
+                        alert(recvdata.result.status);
+                    }
+                });
+        }
+    }
+
+    function FeatureNameDelete(DeviceFeatureName, btnobj) {
+        //console.log(DeviceFeatureName=="");
+        if (DeviceFeatureName != "") {
+            $(".blockMsg").append(
+                "<div class='spinner-layer'>" +
+                "<div class='circle-clipper left'>" +
+                "<div class='circle'></div>" +
+                "</div>" +
+                "<div class='circle-clipper right'>" +
+                "<div class='circle'></div>" +
+                "</div>" +
+                "</div>");
+            $.getJSON($SCRIPT_ROOT + '/FeatureNameDelete', {
+                DeviceFeatureName: DeviceFeatureName
+            },
+                function (recvdata) {
+                    //alert(data.result.status);
+                    if (recvdata.result.status == "Sucess") {
+                        var clickRow = btnobj.parentElement.parentNode.rowIndex;
+                        var bodyObj = document.getElementById("devicefeatureedittable");
+                        bodyObj.deleteRow(clickRow - 1);
+                        var selectlist = document.getElementsByName("devicefeaturenameselection");
+                        for (var i = 0; i < selectlist.length; i++) {
+                            var selectedvalue = selectlist[i].value;
+                            for (var j = 0; j < selectlist[i].options.length; j++) {
+                                if (selectlist[i].options[j].value == DeviceFeatureName) {
+                                    selectlist[i].options.remove(j);
+                                    break;
+                                }
+                            }
+                        }
+                        $('div.containerall').unblock();
+                    }
+                    else {
+                        $('div.containerall').unblock();
+                        alert(recvdata.result.status);
+                    }
+                });
+        }
+        else {
+            var clickRow = btnobj.parentElement.parentNode.rowIndex;
+            var bodyObj = document.getElementById("devicefeatureedittable");
+            bodyObj.deleteRow(clickRow - 1);
+        }
+    }
+</Script>
+<p>&nbsp;</p>
+
+<table id="devicetypelisttable" name="devicetypelisttable" border="5" cellpadding="1" cellspacing="1"
+    style="background-color:rgb(221, 221, 221);width:80%;text-align:center;font-size:30px;color:black; margin-left: auto; margin-right: auto;">
+    <tr>
+        <!-- th:表格欄位標題, tr:表格列, tr:表格欄-->
+        {% if session['provider'] == "NHR"%}
+        <th align='center' valign="middle" style="text-align:center;width:50%">DeviceType</th>
+        {% elif session['provider'] == "SIP"%}
+        <th align='center' valign="middle" style="text-align:center;width:20%">DeviceType</th>
+        {% endif %}
+        <th align='center' valign="middle" style="text-align:center;width:40%;height: 52px">DeviceModel</th>
+        <th align='center' valign="middle" style="text-align:center;width:40%;height: 52px">S/M IoT</th>
+    </tr>
+
+    {% for devicetype in result.devicetypelist %}
+    <tr>
+        <td name="devicetypevalue" align='center' valign="middle"><label
+                name="devicetype">{{devicetype[1]}}</label><input type="hidden" name="devicetypehidden"
+                value="{{devicetype[0]}}"></td>
+        
+        <!--device model name填空區-->
+        <td name="devicetypevalue" align='center' valign="middle" style="height: 50px"><input align='center' type="text"
+                name="devicetypenameselection" defaultValue="{{ devicetype[0]}}" value="{{ devicetype[0]}}"
+                style="width:90%;text-align:center;height: 44px;"></td>
+        <!--S/M IoT勾選區-->
+        <td name="devicetypevalue" align='center' valign="middle" style="height: 50px">
+            <input align='left' type="checkbox" name="siot" style="width:20%;text-align:left;height: 30px;">
+            <label for="siot">Scalar IoT</label>
+            <input align='left' type="checkbox" name="miot" style="width:20%;text-align:left;height: 30px;">
+            <label for="miot">Multimedia IoT</label>
+        </td>
+    </tr>
+    {% endfor %}
+</table>
+<table align="center" border="0" style="width:60%">
+    <tr>
+        <td align='center' style="width:50%">
+
+        </td>
+        <td align='right' valign="middle" style="height:70px;width:50%">
+            <input type="button" value="Save" onclick="SaveModel()" style="height:44px;color:black;">
+            &nbsp;
+            <input type="button" value="Add" onclick="AddModel()" style="height:44px;">
+            &nbsp;
+
+        </td>
+    </tr>
+</table>
+
+<div id="FeatureShowFormDialog" title="" style="display:none">
+    <table align="center" border="5"
+        style="background-color:rgb(221, 221, 221);width:90%;text-align:center;font-size:30px;color:black; margin-left: auto; margin-right: auto;">
+        <thead align="center">
+            <tr>
+                <th align='center' valign="middle" style="height:52px;text-align:center;width:50%;">DeviceFeature <input
+                        type="button" value="EditorPage" onclick="GetFeatureNameList()"
+                        style="height:44px;color:black;"></th>
+                <th align='center' valign="middle" style="text-align:center;width:50%;">CID</th>
+                <th align='center' valign="middle" style="text-align:center;width:0%;"></th>
+            </tr>
+        </thead>
+        <tbody id="devicefeaturelisttable" align='center' valign="middle">
+        </tbody>
+    </table>
+    <table align="center" border="0" style="width:90%">
+        <tr>
+            <td align='center' style="width:50%"></td>
+            <td align='right' valign="middle" style="height:70px;width:50%">
+                <!--  
+      	<input type="button" value="add" onclick="add_row()" style="height:40px;">
+      	&nbsp;
+      	-->
+                <input type="button" value="Save" onclick="SaveFeature()" style="height:44px;color:black;">
+                &nbsp;
+            </td>
+        </tr>
+    </table>
+</div>
+
+<div id="ModelEditFormDialog" title="" style="display:none">
+    <table align="center" border="5"
+        style="background-color:rgb(221, 221, 221);width:90%;text-align:center;font-size:30px;color:black; margin-left: auto; margin-right: auto;">
+        <thead align="center">
+            <tr>
+                <th align='center' valign="middle" style="text-align:center;width:50%;">DeviceModel</th>
+                <th align='center' valign="middle" style="text-align:center;width:50%;">Delete</th>
+                <th align='center' valign="middle" style="text-align:center;width:0%;"></th>
+            </tr>
+        </thead>
+        <tbody id="devicemodeledittable" align='center' valign="middle">
+        </tbody>
+    </table>
+    <table align="center" border="0" style="width:90%">
+        <tr>
+            <td align='center' style="width:50%"></td>
+            <td align='right' valign="middle" style="height:70px;width:50%">
+
+                <input type="button" value="Add" onclick="AddModelNameList()" style="height:44px;color:black;">
+                &nbsp;
+
+                <input type="button" value="Save" onclick="SaveModelNameList()" style="height:44px;color:black;">
+                &nbsp;
+            </td>
+        </tr>
+    </table>
+</div>
+
+<div id="FeatureEditFormDialog" title="" style="display:none">
+    <table align="center" border="5"
+        style="background-color:rgb(221, 221, 221);width:90%;text-align:center;font-size:30px;color:black; margin-left: auto; margin-right: auto;">
+        <thead align="center">
+            <tr>
+                <th align='center' valign="middle" style="text-align:center;width:35%;">DeviceFeature</th>
+                <th align='center' valign="middle" style="text-align:center;width:20%;">Dimension</th>
+                <th align='center' valign="middle" style="text-align:center;width:20%;">DataType</th>
+                <th align='center' valign="middle" style="text-align:center;width:25%;">Delete</th>
+                <th align='center' valign="middle" style="text-align:center;width:0%;"></th>
+            </tr>
+        </thead>
+        <tbody id="devicefeatureedittable" align='center' valign="middle">
+        </tbody>
+    </table>
+    <table align="center" border="0" style="width:90%">
+        <tr>
+            <td align='center' style="width:50%"></td>
+            <td align='right' valign="middle" style="height:70px;width:50%">
+
+                <input type="button" value="Add" onclick="AddFeatureNameList()" style="height:44px;color:black;">
+                &nbsp;
+
+                <input type="button" value="Save" onclick="SaveFeatureNameList()" style="height:44px;color:black;">
+                &nbsp;
+            </td>
+        </tr>
+    </table>
+</div>
+
+</head>
+
+{% else %}
+<p>Not login!</p>
+<a href="/login">Login</a>
+
+{% endif %}
+{% endblock %}

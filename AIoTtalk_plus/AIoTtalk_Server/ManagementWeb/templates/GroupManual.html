@@ -1,0 +1,693 @@
+{% extends "base.html" %}
+{% block content %}
+{% if session['logged_in'] %}
+
+	<Script>
+		//var DeviceGroupselected ="";
+		var passiveSupported = false;
+		var firstDeviceModelList = true;
+		var firstDeviceModelList = true;
+		var oldDeviceModel = "";
+		var oldDeviceGroup = "";
+	    try {
+	        var options = Object.defineProperty({}, "passive", {
+	            get: function() {
+	                passiveSupported = true;
+	            }
+	        });
+	        window.addEventListener("EventListenerForChrom", null, options);
+	    } catch(err) {}
+	    function fn() {
+	        //console.log("fn")
+	    }
+	    document.addEventListener("mousewheel", fn, passiveSupported ? { passive: true } : false)
+		
+	    $(window).load(function () {
+			{% if session['provider'] %}
+				document.getElementById("AccountManagement").style.display = "block";
+			{% else %}
+				document.getElementById("AccountManagement").style.display = "none";
+			{% endif %}
+			
+			{% if session['IDAExecution'] %}
+				document.getElementById("GroupManagement").style.display = "block";
+				document.getElementById("ModelManagement").style.display = "block";
+				document.getElementById("FeatureManagement").style.display = "block";
+			{% else %}
+				document.getElementById("GroupManagement").style.display = "none";
+				document.getElementById("ModelManagement").style.display = "none";
+				document.getElementById("FeatureManagement").style.display = "none";
+			{% endif %}
+			document.getElementById("DeviceGroupSelect").selectedIndex = 0;
+			DeviceModelSelect();
+			
+			
+			//alert("IoTtalk server exception");
+    		//location.href="/DeviceGroupManagement";
+		});
+	    
+	    function DeviceGroupSelect(){
+	    	//console.log("DeviceGroupSelect")
+	    	
+	    	DeviceModelselected = document.getElementById("DeviceGroupSelect").value;
+			//document.getElementById("DeviceGroupSelect").size = 1;
+			document.getElementById("DeviceModelSelect").size = 1;
+   		 	//document.getElementById("DeviceGroupMang").style.display = "block";
+   			document.getElementById("SIP URI").innerHTML = "";
+   			//document.getElementById("DeviceGroup").value = "";
+        	document.getElementById("Lat").value = document.getElementById("Lat").defaultValue;
+        	document.getElementById("Lat").style.color='#999';
+        	document.getElementById("Lng").value = document.getElementById("Lng").defaultValue;
+        	document.getElementById("Lng").style.color='#999';
+        	//console.log("DeviceGroupSelect2")
+   			DeviceModelListGet();
+		}
+	    
+		function DeviceModelListGet(){
+			//console.log("DeviceModelListGet")
+   			$('div.containerall').block({ message: null });
+            //add some DOM
+            $(".blockMsg").append(
+            	"<div class='spinner-layer'>" +
+                "<div class='circle-clipper left'>" +
+                "<div class='circle'></div>" +
+                "</div>" +
+                "<div class='circle-clipper right'>" +
+                "<div class='circle'></div>" +
+                "</div>" +
+                "</div>");
+   			
+			$.getJSON($SCRIPT_ROOT + '/DeviceModelListGet', {
+	        },  
+	        function(data) {
+	        	//alert(data.result);
+	        	//console.log(data)
+	        	if(data.result.type == "Sucess")
+	        	{
+	        		DeviceGroupselected = document.getElementById("DeviceGroupSelect").value;
+	        		/*
+	        		var selection = document.getElementById("DeviceModelSelect");
+		        	selection.options.length = 0;
+		        	for(var i=0;i<data.result.devicemodellist.length;i++)
+			        {
+			        	var new_option = new Option(data.result.devicemodellist[i],data.result.devicemodellist[i]);
+			        	selection.options.add(new_option);
+			        }
+		        	*/
+		        	if(DeviceGroupselected == "Add New Device Group")
+		        	{
+		        		//selection.selectedIndex = 2;
+		        		DeviceModel = document.getElementById("DeviceModelSelect").value;
+		        		DeviceGroupListGet("Add New Device Group",DeviceModel);
+	    				IMEIListofModelGet(DeviceModel,"");
+		        		oldDeviceModel = "";
+						oldDeviceGroup = "";
+						setTimeout(function(){
+							$('div.containerall').unblock();
+						},3000);
+		        		//$('div.containerall').unblock();
+		        	}
+		        	else
+		        	{
+		        		//console.log("DeviceGroupGet")
+		        		DeviceGroupGet();
+		        	}
+	        	}
+	        	else
+	        	{
+	        		console.log("IoTtalk server exception");
+	        		location.href="/DeviceGroupManagement";
+	        	}
+	        });
+		}
+		
+	    function DeviceModelSelect(){
+	    	$('div.containerall').block({ message: null });
+            //add some DOM
+            $(".blockMsg").append(
+            	"<div class='spinner-layer'>" +
+                "<div class='circle-clipper left'>" +
+                "<div class='circle'></div>" +
+                "</div>" +
+                "<div class='circle-clipper right'>" +
+                "<div class='circle'></div>" +
+                "</div>" +
+                "</div>");
+	    	DeviceModelselected = document.getElementById("DeviceGroupSelect").value;
+			//document.getElementById("DeviceGroupSelect").size = 1;
+			document.getElementById("DeviceModelSelect").size = 1;
+   		 	//document.getElementById("DeviceGroupMang").style.display = "block";
+   			document.getElementById("SIP URI").innerHTML = "";
+   			//document.getElementById("DeviceGroup").value = "";
+        	document.getElementById("Lat").value = document.getElementById("Lat").defaultValue;
+        	document.getElementById("Lat").style.color='#999';
+        	document.getElementById("Lng").value = document.getElementById("Lng").defaultValue;
+        	document.getElementById("Lng").style.color='#999';
+        	
+	    	DeviceModel = document.getElementById("DeviceModelSelect").value;
+	    	//document.getElementById("DeviceModel").value = DeviceModel;
+	    	
+			oldDeviceModel = "";
+			oldDeviceGroup = "";
+			
+			DeviceGroupListGet("Add New Device Group",DeviceModel);
+	    	
+	    	IMEIListofModelGet(DeviceModel,"");
+			setTimeout(function(){
+				$('div.containerall').unblock();
+			},3000);
+		}
+		
+		function IMEIListofModelGet(DeviceModel,DeviceGroup){
+			$.getJSON($SCRIPT_ROOT + '/IMEIListofModelGet', {
+				DeviceModel:DeviceModel
+	        },  
+	        function(data) {
+	        	console.log("devicelist:");
+				console.log(data.result.devicelist);
+	        	document.getElementById("SIP URI").innerHTML = "";
+				var ul=document.createElement("ul");
+				//ul.style.list-style-type = "none";
+				for(var i=0;i<data.result.devicelist.length;i++)
+		        {
+					var checkBox=document.createElement("input");
+					
+					checkBox.setAttribute("type","checkbox");  
+					checkBox.setAttribute("id",data.result.devicelist[i].IMEI);  
+					checkBox.setAttribute("name", "IMEIcheck");
+					//checkBox.setAttribute("style","zoom:1;");
+					checkBox.setAttribute("style","width:32px;height:32px;");
+					checkBox.setAttribute("onclick","IMEIcheck();"); 
+					
+					devicegroupresstr = data.result.devicelist[i].devicegroup;
+					
+					// device group為空
+					if(devicegroupresstr == "")
+					{
+						var li=document.createElement("li");  
+						//li.appendChild(checkBox); 
+						var h = document.createElement("H1")                // Create a <h1> element
+						//textnode = document.createTextNode(data.result.devicelist[i].IMEI);
+						//textnode.setAttribute("onclick","IMEIcheck(this);"); 
+						textnode = document.createElement("label");
+						textnode.innerHTML = data.result.devicelist[i].IMEI;
+						textnode.setAttribute("for",data.result.devicelist[i].IMEI);
+						h.appendChild(checkBox);
+						h.appendChild(textnode);
+						h.style.color="black"; 
+						h.style.fontSize="30px";
+						li.appendChild(h);
+						
+						checkBox.checked = false;
+						//console.log("1");
+						ul.appendChild(li);
+					}
+					else if(devicegroupresstr.indexOf(DeviceGroup) != -1 && DeviceGroup != "") 
+					{
+						// 若這個device所屬group是管理者選擇的device group且此group不是none
+						var li=document.createElement("li");  
+						//li.appendChild(checkBox); 
+						var h = document.createElement("H1")                // Create a <h1> element
+						//textnode = document.createTextNode(data.result.devicelist[i].IMEI);
+						//textnode.setAttribute("onclick","IMEIcheck(this);"); 
+						textnode = document.createElement("label");
+						textnode.innerHTML = data.result.devicelist[i].IMEI;
+						textnode.setAttribute("for",data.result.devicelist[i].IMEI);
+						h.appendChild(checkBox);
+						h.appendChild(textnode);
+						h.style.color="black"; 
+						h.style.fontSize="30px";
+						li.appendChild(h);
+						
+						//顯示打勾
+						checkBox.checked = true;
+						//console.log("2");
+						ul.appendChild(li);
+					}
+					else if(devicegroupresstr.indexOf(DeviceGroup) == -1 && DeviceGroup != "") 
+					{
+						// 若這個device所屬group“不是”管理者選擇的device group且此group不是none
+						var li=document.createElement("li");  
+						//li.appendChild(checkBox); 
+						var h = document.createElement("H1")                // Create a <h1> element
+						//textnode = document.createTextNode(data.result.devicelist[i].IMEI);
+						//textnode.setAttribute("onclick","IMEIcheck(this);"); 
+						textnode = document.createElement("label");
+						textnode.innerHTML = data.result.devicelist[i].IMEI;
+						//textnode.setAttribute("for",data.result.devicelist[i].IMEI);
+						h.appendChild(checkBox);
+						h.appendChild(textnode);
+						h.style.color="#D7D7D7";
+						//h.style.color="black"; 
+						h.style.fontSize="30px";
+						li.appendChild(h);
+						
+						//不打勾
+						checkBox.checked = false;
+						checkBox.disabled = true;
+						//console.log("3");
+						ul.appendChild(li);
+					}
+					else if(devicegroupresstr != "" && DeviceGroup == "") 
+					{
+						
+						var li=document.createElement("li");  
+						//li.appendChild(checkBox); 
+						var h = document.createElement("H1")                // Create a <h1> element
+						//textnode = document.createTextNode(data.result.devicelist[i].IMEI);
+						//textnode.setAttribute("onclick","IMEIcheck(this);"); 
+						textnode = document.createElement("label");
+						textnode.innerHTML = data.result.devicelist[i].IMEI;
+						//textnode.setAttribute("for",data.result.devicelist[i].IMEI); 
+						h.appendChild(checkBox);
+						h.appendChild(textnode);
+						h.style.color="#D7D7D7";
+						//h.style.color="black"; 
+						h.style.fontSize="30px";
+						li.appendChild(h);
+						
+						checkBox.checked = false;
+						checkBox.disabled = true;
+						//console.log("3");
+						ul.appendChild(li);
+					}
+						      
+		        }
+				
+				document.getElementById("SIP URI").appendChild(ul);
+				//alert(text); 
+	        	
+	        });
+		}
+		
+		function DeviceGroupListGet(DeviceGroup,DeviceModel){
+			$.getJSON($SCRIPT_ROOT + '/DeviceGroupListGet', {
+	        },  
+	        function(data) {
+	        	//alert(data.result.devicegrouplist);
+	        	console.log("devicegrouplistget")
+				console.log(data);
+	        	var index = 0;
+				var selection = document.getElementById("DeviceGroupSelect");
+		        selection.options.length = 0;
+		        var new_option = new Option("Add New Device Group","Add New Device Group");
+		        new_option.title="";
+		        selection.options.add(new_option);
+		        //console.log(selection.options[0].title);
+		        //console.log(data.result.devicegrouplist);
+		        
+		        for(var i=0;i<data.result.devicegrouplist.length;i++)
+			    {
+		        	if(data.result.devicegrouplist[i].DeviceModel == DeviceModel)
+		        	{
+			        	var new_option = new Option(data.result.devicegrouplist[i].DeviceGroup,data.result.devicegrouplist[i].DeviceGroup);
+			        	new_option.title=data.result.devicegrouplist[i].DeviceModel;
+			        	//console.log(data.result.devicegrouplist[i].DeviceGroup);
+			        	//console.log(data.result.devicegrouplist[i].DeviceModel)
+			        	selection.options.add(new_option);	
+		        	}
+			    }
+				
+				for (i=0; i< selection.options.length; i++)
+				{
+					//console.log("log"+selection.options[i].title);
+					//console.log("log"+DeviceModel);
+					if(DeviceGroup == "Add New Device Group")
+					{
+						break;	
+					}
+					if (selection.options[i].value == DeviceGroup && selection.options[i].title == DeviceModel)
+				    {
+				    	selection.selectedIndex = i;
+				        break;
+				    }
+				}
+				
+		        //selection.selectedIndex = 2;
+	        });
+			
+			setTimeout(function(){
+				$('div.containerall').unblock();
+			},3000);
+   		 	//$('#DeviceGroupSelect').val(DeviceGroup);
+     		//selection.get(0).selectedIndex = index;
+		}
+		
+		function DeviceGroupGet(){
+			
+			/*
+			$('div.containerall').block({ message: null });
+            //add some DOM
+            $(".blockMsg").append(
+            	"<div class='spinner-layer'>" +
+                "<div class='circle-clipper left'>" +
+                "<div class='circle'></div>" +
+                "</div>" +
+                "<div class='circle-clipper right'>" +
+                "<div class='circle'></div>" +
+                "</div>" +
+                "</div>");
+			*/
+			selection = document.getElementById("DeviceGroupSelect");
+			//console.log(selection);
+			$.getJSON($SCRIPT_ROOT + '/DeviceGroupGet', {
+				DeviceGroup: selection.value,
+				DeviceModel: selection.options[selection.selectedIndex].title
+	        },  
+	        function(data) {
+	        	//console.log(data)
+	        	document.getElementById("DeviceModelSelect").value = data.result.DeviceModel;
+	        	//document.getElementById("DeviceGroup").value = data.result.DeviceGroup;
+	        	document.getElementById("Lat").value = data.result.Lat;
+	        	document.getElementById("Lat").style.color='#000';
+	        	document.getElementById("Lng").value = data.result.Lng;
+	        	document.getElementById("Lng").style.color='#000';
+				IMEIListofModelGet(data.result.DeviceModel,data.result.DeviceGroup);
+				
+				oldDeviceModel = data.result.DeviceModel;
+				oldDeviceGroup = data.result.DeviceGroup;
+				
+				setTimeout(function(){
+					$('div.containerall').unblock();
+				},2000);
+	        });
+			
+			
+		}
+		
+		function DeviceGroupSave(){
+			var IMEIList = [];
+			/*
+			if(document.getElementById("DeviceGroup").value == "")
+			{
+				alert("DeviceGroup cannot be null");
+			}
+			else if(document.getElementById("Lat").value == "")
+			*/
+			if(document.getElementById("Lat").value == "")
+			{
+				alert("Location cannot be null");
+			}
+			else if(document.getElementById("Lng").value == "")
+			{
+				alert("Location cannot be null");
+			}
+			else
+			{
+				var decision = /^\d+(\.\d+)?$/;   //Positive float decision return true or false
+				if(!(decision.test(document.getElementById("Lng").value)))
+				{
+					alert("Incorrect location format");	
+				}
+				else if(!(decision.test(document.getElementById("Lat").value)))
+				{
+					alert("Incorrect location format");	
+				}
+				else if(parseFloat(document.getElementById("Lng").value) > 180)
+				{
+					alert("Lat is greater than 180");	
+				}
+				else if(parseFloat(document.getElementById("Lat").value) > 90)
+				{
+					alert("Lng is greater than 90");
+				}
+				else
+				{
+					$("input[name=IMEIcheck]:checked").each(
+						function(i)
+						{
+							IMEIList.push($(this).attr("id"));                // adds a new element (Lemon) to fruits
+						})
+					if(IMEIList.length > 0)
+					{
+						DeviceGroup = document.getElementById("DeviceGroupSelect").value;
+						DeviceModel = document.getElementById("DeviceModelSelect").value;
+						var GroupName;
+						if(DeviceGroup == "Add New Device Group")
+						{
+							GroupName = prompt("The group name: ","");
+						}
+						else
+						{
+							GroupName = prompt("The group name: ",DeviceGroup);	
+						}
+						
+						if (GroupName != null && GroupName != "")
+						{
+							//document.write(GroupName)
+							$('div.containerall').block({ message: null });
+				            //add some DOM
+				            $(".blockMsg").append(
+				            	"<div class='spinner-layer'>" +
+				                "<div class='circle-clipper left'>" +
+				                "<div class='circle'></div>" +
+				                "</div>" +
+				                "<div class='circle-clipper right'>" +
+				                "<div class='circle'></div>" +
+				                "</div>" +
+				                "</div>");
+				            
+							$.getJSON($SCRIPT_ROOT + '/DeviceGroupSave', {
+								DeviceModel: document.getElementById("DeviceModelSelect").value,
+								//DeviceGroup: document.getElementById("DeviceGroup").value,
+								DeviceGroup: GroupName,
+								Lat: document.getElementById("Lat").value,
+								Lng: document.getElementById("Lng").value,
+								IMEIList: JSON.stringify(IMEIList),
+								oldDeviceModel: oldDeviceModel,
+								oldDeviceGroup: oldDeviceGroup
+					        },  
+					        function(data) {
+					        	//alert(data.result.status);
+					        	//console.log(data);
+					        	//console.log(oldDeviceModel);
+					        	//console.log(document.getElementById("DeviceModelSelect").value);
+					        	//console.log(oldDeviceGroup);
+					        	//console.log(GroupName);
+					        	//selection = document.getElementById("DeviceGroupSelect");
+					        	//selection.options[selection.selectedIndex].title
+					        	//setTimeout(function(){
+					        		//DeviceGroupListGet(document.getElementById("DeviceGroup").value,document.getElementById("DeviceModelSelect").value);
+								//},2000);
+								if(data.result.status == "Sucess")
+								{
+						        	oldDeviceModel = document.getElementById("DeviceModelSelect").value;
+									oldDeviceGroup = GroupName;
+									setTimeout(function(){
+						        		//DeviceGroupListGet(document.getElementById("DeviceGroup").value,document.getElementById("DeviceModelSelect").value);
+						        		DeviceGroupListGet(GroupName,document.getElementById("DeviceModelSelect").value);
+									},2000);
+								}
+								else
+								{
+									$('div.containerall').unblock();
+									alert(data.result.status);	
+								}
+					        });
+						}
+						else if(GroupName == "")
+						{
+							alert("Group name is null");
+						}
+					}
+					else
+					{
+						alert("No IMEI is selected");	
+					}
+				}
+					
+			}
+		}
+		function DeviceGroupPush(){
+			if(document.getElementById("DeviceGroupSelect").value != "Add New Device Group")
+			{
+				$.getJSON($SCRIPT_ROOT + '/DeviceGroupPush',
+				function(data) {
+					if(data.result.status == "Sucess")
+					{
+						alert("Push Sucess");
+					}
+				});
+			}
+		}
+		function DeviceGroupDelete(){
+			
+			if(document.getElementById("DeviceGroupSelect").value != "Add New Device Group")
+			{
+				$('div.containerall').block({ message: null });
+	            //add some DOM
+	            $(".blockMsg").append(
+	            	"<div class='spinner-layer'>" +
+	                "<div class='circle-clipper left'>" +
+	                "<div class='circle'></div>" +
+	                "</div>" +
+	                "<div class='circle-clipper right'>" +
+	                "<div class='circle'></div>" +
+	                "</div>" +
+	                "</div>");
+	            var IMEIList = [];
+	            $("input[name=IMEIcheck]:checked").each(
+					function(i)
+					{
+						IMEIList.push($(this).attr("id"));                // adds a new element (Lemon) to fruits
+					})
+				
+				$.getJSON($SCRIPT_ROOT + '/DeviceGroupDelete', {
+					DeviceModel: document.getElementById("DeviceModelSelect").value,
+					DeviceGroup: document.getElementById("DeviceGroupSelect").value,
+					IMEIList: JSON.stringify(IMEIList)
+		        },  
+		        function(data) {
+		        	/*
+		        	//document.getElementById("DeviceGroupMang").style.display = "none";
+		        	document.getElementById("IMEI").innerHTML = "";
+		        	DeviceGroupListGet("Add New Device Group",document.getElementById("DeviceModelSelect").value);
+		        	//document.getElementById("DeviceGroupSelect").size = 4;
+		        	//document.getElementById("DeviceModelSelect").size = 4;
+		   			//document.getElementById("DeviceGroup").value = "";
+		   			document.getElementById("DeviceModel").value = document.getElementById("DeviceModelSelect").value;
+		        	document.getElementById("Lat").value = document.getElementById("Lat").defaultValue;
+		        	document.getElementById("Lat").style.color='#999';
+		        	document.getElementById("Lng").value = document.getElementById("Lng").defaultValue;
+		        	document.getElementById("Lng").style.color='#999';
+		        	*/
+		        	document.getElementById("DeviceGroupSelect").value = "Add New Device Group";
+		        	DeviceGroupSelect();
+					
+		        	setTimeout(function(){
+						$('div.containerall').unblock();
+					},3000);
+		        });		
+			}		 
+		}
+		function IMEIcheck(){
+			/*
+			var str="";  
+			$("input[name=IMEIcheck]:checked").each(
+				function(i)
+				{
+					str=str+$(this).attr("id")+",";
+					alert(str);
+						
+				})
+			*/
+			//console.log(this);
+		}
+	</Script>
+	<p>&nbsp;</p>
+	<div id="SelectGroup" style="display:''">
+		<table align="center" border="0" cellpadding="1" cellspacing="1" style="width:500px">
+			<tbody>
+				<!-- <tr>
+					<td valign="top" style="color:black; font-size:20px; text-align:right">Select Device Group &nbsp;&nbsp;&nbsp;</td>
+					<td>
+						<select id="DeviceGroupSelect" onclick="" onChange="DeviceGroupSelect()" style="color:black; font-size:20px" size="4">
+						  <option value ="Add New Device Group">Add New Device Group</option>
+						  {% for devicegroup in result.devicegrouplist %}
+						  	<option title="{{devicegroup.DeviceModel}}" value ="{{devicegroup.DeviceGroup}}">{{devicegroup.DeviceGroup}}</option>
+						  {% endfor %}
+						</select>
+					</td>
+				</tr> -->
+				<tr>	
+					<!-- <td valign="top" style="color:black; font-size:20px; text-align:right">Select Device Model &nbsp;&nbsp;&nbsp;</td> -->
+					<td>
+						<!-- 
+						<select id="DeviceModelSelect" onclick="" onChange="DeviceModelSelect()" style="color:black; font-size:20px; width:90%" size="4">
+						{% if result.devicemodellist %}
+							{% for devicemodel in result.devicemodellist %}
+						  	<option title="{{devicemodel}}" value ="{{devicemodel}}">{{devicemodel}}</option>
+						  	{% endfor %}	
+						{% endif %}
+						</select>
+						-->
+					</td>
+				</tr>
+			</tbody>
+		</table>
+	</div>
+	<p>&nbsp;</p> 
+	<div id="DeviceGroupMang" style="display:block">
+	<table align="center" border="5" cellpadding="1" cellspacing="1" style="height:500px;width:50%;text-align:center;font-size:30px;color:black;">
+		<tbody>
+			<tr>
+				<td style="background-color:rgb(221, 221, 221); text-align:center; width:35%; font-size:30px; height:40px">
+					Device Model
+				</td>
+				<td style="background-color:rgb(221, 221, 221); text-align:center">
+					<!-- <input name="DeviceModel" id="DeviceModel" style="width:90%; height:25px" type="text" disabled="disabled"/> -->
+					<!--如果改變model list才執行-->
+					<select id="DeviceModelSelect" onclick="" onChange="DeviceModelSelect()" style="color:black; font-size:30px; height:auto; width:90%" size="1">
+						{% if result.devicemodellist %}
+							{% for devicemodel in result.devicemodellist %}
+						  	<option title="{{devicemodel}}" value ="{{devicemodel}}">{{devicemodel}}</option>
+						  	{% endfor %}	
+						{% endif %}
+					</select>
+				</td>
+			</tr>
+			<tr>
+				<td style="background-color:rgb(221, 221, 221); text-align:center; width:35%; font-size:30px; height:40px">
+					Device Group
+				</td>
+				<td style="background-color:rgb(221, 221, 221); text-align:center; font-size:30px; height:auto">
+					<select id="DeviceGroupSelect" onclick="" onChange="DeviceGroupSelect()" style="color:black; font-size:30px; height:auto;width:90%;" size="1">
+						<!-- 
+						<option value ="Add New Device Group">Add New Device Group</option>
+						{% for devicegroup in result.devicegrouplist %}
+						 	<option title="{{devicegroup.DeviceModel}}" value ="{{devicegroup.DeviceGroup}}">{{devicegroup.DeviceGroup}}</option>
+						{% endfor %}
+						-->
+					</select>
+				</td>
+				<!-- 
+				<td style="background-color:rgb(221, 221, 221); text-align:center"><input name="DeviceGroup" id="DeviceGroup" style="width:90%; height:25px" type="text" /></td>
+				-->
+			</tr>
+			<tr>
+				<td style="background-color:rgb(221, 221, 221); text-align:center; width:35%; height:40px">Location</td>
+				<td style="background-color:rgb(221, 221, 221); text-align:center">
+				<input name="Lat" id="Lat" style="width:43%; height:auto;" type="text" value="Lat" 
+				onFocus="if(value==defaultValue){value='';this.style.color='#000'}"
+				onBlur="if(!value){value=defaultValue;this.style.color='#999'}"/>
+				&nbsp;
+				<input name="Lng" id="Lng" style="width:43%; height:auto;" type="text" value="Lng" 
+				onFocus="if(value==defaultValue){value='';this.style.color='#000'}"
+				onBlur="if(!value){value=defaultValue;this.style.color='#999'}"/>
+				</td>
+			</tr>
+			<tr>
+				<td style="background-color:rgb(221, 221, 221); text-align:center; width:35%;">SIP URI</td>
+				<td style="background-color:rgb(221, 221, 221); text-align:center; height:200px">
+				<div id="SIP URI" style="background-color:rgb(255,255,255);border-width: 0px; height:100%; font-size:30px; overflow:auto;"></div>
+				</td>
+			</tr>
+			<tr>
+				<td style="background-color:rgb(221, 221, 221); text-align:center; width:35%; height:40px">&nbsp;<input name="save" style="height:auto; visibility: hidden" type="button" value="Save" /></td>
+				<td style="background-color:rgb(221, 221, 221); text-align:right; height:40px">
+				&nbsp;
+				<input name="save" style="height:auto" type="button" onClick="DeviceGroupSave()" value="Save" />
+				&nbsp;&nbsp;
+				<input name="delete" style="height:auto" type="button" onClick="DeviceGroupDelete()" value="Delete" />
+				&nbsp;
+				</td>
+			</tr>
+			<tr>
+				<td style="background-color:rgb(221, 221, 221); text-align:center; width:35%; height:40px">&nbsp;<input name="save" style="height:auto; visibility: hidden" type="button" value="Save" /></td>
+				<td style="background-color:rgb(221, 221, 221); text-align:right; height:40px">
+				&nbsp;
+				<input name="push" style="height:auto" type="button" onClick="DeviceGroupPush()" value="Push" />
+				&nbsp;
+			</tr>
+			
+		</tbody>
+	</table>
+	<!-- <h3>{{session['logged_in']}}</h3> -->
+	<!-- <h3>{{session['provider']}}</h3> -->
+
+{% else %}
+	<p>Not login!</p>
+	<a href="/login">Login</a> 
+
+{% endif %}
+{% endblock %}

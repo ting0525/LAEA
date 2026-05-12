@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block content %}
+{% if session['logged_in'] %}
+<script>
+    var method = "";
+
+    // 在網頁中所有元素(包括頁面中圖片,css檔案等所有關聯檔案)完全載入到瀏覽器後才執行
+    $(window).load(function () {
+        {% if session['provider'] %}
+        document.getElementById("AccountManagement").style.display = "block";
+        {% else %}
+        document.getElementById("AccountManagement").style.display = "none";
+        {% endif %}
+
+        {% if session['IDAExecution'] %}
+        document.getElementById("GroupManagement").style.display = "block";
+        document.getElementById("ModelManagement").style.display = "block";
+        document.getElementById("FeatureManagement").style.display = "block";
+        {% else %}
+        document.getElementById("GroupManagement").style.display = "none";
+        document.getElementById("ModelManagement").style.display = "none";
+        document.getElementById("FeatureManagement").style.display = "none";
+
+        {% endif %}
+    });
+
+    function GroupingMethodGet(e) {
+        // console.log(e.id)
+        method = e.id;
+        // document是指html文件，id是 div id= "OOO"的部分
+        document.getElementById("GroupingMethod").style.display = "none";
+
+        if (method=="AutoGrouping"){
+            document.location.href = "/GroupAuto";
+        }
+        else if (method=="ManualGrouping"){
+            document.location.href = "/GroupManual"
+        }
+    }; 
+</script>
+
+<p>&nbsp;</p>
+<div id="GroupingMethod" style="display:''">
+    <table align="center" border="0" cellpadding="1" cellspacing="1"
+        style="width:100%;text-align:center;font-size:30px">
+        <tbody>
+            <tr id="SelectGroupingMethod">
+                <td style="border-color:rgb(0, 0, 0); text-align:center">
+                    <h2><span style="color:black"><strong><span style="font-size:36px">Select 
+                                    Grouping Method</span></strong></span></h2>
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <table align="center" border="3" cellpadding="1" cellspacing="1"
+                        style="width:25%;text-align:center;font-size:30px">
+                        <tbody>
+                            <tr id="AutoGrouping"" onclick=GroupingMethodGet(this)>
+                                <td
+                                    style="background-color:rgb(38, 156, 203); border-color:rgb(0, 0, 0); text-align:center">
+                                    <h2><span style="color:#FFFFFF"><strong><span
+                                                    style="font-size:30px">Auto Grouping</span></strong></span></h2>
+                                </td>
+                            </tr>
+                            <tr id="ManualGrouping" onclick=GroupingMethodGet(this)>
+                                <td
+                                    style="background-color:rgb(38, 156, 203); border-color:rgb(0, 0, 0); text-align:center">
+                                    <h2><span style="color:#FFFFFF"><strong><span
+                                                    style="font-size:30px">Manual Grouping</span></strong></span></h2>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+{% else %}
+<p>Not login!</p>
+<a href="/login">Login</a>
+<!--顯示login reference-->
+{% endif %}
+{% endblock %}

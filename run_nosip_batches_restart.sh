@@ -13,6 +13,8 @@ if [ -f /home/tim/laea/devel/setup.bash ]; then
   source /home/tim/laea/devel/setup.bash
 fi
 
+export PYTHONPATH="/usr/lib/python3/dist-packages:${PYTHONPATH:-}"
+
 TOTAL_ROUNDS="${TOTAL_ROUNDS:-100}"
 SLEEP_BETWEEN_ROUNDS="${SLEEP_BETWEEN_ROUNDS:-5}"
 ROUND_STATUS_FILE="${ROUND_STATUS_FILE:-/home/tim/laea/src/LAEA/laea_twin_tools/laea_logs/nosip/last_round_status.env}"
@@ -22,12 +24,14 @@ for round in $(seq 1 "${TOTAL_ROUNDS}"); do
   echo "[nosip-wrapper] ROUND ${round}/${TOTAL_ROUNDS}"
   echo "=============================="
 
+  rm -f "${ROUND_STATUS_FILE}"
+
   set +e
   "${SCRIPT_DIR}/run_nosip_depth.sh"
   run_rc=$?
   set -e
 
-  round_result="UNKNOWN"
+  round_result="NO_STATUS"
   kept_delta="0"
   if [ -f "${ROUND_STATUS_FILE}" ]; then
     # shellcheck disable=SC1090
