@@ -20,7 +20,7 @@ cmake_install.cmake
 CTestTestfile.cmake
 *.cmake
 !CMakeLists.txt
-!cmake/**.cmake
+!**/cmake/**.cmake
 
 # === Make ??????? Makefile*? ===
 *.make
@@ -112,5 +112,5 @@ laea_planner/utils/lkh_tsp_solver/resource/single.txt
 laea_planner/utils/lkh_tsp_solver/resource/single.tsp
 
 
-# === UAV training data ===
-data/
+# === UAV training data (root-level only) ===
+/data/

@@ -1,0 +1,8 @@
+eth.accounts
+miner.start
+miner.start()
+miner.stop()
+eth
+eth.accounts
+miner.etherbase
+miner.stop()

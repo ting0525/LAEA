@@ -1,0 +1,21 @@
+=============== Dec 8, 2023 (CST) ===============
+18:07:51.523655 log@legend F·NumFile S·FileSize N·Entry C·BadEntry B·BadBlock Ke·KeyError D·DroppedEntry L·Level Q·SeqNum T·TimeElapsed
+18:07:51.526882 db@open opening
+18:07:51.527618 version@stat F·[] S·0B[] Sc·[]
+18:07:51.528727 db@janitor F·2 G·0
+18:07:51.528757 db@open done T·1.857027ms
+18:08:17.748941 db@close closing
+18:08:17.749152 db@close done T·210.7µs
+=============== Dec 8, 2023 (CST) ===============
+18:09:06.711837 log@legend F·NumFile S·FileSize N·Entry C·BadEntry B·BadBlock Ke·KeyError D·DroppedEntry L·Level Q·SeqNum T·TimeElapsed
+18:09:06.712045 version@stat F·[] S·0B[] Sc·[]
+18:09:06.712085 db@open opening
+18:09:06.712179 journal@recovery F·1
+18:09:06.713444 journal@recovery recovering @1
+18:09:06.715168 memdb@flush created L0@2 N·2 S·181B "loc..seq,v2":"version,v1"
+18:09:06.716162 version@stat F·[1] S·181B[181B] Sc·[0.25]
+18:09:06.720908 db@janitor F·3 G·0
+18:09:06.720957 db@open done T·8.859108ms
+=============== Dec 17, 2023 (CST) ===============
+14:55:59.399342 db@close closing
+14:55:59.399645 db@close done T·300.88µs
