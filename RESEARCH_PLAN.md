@@ -220,6 +220,7 @@ sensor_trust:
 | `/mavros/camera/pose` | freeze, bias, replay, yaw spoofing | depth 被投影到錯誤位置，地圖歪斜 |
 | `/mavros/local_position/odom` | freeze, drift, jump, replay | planner 從錯誤起點規劃 |
 | `/projected_map/cv` 或 hybrid map | obstacle removal, false obstacle, unknown tamper | frontier 選錯、避障錯誤 |
+| PX4 Gazebo GPS source | bias, jump, freeze, noise, velocity bias | 影響 EKF2，進而改變 MAVROS odom/pose |
 
 ### 7.2 次要實驗攻擊
 
@@ -236,6 +237,8 @@ sensor_trust:
 重要限制：
 
 > 目前 GPS / IMU 的 ROS topic copy 不直接回饋 PX4 estimator，因此攻擊它們不一定會造成飛行路徑變化。這些攻擊應定義為 sensor-trust / localization 實驗，而不是 mission-impact 實驗。
+
+第一版 GPS mission-impact 實驗改走 source-layer injection：使用 `px4_gazebo/gps_attack` 新增的 PX4 Gazebo GPS attack plugin，讓攻擊資料在 EKF2 前進入 PX4，而不是修改 `/mavros/global_position/raw/fix`。
 
 ## 8. Feedback 與 Mitigation 路線
 
@@ -395,4 +398,3 @@ flowchart TD
 本專案第一版應聚焦在：
 
 > 用 ROS digital twin feedback 將 UAV 多感測器資料、RTP 傳輸狀態與 planner/map impact 轉成 time-series features，讓 ML/DL detector 判斷異常、定位可疑 sensor，並完整記錄事件；安全降落與補償控制作為後續延伸。
-

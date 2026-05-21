@@ -1,0 +1,65 @@
+<?xml version="1.0" ?>
+<sdf version="1.6">
+  <model name="gps_attack">
+    <link name="link">
+      <pose>0 0 0 0 0 0</pose>
+      <inertial>
+        <pose>0 0 0 0 0 0</pose>
+        <mass>0.015</mass>
+        <inertia>
+          <ixx>1e-05</ixx>
+          <ixy>0</ixy>
+          <ixz>0</ixz>
+          <iyy>1e-05</iyy>
+          <iyz>0</iyz>
+          <izz>1e-05</izz>
+        </inertia>
+      </inertial>
+      <visual name="visual">
+        <geometry>
+          <cylinder>
+            <radius>0.01</radius>
+            <length>0.002</length>
+          </cylinder>
+        </geometry>
+        <material>
+          <script>
+            <name>Gazebo/Black</name>
+          </script>
+        </material>
+      </visual>
+      <sensor name="gps" type="gps">
+        <pose>0 0 0 0 0 0</pose>
+        <update_rate>5.0</update_rate>
+        <always_on>true</always_on>
+        <visualize>false</visualize>
+        <plugin name="gps_attack_plugin" filename="libgazebo_gps_attack_plugin.so">
+          <robotNamespace></robotNamespace>
+          <topic>gps0</topic>
+          <gpsNoise>true</gpsNoise>
+          <gpsXYRandomWalk>2.0</gpsXYRandomWalk>
+          <gpsZRandomWalk>4.0</gpsZRandomWalk>
+          <gpsXYNoiseDensity>2.0e-4</gpsXYNoiseDensity>
+          <gpsZNoiseDensity>4.0e-4</gpsZNoiseDensity>
+          <gpsVXYNoiseDensity>0.2</gpsVXYNoiseDensity>
+          <gpsVZNoiseDensity>0.4</gpsVZNoiseDensity>
+          <attackMode>none</attackMode>
+          <attackStartSec>30</attackStartSec>
+          <attackEndSec>-1</attackEndSec>
+          <attackRampSec>10</attackRampSec>
+          <eastBiasM>0</eastBiasM>
+          <northBiasM>0</northBiasM>
+          <upBiasM>0</upBiasM>
+          <jumpEastM>0</jumpEastM>
+          <jumpNorthM>0</jumpNorthM>
+          <jumpUpM>0</jumpUpM>
+          <noisePositionStdM>0</noisePositionStdM>
+          <noiseVelocityStdMps>0</noiseVelocityStdMps>
+          <velocityEastBiasMps>0</velocityEastBiasMps>
+          <velocityNorthBiasMps>0</velocityNorthBiasMps>
+          <velocityUpBiasMps>0</velocityUpBiasMps>
+        </plugin>
+      </sensor>
+    </link>
+  </model>
+</sdf>

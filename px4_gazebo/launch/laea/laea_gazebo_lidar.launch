@@ -37,7 +37,7 @@
     <arg name="init_Y" default="0"/>
     <arg name="vehicle" value="iris"/>
     <!-- A drone model with a depth camera and radar -->
-    <arg name="sdf" value="iris_d435_lidar"/>
+    <arg name="sdf" default="$(optenv LAEA_PX4_SDF iris_d435_lidar)"/>
 
     <!-- PX4 SITL and vehicle spawn -->
     <include file="/home/tim/PX4-Autopilot/launch/single_vehicle_spawn_sdf.launch">
