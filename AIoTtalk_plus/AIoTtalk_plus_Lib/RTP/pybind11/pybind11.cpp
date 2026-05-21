@@ -53,5 +53,10 @@ PYBIND11_MODULE(MyTool_pybind11, m){
     .def("create_stream", &RTPSession::create_stream)
     .def("destroy_stream", &RTPSession::destroy_stream)
     .def("send_data", &RTPSession::send_data2)
-    .def("get_data", &RTPSession::get_data2, py::return_value_policy::take_ownership);
+    .def(
+        "get_data",
+        &RTPSession::get_data2,
+        py::return_value_policy::take_ownership,
+        py::call_guard<py::gil_scoped_release>()
+    );
 }
