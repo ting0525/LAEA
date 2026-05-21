@@ -219,7 +219,7 @@ class GAZEBO_VISIBLE GpsAttackPlugin : public SensorPlugin {
           << " end=" << attack_end_sec_ << "\n";
   }
 
-  void OnWorldUpdate(const common::UpdateInfo &) override
+  void OnWorldUpdate(const common::UpdateInfo &)
   {
     if (model_ == nullptr) {
 #if GAZEBO_MAJOR_VERSION >= 9
@@ -319,7 +319,7 @@ class GAZEBO_VISIBLE GpsAttackPlugin : public SensorPlugin {
     last_time_ = current_time;
   }
 
-  void OnSensorUpdate() override
+  void OnSensorUpdate()
   {
     std::lock_guard<std::mutex> lock(data_mutex_);
 
