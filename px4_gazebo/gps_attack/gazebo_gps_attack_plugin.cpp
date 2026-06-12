@@ -137,6 +137,7 @@ class GAZEBO_VISIBLE GpsAttackPlugin : public SensorPlugin {
     last_gps_time_ = world_->GetSimTime();
     start_time_ = world_->GetStartTime();
 #endif
+    attack_reference_time_sec_ = last_time_.Double();
 
     if (sdf->HasElement("gpsNoise")) {
       getSdfParam<bool>(sdf, "gpsNoise", gps_noise_, gps_noise_);
@@ -216,7 +217,8 @@ class GAZEBO_VISIBLE GpsAttackPlugin : public SensorPlugin {
 
     gzmsg << "[gazebo_gps_attack_plugin] loaded topic=~/" << root_model_name << "/link/"
           << gps_topic_ << " mode=" << attack_mode_ << " start=" << attack_start_sec_
-          << " end=" << attack_end_sec_ << "\n";
+          << " end=" << attack_end_sec_ << " reference_sim_t=" << attack_reference_time_sec_
+          << "\n";
   }
 
   void OnWorldUpdate(const common::UpdateInfo &)
@@ -268,17 +270,19 @@ class GAZEBO_VISIBLE GpsAttackPlugin : public SensorPlugin {
 
     ignition::math::Vector3d attack_pos_offset(0.0, 0.0, 0.0);
     ignition::math::Vector3d attack_vel_offset(0.0, 0.0, 0.0);
-    const bool active = attack_active(sim_time_sec);
+    const double attack_elapsed_sec = sim_time_sec - attack_reference_time_sec_;
+    const bool active = attack_active(attack_elapsed_sec);
 
     if (active) {
       if (!attack_active_logged_) {
         gzmsg << "[gazebo_gps_attack_plugin] GPS attack active mode=" << attack_mode_
-              << " t=" << sim_time_sec << "\n";
+              << " elapsed=" << attack_elapsed_sec << " sim_t=" << sim_time_sec << "\n";
         attack_active_logged_ = true;
       }
-      apply_attack(sim_time_sec, attack_pos_offset, attack_vel_offset);
+      apply_attack(attack_elapsed_sec, attack_pos_offset, attack_vel_offset);
     } else if (attack_active_logged_ && !attack_end_logged_) {
-      gzmsg << "[gazebo_gps_attack_plugin] GPS attack inactive t=" << sim_time_sec << "\n";
+      gzmsg << "[gazebo_gps_attack_plugin] GPS attack inactive elapsed=" << attack_elapsed_sec
+            << " sim_t=" << sim_time_sec << "\n";
       attack_end_logged_ = true;
     }
 
@@ -459,6 +463,7 @@ class GAZEBO_VISIBLE GpsAttackPlugin : public SensorPlugin {
   common::Time last_time_;
   common::Time current_time_;
   common::Time start_time_;
+  double attack_reference_time_sec_{0.0};
   std::mutex data_mutex_;
   std::queue<sensor_msgs::msgs::SITLGps> gps_delay_buffer_;
 
