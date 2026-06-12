@@ -5,10 +5,21 @@
   <arg name="output_prefix" default="kpi_log" />
   <arg name="log_rate" default="20.0" />
   <arg name="model_name" default="iris_0" />
+  <arg name="scenario" default="normal" />
+  <arg name="transport_mode" default="unspecified" />
+  <arg name="world_name" default="unknown" />
+  <arg name="depth_topic" default="/rtp/depth/image_raw" />
+  <arg name="depth_stale_threshold_s" default="0.25" />
 
   <!-- 維持你目前的參數風格：/slam_kpi_logger/... -->
   <param name="slam_kpi_logger/model_name" value="$(arg model_name)" />
   <param name="slam_kpi_logger/output_dir" value="$(arg output_dir)" />
+  <param name="slam_kpi_logger/run_id" value="$(arg run_id)" />
+  <param name="slam_kpi_logger/scenario" value="$(arg scenario)" />
+  <param name="slam_kpi_logger/transport_mode" value="$(arg transport_mode)" />
+  <param name="slam_kpi_logger/world_name" value="$(arg world_name)" />
+  <param name="slam_kpi_logger/depth_topic" value="$(arg depth_topic)" />
+  <param name="slam_kpi_logger/depth_stale_threshold_s" value="$(arg depth_stale_threshold_s)" />
 
   <!-- output_name 改成可批次化：kpi_log_<run_id> -->
   <!-- 若 run_id 空字串，logger 端會 fallback 用時間戳 -->

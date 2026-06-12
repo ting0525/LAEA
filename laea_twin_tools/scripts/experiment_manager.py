@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+import csv
 import os
 import math
 import signal
@@ -10,6 +11,23 @@ import rospy
 from geometry_msgs.msg import PoseStamped
 from gazebo_msgs.msg import ModelStates
 from rosgraph_msgs.msg import Log as RosLog
+
+
+def annotate_csv_outcome(path, outcome):
+    """Rewrite a completed run with a stable outcome value on each sample."""
+    temp_path = path + ".outcome.tmp"
+    with open(path, "r", newline="") as source:
+        reader = csv.DictReader(source)
+        fieldnames = list(reader.fieldnames or [])
+        if "mission_outcome" not in fieldnames:
+            fieldnames.append("mission_outcome")
+        with open(temp_path, "w", newline="") as target:
+            writer = csv.DictWriter(target, fieldnames=fieldnames)
+            writer.writeheader()
+            for row in reader:
+                row["mission_outcome"] = outcome
+                writer.writerow(row)
+    os.replace(temp_path, path)
 
 
 class ExperimentManager:
@@ -76,9 +94,14 @@ class ExperimentManager:
             "~logger_launch",
             "/home/tim/laea/src/LAEA/laea_twin_tools/launch/slam_kpi_logger.launch"
         )
+        self.scenario = str(rospy.get_param("~scenario", "normal"))
+        self.transport_mode = str(rospy.get_param("~transport_mode", "unspecified"))
+        self.world_name = str(rospy.get_param("~world_name", "unknown"))
+        self.depth_topic = str(rospy.get_param("~depth_topic", "/rtp/depth/image_raw"))
+        self.depth_stale_threshold_s = float(rospy.get_param("~depth_stale_threshold_s", 0.25))
 
         # Dataset governance
-        self.delete_on_non_success = bool(rospy.get_param("~delete_on_non_success", True))
+        self.delete_on_non_success = self._as_bool(rospy.get_param("~delete_on_non_success", True))
 
         # ----------------------------
         # Persistent Run ID (解決覆蓋的關鍵)
@@ -101,6 +124,7 @@ class ExperimentManager:
         self._fail_start_time = None
 
         self._logger_proc = None
+        self._cached_log_path = ""
 
     # ----------------------------
     # Callbacks
@@ -194,8 +218,15 @@ class ExperimentManager:
             self._stop_logger()
 
         # Set params explicitly so direct python launch behaves like launch file.
+        self._cached_log_path = os.path.join(self.output_dir, f"kpi_log_{run_id}.csv")
         rospy.set_param("/slam_kpi_logger/output_dir", self.output_dir)
         rospy.set_param("/slam_kpi_logger/output_name", f"kpi_log_{run_id}")
+        rospy.set_param("/slam_kpi_logger/run_id", run_id)
+        rospy.set_param("/slam_kpi_logger/scenario", self.scenario)
+        rospy.set_param("/slam_kpi_logger/transport_mode", self.transport_mode)
+        rospy.set_param("/slam_kpi_logger/world_name", self.world_name)
+        rospy.set_param("/slam_kpi_logger/depth_topic", self.depth_topic)
+        rospy.set_param("/slam_kpi_logger/depth_stale_threshold_s", self.depth_stale_threshold_s)
 
         if self.use_roslaunch_logger:
             cmd = ["roslaunch", self.logger_launch]
@@ -234,18 +265,20 @@ class ExperimentManager:
             os.killpg(os.getpgid(self._logger_proc.pid), signal.SIGINT)
         except Exception:
             pass
-        rospy.sleep(0.5)
+        try:
+            self._logger_proc.wait(timeout=5.0)
+        except subprocess.TimeoutExpired:
+            try:
+                os.killpg(os.getpgid(self._logger_proc.pid), signal.SIGKILL)
+            except Exception:
+                pass
         self._logger_proc = None
 
     def _delete_current_log(self, reason: str):
         if not self.delete_on_non_success:
             return
 
-        try:
-            path = rospy.get_param("/laea_twin/current_log_path", "")
-        except KeyError:
-            path = ""
-
+        path = self._current_log_path()
         if not path:
             rospy.logwarn(f"[DELETE] ({reason}) current_log_path param not set; skip delete.")
             return
@@ -258,6 +291,25 @@ class ExperimentManager:
                 rospy.logerr(f"[DELETE] ({reason}) failed to remove {path}: {e}")
         else:
             rospy.logwarn(f"[DELETE] ({reason}) file not found: {path}")
+
+    def _current_log_path(self):
+        if self._cached_log_path:
+            return self._cached_log_path
+        try:
+            return rospy.get_param("/laea_twin/current_log_path", "")
+        except Exception:
+            return ""
+
+    def _annotate_current_log(self, outcome):
+        path = self._current_log_path()
+        if not path or not os.path.isfile(path):
+            rospy.logwarn(f"[RUN] cannot annotate outcome={outcome}; log file not found: {path}")
+            return
+        try:
+            annotate_csv_outcome(path, outcome)
+            rospy.loginfo(f"[RUN] annotated mission_outcome={outcome}: {path}")
+        except Exception as error:
+            rospy.logerr(f"[RUN] failed to annotate mission_outcome for {path}: {error}")
 
     # ----------------------------
     # Run lifecycle
@@ -306,7 +358,10 @@ class ExperimentManager:
         return "ABORTED"
 
     def run(self):
-        rospy.loginfo(f"[experiment_manager] num_runs={self.num_runs}, output_dir={self.output_dir}")
+        rospy.loginfo(
+            f"[experiment_manager] num_runs={self.num_runs}, output_dir={self.output_dir}, "
+            f"scenario={self.scenario}, transport={self.transport_mode}, world={self.world_name}"
+        )
         ok = self._wait_ready(timeout_s=60.0)
         if not ok:
             rospy.logerr("[experiment_manager] Inputs not ready: missing GT/EST. Abort.")
@@ -324,14 +379,19 @@ class ExperimentManager:
 
             outcome = self._monitor_one_run(run_id)
 
-            # stop logger
+            # stop logger (wait for actual process exit before touching file)
             self._stop_logger()
+            try:
+                self._annotate_current_log(outcome)
+            except Exception as exc:
+                rospy.logwarn(f"[RUN {run_id}] annotation failed: {exc}")
 
             # governance: only keep SUCCESS_FINISH
             if outcome != "SUCCESS_FINISH":
                 self._delete_current_log(reason=outcome)
             else:
                 rospy.loginfo(f"[RUN {run_id}] kept log (SUCCESS_FINISH).")
+            self._cached_log_path = ""
 
             rospy.sleep(self.sleep_between_runs_s)
 

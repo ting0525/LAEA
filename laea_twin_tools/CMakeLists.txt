@@ -8,8 +8,10 @@ project(laea_twin_tools)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
+  cv_bridge
   gazebo_msgs
   geometry_msgs
+  nav_msgs
   rosgraph_msgs
   rospy
   sensor_msgs
@@ -208,7 +210,7 @@ include_directories(
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
 catkin_package(
-  CATKIN_DEPENDS rospy std_msgs geometry_msgs gazebo_msgs sensor_msgs rosgraph_msgs
+  CATKIN_DEPENDS cv_bridge rospy std_msgs geometry_msgs nav_msgs gazebo_msgs sensor_msgs rosgraph_msgs
 )
 
 catkin_install_python(

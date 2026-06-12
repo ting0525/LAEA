@@ -1,6 +1,6 @@
 # dt_ids tools
 
-Utilities for generating normal-flight datasets, run manifests, train/val/test splits, and GPS anomaly-detection features.
+Utilities for generating normal-flight datasets, run manifests, train/val/test splits, and sensor anomaly-detection features.
 
 ## Recommended preparation flow
 
@@ -54,6 +54,24 @@ python3 tools/dt_ids/build_gps_features.py \
 - `gps_heading`, `heading_gap`
 - `local_step_m`, `gps_step_m`, `step_gap`
 - `sat_change`, `sat_drop`, `fix_bad`, `dt`
+
+`gps_fix` follows `sensor_msgs/NavSatStatus`: `STATUS_NO_FIX=-1` and `STATUS_FIX=0`.
+Therefore the default `fix_bad` threshold is `0`, not `2`.
+
+## Multimodal sensor baseline
+
+New KPI logs can be extracted with the EKF/GPS/IMU/barometer/magnetometer/RTP-depth input set:
+
+```bash
+python3 tools/dt_ids/collect_normal_dataset.py \
+  --log-dir /home/tim/laea/src/LAEA/laea_twin_tools/laea_logs/aiottalk \
+  --out data/normal_sensor_multimodal.csv \
+  --feature-set sensor_multimodal_baseline \
+  --max-e-pos 2.0 \
+  --include-mission-id
+```
+
+Use `px_gt`, `py_gt`, `pz_gt`, `e_pos`, and `mission_outcome` for evaluation and dataset filtering only; do not feed them into an online attack detector.
 
 ## 3) Split datasets by run
 
@@ -109,7 +127,7 @@ Add `--write-scored-csv` if you want per-row anomaly scores for inspection.
 | `step_gap` | `abs(gps_step_m - local_step_m)` | m | Step-wise position consistency | Detects slow drift/jumps |
 | `sat_change` | `diff(gps_sat)` | count | Satellite count trend | Negative = dropping satellites |
 | `sat_drop` | `max(-sat_change, 0)` | count | Satellite drop event magnitude | Keeps only drop side |
-| `fix_bad` | `1 if gps_fix < gps_fix_threshold else 0` | 0/1 | GNSS quality flag | Default threshold is `2` |
+| `fix_bad` | `1 if gps_fix < gps_fix_threshold else 0` | 0/1 | GNSS quality flag | Default threshold is `0` because ROS fix is `0` |
 | `dt` | `diff(t)` | s | Sampling interval quality | Detects timing irregularities |
 
 ### `gps_baseline` vs `gps_derived`

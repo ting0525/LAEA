@@ -55,9 +55,54 @@ feature_sets:
     - roll
     - pitch
     - yaw
-    - acc_x
-    - acc_y
-    - acc_z
-    - ang_x
-    - ang_y
-    - ang_z
+    - lin_acc_x
+    - lin_acc_y
+    - lin_acc_z
+    - ang_vel_x
+    - ang_vel_y
+    - ang_vel_z
+
+  sensor_multimodal_baseline:
+    - pos_x
+    - pos_y
+    - pos_z
+    - vel_x
+    - vel_y
+    - vel_z
+    - roll
+    - pitch
+    - yaw
+    - odom_pose_covariance_summary
+    - odom_twist_covariance_summary
+    - gps_lat
+    - gps_lon
+    - gps_alt
+    - gps_vx
+    - gps_vy
+    - gps_vz
+    - gps_fix
+    - gps_sat
+    - gps_position_covariance
+    - imu_qx
+    - imu_qy
+    - imu_qz
+    - imu_qw
+    - ang_vel_x
+    - ang_vel_y
+    - ang_vel_z
+    - lin_acc_x
+    - lin_acc_y
+    - lin_acc_z
+    - mag_x
+    - mag_y
+    - mag_z
+    - static_pressure
+    - static_pressure_variance
+    - depth_dt
+    - depth_age_ms
+    - depth_valid_ratio
+    - depth_mean_m
+    - depth_std_m
+    - depth_near_ratio_1m
+    - rtp_depth_stale
+    - rtp_depth_repeat_score

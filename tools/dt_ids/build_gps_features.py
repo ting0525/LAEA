@@ -41,7 +41,7 @@ def compute_gps_step_m(df):
     return np.sqrt(dx * dx + dy * dy + dz * dz)
 
 
-def build_features(df, gps_fix_threshold=2, heading_speed_eps=0.2):
+def build_features(df, gps_fix_threshold=0, heading_speed_eps=0.2):
     out = df.copy()
 
     out["local_speed"] = np.sqrt(out["vel_x"] ** 2 + out["vel_y"] ** 2 + out["vel_z"] ** 2)
@@ -109,8 +109,8 @@ def main():
     parser.add_argument(
         "--gps-fix-threshold",
         type=int,
-        default=2,
-        help="gps_fix below this value is considered bad.",
+        default=0,
+        help="NavSatStatus below this value is considered bad (STATUS_FIX is 0).",
     )
     parser.add_argument(
         "--heading-speed-eps",
