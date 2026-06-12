@@ -363,8 +363,10 @@ namespace fast_planner
       const vector<Eigen::Vector3d> &tour, const Eigen::Vector3d &cur_vel, const Eigen::Vector3d &cur_acc,
       const double &time_lb)
   {
-    if (tour.empty())
-      ROS_ERROR("Empty path to traj planner");
+    if (tour.size() < 2) {
+      ROS_ERROR("planExploreTraj: tour must have >= 2 points, got %zu — skip", tour.size());
+      return;
+    }
 
     // Generate traj through waypoints-based method
     const int pt_num = tour.size();
