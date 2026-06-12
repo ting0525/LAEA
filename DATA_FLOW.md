@@ -4,7 +4,7 @@ This document focuses on how data moves through the LAEA runtime. It separates
 runtime sensor/control data from signaling, logging, Digital Twin updates, and
 IDS training data.
 
-## 1. Baseline runtime flow: `run_nosip_depth.sh`
+## 1. Direct RTP runtime flow with `rtp_gazebo`
 
 ```mermaid
 flowchart LR

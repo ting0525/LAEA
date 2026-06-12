@@ -4,10 +4,10 @@
 # 啟動 LAEA + AIoTtalk_plus RTP pipeline（單次實驗）。
 # 以 pybind11 uvgRTP 取代 rtp_gazebo 的 C++ sender/receiver。
 #
-# 和 run_nosip_depth.sh 的差別：
-#   - 移除 rtp_gazebo rtp_sender / rtp_receiver
-#   - 移除 iottalk/sip.py
-#   - 改用 laea_aiottalk_rtp.py（IoTtalk SDP 協商 + pybind11 RTP）
+# Runtime path:
+#   - LAEA/PX4/Gazebo/MAVROS core stack
+#   - laea_aiottalk_rtp.py for IoTtalk SDP negotiation + pybind11 RTP
+#   - experiment_manager.py for one mission and KPI outcome handling
 #
 set -euo pipefail
 

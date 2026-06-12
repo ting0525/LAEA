@@ -23,16 +23,16 @@ echo $DISPLAY   # 應顯示 :0 之類的值
 cd ~/laea/src/LAEA
 
 DISPLAY=:0 screen -dmS laea_batches -L -Logfile /tmp/laea_batches.log \
-  ./run_nosip_batches_restart.sh
+  ./run_aiottalk_batches_restart.sh
 ```
 
-預設跑 **100 rounds**，每 round 跑一次完整探索任務後自動重啟。
+預設跑 **10 rounds**，每 round 跑一次完整探索任務後自動重啟。
 
 ### 自訂 rounds
 
 ```bash
 TOTAL_ROUNDS=10 DISPLAY=:0 screen -dmS laea_batches -L -Logfile /tmp/laea_batches.log \
-  ./run_nosip_batches_restart.sh
+  ./run_aiottalk_batches_restart.sh
 ```
 
 ---
@@ -41,7 +41,7 @@ TOTAL_ROUNDS=10 DISPLAY=:0 screen -dmS laea_batches -L -Logfile /tmp/laea_batche
 
 ```bash
 cd ~/laea/src/LAEA
-DISPLAY=:0 ./run_nosip_depth.sh
+DISPLAY=:0 ./run_aiottalk_rtp.sh
 ```
 
 成功完成後 exit 0，任務失敗或超時則 exit 2。
@@ -58,17 +58,18 @@ screen -r laea_batches
 tail -f /tmp/laea_batches.log
 
 # 各元件的獨立 log
-tail -f /tmp/laea_nosip_logs/px4_gazebo.log
-tail -f /tmp/laea_nosip_logs/controller.log
-tail -f /tmp/laea_nosip_logs/explore.log
-tail -f /tmp/laea_nosip_logs/ditto_bridge.log
-tail -f /tmp/laea_nosip_logs/mapping.log
+tail -f /tmp/laea_aiottalk_logs/px4_gazebo.log
+tail -f /tmp/laea_aiottalk_logs/controller.log
+tail -f /tmp/laea_aiottalk_logs/explore.log
+tail -f /tmp/laea_aiottalk_logs/ditto_bridge.log
+tail -f /tmp/laea_aiottalk_logs/mapping.log
+tail -f /tmp/laea_aiottalk_logs/aiottalk_rtp.log
 
 # 最後一個 round 的結果
-cat ~/laea/src/LAEA/laea_twin_tools/laea_logs/nosip/last_round_status.env
+cat ~/laea/src/LAEA/laea_twin_tools/laea_logs/aiottalk/last_round_status.env
 
 # 已收集的 KPI log 數量
-ls ~/laea/src/LAEA/laea_twin_tools/laea_logs/nosip/kpi_log_run_*.csv | wc -l
+ls ~/laea/src/LAEA/laea_twin_tools/laea_logs/aiottalk/kpi_log_run_*.csv | wc -l
 ```
 
 ---
@@ -94,25 +95,29 @@ pkill -f rosmaster || true
 
 ## 五、環境變數（覆寫預設值）
 
-### `run_nosip_batches_restart.sh`
+### `run_aiottalk_batches_restart.sh`
 
 | 變數 | 預設 | 說明 |
 |---|---|---|
 | `TOTAL_ROUNDS` | `100` | 總 round 數 |
 | `SLEEP_BETWEEN_ROUNDS` | `5` | 每 round 間隔（秒） |
 
-### `run_nosip_depth.sh`
+### `run_aiottalk_rtp.sh`
 
 | 變數 | 預設 | 說明 |
 |---|---|---|
 | `EXP_MAX_DURATION_S` | `900.0` | 單次任務上限（秒） |
-| `EXP_NUM_RUNS` | `1` | 每次啟動跑幾趟 |
+| `EXP_NUM_RUNS` | `1` | 固定單趟；多趟請用 batch wrapper 重啟完整 stack |
 | `EXP_FAIL_ERROR_M` | `10.0` | 判定失敗的位置誤差閾值（公尺） |
 | `EXP_DELETE_ON_NON_SUCCESS` | `true` | 失敗時是否刪除 KPI log |
+| `EXP_SCENARIO` | `normal` | 寫入 KPI 的情境標籤 |
+| `EXP_TRANSPORT_MODE` | `aiottalk_rtp` | 寫入 KPI 的傳輸模式 |
+| `EXP_WORLD_NAME` | `indoor_01` | 寫入 KPI 的 world 標籤 |
+| `EXP_DEPTH_TOPIC` | `/rtp/depth/image_raw` | planner/logger 使用的 RTP depth topic |
 | `ENABLE_RVIZ` | `1` | 是否啟動 rviz（headless 設 `0`） |
 | `ENABLE_DITTO_BRIDGE` | `1` | 是否上傳遙測至 Eclipse Ditto |
 | `DITTO_ENABLE_SLAM` | `false` | Ditto bridge 是否包含 SLAM 誤差 |
-| `LAEA_LOG_DIR` | `laea_twin_tools/laea_logs/nosip` | KPI log 輸出目錄 |
+| `LAEA_LOG_DIR` | `laea_twin_tools/laea_logs/aiottalk` | KPI log 輸出目錄 |
 
 ### 使用範例
 
@@ -120,7 +125,7 @@ pkill -f rosmaster || true
 # headless + 縮短上限 + 只跑 5 rounds
 TOTAL_ROUNDS=5 ENABLE_RVIZ=0 EXP_MAX_DURATION_S=300 \
   DISPLAY=:0 screen -dmS laea_test -L -Logfile /tmp/laea_test.log \
-  ./run_nosip_batches_restart.sh
+  ./run_aiottalk_batches_restart.sh
 ```
 
 ---
@@ -130,18 +135,18 @@ TOTAL_ROUNDS=5 ENABLE_RVIZ=0 EXP_MAX_DURATION_S=300 \
 | 內容 | 路徑 |
 |---|---|
 | batch wrapper 輸出 | `/tmp/laea_batches.log` |
-| 各元件系統 log | `/tmp/laea_nosip_logs/*.log` |
-| KPI 資料（每 run 一個 CSV） | `laea_twin_tools/laea_logs/nosip/kpi_log_run_*.csv` |
-| 最後 round 結果 | `laea_twin_tools/laea_logs/nosip/last_round_status.env` |
+| 各元件系統 log | `/tmp/laea_aiottalk_logs/*.log` |
+| KPI 資料（每 run 一個 CSV） | `laea_twin_tools/laea_logs/aiottalk/kpi_log_run_*.csv` |
+| 最後 round 結果 | `laea_twin_tools/laea_logs/aiottalk/last_round_status.env` |
 
 ---
 
-## 七、啟動順序（`run_nosip_depth.sh` 內部）
+## 七、啟動順序（`run_aiottalk_rtp.sh` 內部）
 
 1. `px4_gazebo` — Gazebo 模擬環境 + PX4 SITL + MAVROS
 2. `controller` — 幾何飛行控制器
 3. `ditto_bridge` — 遙測上傳至 Eclipse Ditto（可關閉）
-4. `rtp_receiver` / `rtp_sender` — RTP 影像收發（無 SIP/IoTtalk 模式）
+4. `aiottalk_rtp` — AIoTtalk SDP 協商 + pybind11 RTP 影像/遙測收發
 5. `mapping` — Octomap 地圖建構
 6. `explore` — LAEA 探索演算法
 7. `rviz` — 視覺化（可關閉）

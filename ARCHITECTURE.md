@@ -98,7 +98,7 @@ graph TD
 
 | | **Mode 1: nosip** | **Mode 2: iottalk** | **Mode 3: aiottalk_rtp** |
 |---|---|---|---|
-| 腳本 | `run_nosip_depth.sh` | `run_iottalk_depth.sh` | `run_aiottalk_rtp.sh` |
+| 啟動方式 | 手動啟動 `rtp_gazebo` sender/receiver | 手動啟動 `rtp_gazebo` + `iottalk/sip.py` | `run_aiottalk_rtp.sh` |
 | RTP 實現 | rtp_gazebo C++ | rtp_gazebo C++ | pybind11 uvgRTP (Python) |
 | 信令 | 無（hardcoded port） | IoTtalk DAN push/pull | IoTtalk DAN push/pull |
 | Sender port | 12000 | 協商後決定 | 12000 |

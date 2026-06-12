@@ -50,12 +50,11 @@ Use `run_aiottalk_rtp.sh` for one mission only. The exploration node stays in
 `FINISH` after a completed mission, so repeating `EXP_NUM_RUNS` in the same
 ROS/PX4/Gazebo process does not produce independent training runs.
 
-Normal direct RTP without SIP/AIoTtalk:
+GPS source-attack visual inspection:
 
 ```bash
-EXP_SCENARIO=normal EXP_TRANSPORT_MODE=rtp_nosip EXP_WORLD_NAME=indoor_01 \
-TOTAL_ROUNDS=10 ENABLE_RVIZ=0 \
-  ./run_nosip_batches_restart.sh
+GPS_ATTACK_MODE=bias GPS_ATTACK_START_SEC=20 ENABLE_RVIZ=1 \
+  ./run_gps_attack_slam.sh
 ```
 
 ## Prerequisites
