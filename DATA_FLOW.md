@@ -107,7 +107,7 @@ flowchart TB
         ai_node["laea_aiottalk_rtp.py\nsingle ROS node"]
         dan["IoTtalk DAN\nSIP_SDP model"]
         py_send["pybind11 RTPSession sender\nRGB :10000\nDepth :12000\nRaw ROS streams :14000..:28000"]
-        py_recv["pybind11 RTPSession receiver\nRGB :11000\nDepth :13000\nRaw ROS streams :15000..:29000"]
+        py_recv["pybind11 RTPSession receiver\nRGB :11000\nDepth :13000\nset receiver ROS stamp/frame\nRaw ROS streams :15000..:29000"]
         ai_node <-->|"SDP offer / answer"| dan
         ai_node --> py_send
         ai_node --> py_recv
@@ -128,6 +128,9 @@ flowchart TB
 Mode 3 now transports RGB/depth image streams with codecs and ROS telemetry
 streams with `raw_bytes` RTP. PointCloud2 is downsampled before raw RTP when the
 original D435 point cloud is too large for a stable raw RTP frame.
+Decoded RGB/depth images are published with a receiver-side ROS timestamp and
+`depth_camera_link` frame so that `MapROS` can synchronize RTP depth with
+`/mavros/camera/pose` for occupancy-map updates.
 
 ## 3. Full AIoTtalk_plus control-plane flow
 

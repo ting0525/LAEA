@@ -1,0 +1,96 @@
+<mxfile host="app.diagrams.net" modified="2026-06-07T00:00:00.000Z" agent="Codex" version="24.7.17" type="device">
+  <diagram id="aiottalk-rtp-architecture" name="AIoTtalk RTP 架構圖">
+    <mxGraphModel dx="1600" dy="1000" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1000" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="title" value="AIoTtalk RTP Architecture in LAEA" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=28;fontStyle=1;fontColor=#111827;" vertex="1" parent="1">
+          <mxGeometry x="40" y="24" width="650" height="42" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle" value="目前主流程：run_aiottalk_rtp.sh 啟動 laea_aiottalk_rtp.py，用 IoTtalk 做 SDP offer / answer，再用 pybind11 uvgRTP 傳輸影像與 ROS telemetry。" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=13;fontColor=#4B5563;" vertex="1" parent="1">
+          <mxGeometry x="40" y="66" width="1180" height="34" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ros-source" value="ROS Source Topics&#xa;Gazebo + MAVROS producers&#xa;&#xa;Images&#xa;/camera/depth/rgb_image_raw&#xa;/camera/depth/image_raw&#xa;&#xa;Raw ROS telemetry&#xa;/camera/depth/color/points&#xa;/camera/depth/camera_info&#xa;/mavros/imu/data&#xa;/mavros/global_position/raw/fix&#xa;/mavros/global_position/raw/gps_vel&#xa;/mavros/global_position/raw/satellites&#xa;/mavros/local_position/odom&#xa;/mavros/camera/pose" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#EAF2FF;strokeColor=#2563EB;strokeWidth=2;fontSize=12;fontStyle=1;align=left;verticalAlign=top;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="150" width="285" height="415" as="geometry" />
+        </mxCell>
+
+        <mxCell id="node" value="ROS Node: laea_aiottalk_rtp.py&#xa;single bridge node" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#F8FAFC;strokeColor=#334155;strokeWidth=2;fontSize=16;fontStyle=1;align=center;verticalAlign=top;spacingTop=12;" vertex="1" parent="1">
+          <mxGeometry x="380" y="118" width="740" height="625" as="geometry" />
+        </mxCell>
+        <mxCell id="dan-box" value="IoTtalk DAN client&#xa;dm_name = SIP_SDP&#xa;df_list = SIP_Sender, SIP_Receiver&#xa;server = 140.114.77.93:9999" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FFF7ED;strokeColor=#F97316;strokeWidth=2;fontSize=12;fontStyle=1;align=center;verticalAlign=middle;spacing=8;" vertex="1" parent="1">
+          <mxGeometry x="420" y="170" width="245" height="118" as="geometry" />
+        </mxCell>
+        <mxCell id="sdp-box" value="SDP negotiation thread&#xa;&#xa;1. Build offer&#xa;a=&lt;id&gt; &lt;sender_port&gt; &lt;stream&gt; &lt;media&gt; &lt;payload&gt; sendonly&#xa;&#xa;2. Push Invite to SIP_Sender&#xa;3. Pull OK from SIP_Receiver&#xa;4. Parse recvonly receiver ports&#xa;5. Start RTP sessions" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FFFBEB;strokeColor=#D97706;strokeWidth=2;fontSize=12;fontStyle=1;align=left;verticalAlign=top;spacing=10;" vertex="1" parent="1">
+          <mxGeometry x="705" y="160" width="300" height="175" as="geometry" />
+        </mxCell>
+        <mxCell id="sender-box" value="Sender side callbacks&#xa;&#xa;RGB Image&#xa;cv_bridge bgr8 -> H264&#xa;payload 96, port 10000 -> 11000&#xa;&#xa;Depth Image&#xa;32FC1 meters -> uint16 millimeters -> Zdepth&#xa;payload 97, port 12000 -> 13000&#xa;&#xa;Raw ROS messages&#xa;serialize to raw_bytes&#xa;PointCloud2 is downsampled if too large" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#F0FDF4;strokeColor=#16A34A;strokeWidth=2;fontSize=12;fontStyle=1;align=left;verticalAlign=top;spacing=10;" vertex="1" parent="1">
+          <mxGeometry x="420" y="360" width="305" height="250" as="geometry" />
+        </mxCell>
+        <mxCell id="send-session" value="pybind11 RTPSession sender&#xa;MyTool_pybind11.so&#xa;Data_Wrapper + CodecParam&#xa;create_stream(sendonly)" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#ECFEFF;strokeColor=#0891B2;strokeWidth=2;fontSize=12;fontStyle=1;align=center;verticalAlign=middle;spacing=8;" vertex="1" parent="1">
+          <mxGeometry x="765" y="400" width="215" height="105" as="geometry" />
+        </mxCell>
+        <mxCell id="recv-session" value="pybind11 RTPSession receiver&#xa;uvgRTP loopback / UDP&#xa;create_stream(recvonly)&#xa;decode images or deserialize raw ROS bytes" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#ECFEFF;strokeColor=#0891B2;strokeWidth=2;fontSize=12;fontStyle=1;align=center;verticalAlign=middle;spacing=8;" vertex="1" parent="1">
+          <mxGeometry x="765" y="545" width="215" height="115" as="geometry" />
+        </mxCell>
+        <mxCell id="publisher-box" value="ROS publishers&#xa;receiver-side timestamp for image streams&#xa;frame_id = depth_camera_link&#xa;queue_size = 5" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#EEF2FF;strokeColor=#6366F1;strokeWidth=2;fontSize=12;fontStyle=1;align=center;verticalAlign=middle;spacing=8;" vertex="1" parent="1">
+          <mxGeometry x="1000" y="485" width="200" height="110" as="geometry" />
+        </mxCell>
+
+        <mxCell id="iottalk-server" value="IoTtalk Server&#xa;SIP_SDP model&#xa;&#xa;SIP_Sender DF&#xa;Invite / offer&#xa;&#xa;SIP_Receiver DF&#xa;OK / answer" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FFF7ED;strokeColor=#F97316;strokeWidth=2;fontSize=12;fontStyle=1;align=center;verticalAlign=middle;spacing=10;" vertex="1" parent="1">
+          <mxGeometry x="1170" y="160" width="220" height="180" as="geometry" />
+        </mxCell>
+
+        <mxCell id="rtp-out" value="RTP Output Topics&#xa;&#xa;/rtp/depth/rgb_image_raw&#xa;/rtp/depth/image_raw&#xa;/rtp/pointcloud/depth&#xa;/rtp/depth/camera_info&#xa;/rtp/imu/data&#xa;/rtp/gps/fix&#xa;/rtp/gps/vel&#xa;/rtp/gps/satellites&#xa;/rtp/local_odom&#xa;/rtp/pose" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#EEF2FF;strokeColor=#4F46E5;strokeWidth=2;fontSize=12;fontStyle=1;align=left;verticalAlign=top;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="1275" y="430" width="245" height="300" as="geometry" />
+        </mxCell>
+
+        <mxCell id="consumers" value="Main Consumers&#xa;&#xa;Mapping / planning path&#xa;/rtp/depth/image_raw -> octomap_server / MapROS / LAEA exploration&#xa;&#xa;Monitoring / dataset path&#xa;/rtp/* -> slam_kpi_logger.py, RViz, downstream IDS data collection" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#F3E8FF;strokeColor=#8B5CF6;strokeWidth=2;fontSize=12;fontStyle=1;align=left;verticalAlign=top;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="1275" y="775" width="245" height="145" as="geometry" />
+        </mxCell>
+
+        <mxCell id="stream-table" value="Stream / Payload / Ports&#xa;&#xa;rgb_stream: H264, PT 96, 10000 -> 11000&#xa;depth_stream: Zdepth, PT 97, 12000 -> 13000&#xa;pointcloud_depth_stream: raw_bytes, PT 98, 14000 -> 15000&#xa;camera_info_stream: raw_bytes, PT 99, 16000 -> 17000&#xa;imu_stream: raw_bytes, PT 100, 18000 -> 19000&#xa;gps_fix_stream: raw_bytes, PT 101, 20000 -> 21000&#xa;gps_vel_stream: raw_bytes, PT 102, 22000 -> 23000&#xa;gps_satellites_stream: raw_bytes, PT 103, 24000 -> 25000&#xa;odom_stream: raw_bytes, PT 104, 26000 -> 27000&#xa;pose_stream: raw_bytes, PT 105, 28000 -> 29000" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FFFFFF;strokeColor=#94A3B8;strokeWidth=1;fontSize=11;fontStyle=1;align=left;verticalAlign=top;spacing=10;" vertex="1" parent="1">
+          <mxGeometry x="40" y="610" width="680" height="310" as="geometry" />
+        </mxCell>
+
+        <mxCell id="edge-source-sender" value="subscribe" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=0;endArrow=block;strokeWidth=2;strokeColor=#2563EB;fontSize=11;" edge="1" parent="1" source="ros-source" target="sender-box">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-dan-iot" value="DAN.push / DAN.pull" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=0;endArrow=block;startArrow=block;strokeWidth=2;strokeColor=#F97316;fontSize=11;" edge="1" parent="1" source="dan-box" target="iottalk-server">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="560" y="120" />
+              <mxPoint x="1280" y="120" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-dan-sdp" value="register + exchange JSON packets" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=0;endArrow=block;strokeWidth=2;strokeColor=#D97706;fontSize=11;" edge="1" parent="1" source="dan-box" target="sdp-box">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-sdp-send" value="remote recv ports" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=0;endArrow=block;strokeWidth=2;strokeColor=#0F766E;fontSize=11;" edge="1" parent="1" source="sdp-box" target="send-session">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-sender-session" value="send_data(stream_id)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=0;endArrow=block;strokeWidth=2;strokeColor=#16A34A;fontSize=11;" edge="1" parent="1" source="sender-box" target="send-session">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-rtp-loop" value="uvgRTP UDP media frames" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=0;endArrow=block;strokeWidth=3;strokeColor=#0891B2;fontSize=11;" edge="1" parent="1" source="send-session" target="recv-session">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-recv-pub" value="get_data + decode / deserialize" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=0;endArrow=block;strokeWidth=2;strokeColor=#4F46E5;fontSize=11;" edge="1" parent="1" source="recv-session" target="publisher-box">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-pub-out" value="publish" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=0;endArrow=block;strokeWidth=2;strokeColor=#4F46E5;fontSize=11;" edge="1" parent="1" source="publisher-box" target="rtp-out">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-out-consumers" value="consume / log / visualize" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=0;endArrow=block;strokeWidth=2;strokeColor=#8B5CF6;fontSize=11;" edge="1" parent="1" source="rtp-out" target="consumers">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend" value="重點說明&#xa;1. IoTtalk 只做控制面 SDP 協商，不承載大量影像資料。&#xa;2. 影像與 telemetry 實際走 uvgRTP UDP media path。&#xa;3. 目前程式在同一台機器上用 local_ip -> local_ip 建立 sender / receiver，可作為 LAEA runtime 的 RTP bridge。&#xa;4. Depth stream 是規劃主路徑，其他 /rtp/* topic 主要供監控、資料集與下游分析使用。" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#F8FAFC;strokeColor=#64748B;strokeWidth=1;fontSize=12;fontColor=#334155;align=left;verticalAlign=top;spacing=10;" vertex="1" parent="1">
+          <mxGeometry x="755" y="775" width="470" height="145" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

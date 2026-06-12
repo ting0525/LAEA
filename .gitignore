@@ -114,3 +114,4 @@ laea_planner/utils/lkh_tsp_solver/resource/single.tsp
 
 # === UAV training data (root-level only) ===
 /data/
+*PLAN.md
