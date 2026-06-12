@@ -35,6 +35,8 @@ mapping_table = {
     "devicetest2@127.0.0.1": "RTPDevice2",
     "devicetest1@140.114.77.72": "RTPDevice1",
     "devicetest2@140.114.77.72": "RTPDevice2",
+    "7001@140.114.77.83": "RTPDevice1",
+    "7001@127.0.0.1": "RTPDevice1",
     # "devicetest3@140.114.77.72": "RTPDevice3",
     # "devicetest4@140.114.77.72": "RTPDevice4",
     # "devicetest5@140.114.77.72": "RTPDevice5",

@@ -39,7 +39,6 @@ class SIPSignalingHandler(AIoTtalk_plus_SIPApplication):
     
 if __name__ == "__main__":
 
-    # sip_account = "siptalktest@127.0.0.1"
-    sip_account = "siptalktest@140.114.77.72"
+    sip_account = "devicetest1@140.114.77.83"
     SIPSignalingHandler_ = SIPSignalingHandler(sip_account)
     SIPSignalingHandler_.run()

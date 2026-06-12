@@ -68,6 +68,7 @@ STREAMS = [
         "output_topic": "/rtp/depth/rgb_image_raw",
         "input_encoding": "bgr8",
         "output_encoding": "bgr8",
+        "output_frame_id": "depth_camera_link",
         "msg_type": Image,
     },
     {
@@ -86,6 +87,7 @@ STREAMS = [
         "output_topic": "/rtp/depth/image_raw",
         "input_encoding": "passthrough",
         "output_encoding": "32FC1",
+        "output_frame_id": "depth_camera_link",
         "msg_type": Image,
     },
     {
@@ -246,6 +248,7 @@ _recv_session = None
 _sessions_ready = threading.Event()
 _send_lock = threading.Lock()
 _last_send_time = {}
+_image_seq = {"rgb": 0, "depth": 0}
 
 
 def _local_ip() -> str:
@@ -474,6 +477,10 @@ def _recv_loop(stream: dict, pub: rospy.Publisher):
                 else:
                     out = np.ascontiguousarray(mat.astype(np.uint8))
                 msg = _bridge.cv2_to_imgmsg(out, encoding=stream["output_encoding"])
+                msg.header.stamp = rospy.Time.now()
+                msg.header.frame_id = stream["output_frame_id"]
+                msg.header.seq = _image_seq[stream["key"]]
+                _image_seq[stream["key"]] += 1
                 pub.publish(msg)
         except Exception as exc:
             rospy.logerr("[laea_aiottalk_rtp] %s recv error: %s", stream["key"], exc)

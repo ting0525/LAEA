@@ -1,5 +1,84 @@
 # AIoTtalk RTP 測試紀錄
 
+## 2026-05-23 SLAM 回歸修正
+
+### 問題
+
+使用 `run_aiottalk_rtp.sh` 蒐集正常飛行資料時，PX4 已回報 `Armed by external command`
+與 `Takeoff detected`，但 exploration 在 trigger 後立即輸出：
+
+```text
+No coverable frontier.
+finish exploration.
+Flight_dist: 0.000000
+```
+
+產生的 `aiottalk_normal_v1/kpi_log_run_001.csv` 與 `run_002.csv` 只有約
+`0.50s` 與 `0.45s` 資料，因此不可作為正常飛行訓練資料。
+
+### 根因
+
+`MapROS` 使用 `ApproximateTime<sensor_msgs::Image, geometry_msgs::PoseStamped>`
+同步 `/rtp/depth/image_raw` 與 `/mavros/camera/pose`。原 Python
+`laea_aiottalk_rtp.py` 在 Zdepth 解碼後建立 `Image` 卻沒有設定
+`header.stamp`；影像可被 logger 看到，但無法與 camera pose 同步進 SDF map。
+
+正常工作的 C++ `rtp_gazebo/RTPReceiver.cpp` 在發布解碼 image 時會設定
+receiver-side ROS timestamp 與 `depth_camera_link` frame。Python 路徑已改為相同行為：
+
+```text
+msg.header.stamp = rospy.Time.now()
+msg.header.frame_id = depth_camera_link
+msg.header.seq = per-stream sequence
+```
+
+### 回歸測試
+
+指令：
+
+```bash
+LAEA_LOG_DIR="$PWD/laea_twin_tools/laea_logs/aiottalk_header_verify" \
+LAEA_SYS_LOG_DIR=/tmp/laea_aiottalk_header_verify_logs \
+EXP_NUM_RUNS=1 \
+EXP_MAX_DURATION_S=45 \
+EXP_DELETE_ON_NON_SUCCESS=false \
+EXP_SCENARIO=normal_header_verify \
+EXP_TRANSPORT_MODE=aiottalk_rtp \
+EXP_WORLD_NAME=indoor_01 \
+ENABLE_RVIZ=0 \
+ENABLE_DITTO_BRIDGE=0 \
+./run_aiottalk_rtp.sh
+```
+
+結果：
+
+| 檢查項目 | 結果 |
+|---|---|
+| PX4 arm / takeoff | PASS |
+| SDP / 10 streams 建立 | PASS |
+| RTP depth quality | PASS，`rtp_depth_stale=0` |
+| Planner map/frontier | PASS，持續輸出 `exploration planning success` |
+| 實際移動 | PASS，45 秒內 GT span 約 `8.67m x 9.34m` |
+| CSV | PASS，`892` rows，`mission_outcome=TIMEOUT_NO_FINISH`（測試刻意限時） |
+
+本次修正後，AIoTtalk RTP depth 已可作為 SLAM planning 的 depth input。
+
+另外以 `EXP_MAX_DURATION_S=8`、`EXP_DELETE_ON_NON_SUCCESS=false` 重跑 status
+驗證，飛行期間仍持續規劃且 GT span 約 `4.29m x 0.89m`；任務結束後輸出正確為：
+
+```text
+[run_aiottalk_rtp] done. result=FAIL kept_delta=1 success_delta=0 rc=0
+mission_outcome=TIMEOUT_NO_FINISH
+```
+
+這確認保留 timeout 資料供除錯時，不會再被誤列為成功正常任務。
+
+### 批次資料收集限制
+
+同一個 exploration process 在任務完成後停於 `FINISH`，不可使用
+`EXP_NUM_RUNS=10 ./run_aiottalk_rtp.sh` 蒐集十趟獨立任務。正式收集應使用
+`run_aiottalk_batches_restart.sh`，讓每一趟重新啟動 ROS/PX4/Gazebo/planner。
+
 測試時間：
 
 - Local：`2026-05-19T02:39:45-04:00`
@@ -7,7 +86,7 @@
 
 ## 摘要
 
-結果：**PASS**。
+結果：**PASS（僅證明 stream 傳輸；完整 SLAM 飛行驗收以 2026-05-23 回歸測試為準）**。
 
 這次測試確認目前專案中的影像與主要感測器資料都已接到 AIoTtalk RTP 路徑：
 
@@ -40,7 +119,7 @@
 python3 -m py_compile laea_aiottalk_rtp.py
 ```
 
-結果：**PASS**。
+結果：**PASS（舊版腳本依保留檔案誤判 timeout/立即結束為成功，不能單獨證明 SLAM 任務完成）**。
 
 ### 2. raw_bytes ROS serialization 單元測試
 
