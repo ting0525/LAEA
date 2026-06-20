@@ -6,11 +6,38 @@ import os
 import math
 import signal
 import subprocess
+import threading
 import rospy
 
 from geometry_msgs.msg import PoseStamped
 from gazebo_msgs.msg import ModelStates
 from rosgraph_msgs.msg import Log as RosLog
+from laea_twin_tools.msg import AttackCommand, AttackStatus, SupervisorCommand
+
+
+MANIFEST_FIELDS = [
+    "manifest_version",
+    "run_id",
+    "scenario",
+    "transport_mode",
+    "world_name",
+    "started_at_s",
+    "ended_at_s",
+    "duration_s",
+    "outcome",
+    "log_retained",
+    "log_deleted",
+    "delete_reason",
+    "attack_source",
+    "attack_mode",
+    "attack_severity",
+    "attack_seed",
+    "attack_scheduled_onset_s",
+    "attack_actual_onset_s",
+    "hover_reason_bits",
+    "hover_hard_latched",
+    "hover_reason",
+]
 
 
 def annotate_csv_outcome(path, outcome):
@@ -28,6 +55,22 @@ def annotate_csv_outcome(path, outcome):
                 row["mission_outcome"] = outcome
                 writer.writerow(row)
     os.replace(temp_path, path)
+
+
+def append_manifest_row(path, row):
+    """Append one low-volume run summary, creating a stable header if needed."""
+    parent = os.path.dirname(path)
+    if parent:
+        os.makedirs(parent, exist_ok=True)
+
+    needs_header = not os.path.isfile(path) or os.path.getsize(path) == 0
+    with open(path, "a", newline="") as target:
+        writer = csv.DictWriter(target, fieldnames=MANIFEST_FIELDS)
+        if needs_header:
+            writer.writeheader()
+        writer.writerow({field: row.get(field, "") for field in MANIFEST_FIELDS})
+        target.flush()
+        os.fsync(target.fileno())
 
 
 class ExperimentManager:
@@ -56,6 +99,10 @@ class ExperimentManager:
         # ----------------------------
         # Success token (唯一成功標準)
         # ----------------------------
+        self._run_start_time = None
+        self._finish_seen = False
+        self._finish_time = None
+
         self.rosout_topic = rospy.get_param("~rosout_topic", "/rosout_agg")
         self.finish_token = rospy.get_param("~finish_token", "finish exploration.")
         
@@ -102,6 +149,28 @@ class ExperimentManager:
 
         # Dataset governance
         self.delete_on_non_success = self._as_bool(rospy.get_param("~delete_on_non_success", True))
+        self.manifest_path = str(
+            rospy.get_param(
+                "~manifest_path", os.path.join(self.output_dir, "run_manifest.csv")
+            )
+        )
+
+        # Mission-aware terminal handling. A Hover published before the mission
+        # trigger is ignored so a stale latched command cannot terminate a run.
+        self.terminate_on_hover = self._as_bool(
+            rospy.get_param("~terminate_on_hover", True)
+        )
+        self.supervisor_command_topic = str(
+            rospy.get_param(
+                "~supervisor_command_topic", "/laea/supervisor/command"
+            )
+        )
+        self.attack_command_topic = str(
+            rospy.get_param("~attack_command_topic", "/laea/attack/command")
+        )
+        self.attack_status_topic = str(
+            rospy.get_param("~attack_status_topic", "/laea/attack/status")
+        )
 
         # ----------------------------
         # Persistent Run ID (解決覆蓋的關鍵)
@@ -114,14 +183,46 @@ class ExperimentManager:
         # ----------------------------
         self.gt_xyz = None
         self.est_xyz = None
+
+        # Callback-visible state must exist before subscribers are registered,
+        # because latched ROS messages may invoke callbacks immediately.
+        self._state_lock = threading.Lock()
+        self._mission_trigger_time = None
+        self._fail_start_time = None
+        self._hover_seen = False
+        self._hover_time = None
+        self._hover_reason_bits = 0
+        self._hover_hard_latched = False
+        self._hover_reason = ""
+        self._attack_info = {
+            "source": "",
+            "mode": "",
+            "severity": "",
+            "seed": "",
+            "scheduled_start_s": 0.0,
+            "actual_onset_s": 0.0,
+        }
+
         rospy.Subscriber("/gazebo/model_states", ModelStates, self._gt_cb, queue_size=10)
         rospy.Subscriber("/mavros/local_position/pose", PoseStamped, self._est_cb, queue_size=50)
-
-        # Internal state
-        self._run_start_time = None
-        self._finish_seen = False
-        self._finish_time = None
-        self._fail_start_time = None
+        rospy.Subscriber(
+            self.supervisor_command_topic,
+            SupervisorCommand,
+            self._supervisor_command_cb,
+            queue_size=20,
+        )
+        rospy.Subscriber(
+            self.attack_command_topic,
+            AttackCommand,
+            self._attack_command_cb,
+            queue_size=10,
+        )
+        rospy.Subscriber(
+            self.attack_status_topic,
+            AttackStatus,
+            self._attack_status_cb,
+            queue_size=20,
+        )
 
         self._logger_proc = None
         self._cached_log_path = ""
@@ -151,6 +252,54 @@ class ExperimentManager:
     def _est_cb(self, msg: PoseStamped):
         p = msg.pose.position
         self.est_xyz = (p.x, p.y, p.z)
+
+    def _supervisor_command_cb(self, msg: SupervisorCommand):
+        if not self.terminate_on_hover or msg.level != SupervisorCommand.HOVER:
+            return
+
+        received_at = rospy.Time.now()
+        event_time = (
+            msg.header.stamp
+            if msg.header.stamp and msg.header.stamp.to_sec() > 0.0
+            else received_at
+        )
+        with self._state_lock:
+            if self._mission_trigger_time is None:
+                return
+            if event_time < self._mission_trigger_time:
+                return
+            if self._hover_seen:
+                return
+            self._hover_seen = True
+            self._hover_time = event_time
+            self._hover_reason_bits = int(msg.reason_bits)
+            self._hover_hard_latched = bool(msg.hard_latched)
+            self._hover_reason = str(msg.reason)
+
+    def _attack_command_cb(self, msg: AttackCommand):
+        with self._state_lock:
+            self._attack_info.update(
+                {
+                    "source": str(msg.source),
+                    "mode": str(msg.mode),
+                    "severity": str(msg.severity),
+                    "seed": int(msg.seed),
+                    "scheduled_start_s": msg.scheduled_start.to_sec(),
+                }
+            )
+
+    def _attack_status_cb(self, msg: AttackStatus):
+        with self._state_lock:
+            self._attack_info.update(
+                {
+                    "source": str(msg.source),
+                    "mode": str(msg.mode),
+                    "severity": str(msg.severity),
+                }
+            )
+            onset_s = msg.actual_onset.to_sec()
+            if onset_s > 0.0:
+                self._attack_info["actual_onset_s"] = onset_s
 
     # ----------------------------
     # Helpers
@@ -184,6 +333,8 @@ class ExperimentManager:
         msg.pose.position.y = 0.0
         msg.pose.position.z = 0.0
         msg.pose.orientation.w = 1.0
+        with self._state_lock:
+            self._mission_trigger_time = msg.header.stamp
         self.start_pub.publish(msg)
 
     def _next_global_run_id(self) -> str:
@@ -276,21 +427,23 @@ class ExperimentManager:
 
     def _delete_current_log(self, reason: str):
         if not self.delete_on_non_success:
-            return
+            return False
 
         path = self._current_log_path()
         if not path:
             rospy.logwarn(f"[DELETE] ({reason}) current_log_path param not set; skip delete.")
-            return
+            return False
 
         if os.path.isfile(path):
             try:
                 os.remove(path)
                 rospy.logwarn(f"[DELETE] ({reason}) removed log: {path}")
+                return True
             except Exception as e:
                 rospy.logerr(f"[DELETE] ({reason}) failed to remove {path}: {e}")
         else:
             rospy.logwarn(f"[DELETE] ({reason}) file not found: {path}")
+        return False
 
     def _current_log_path(self):
         if self._cached_log_path:
@@ -319,20 +472,121 @@ class ExperimentManager:
         self._finish_seen = False
         self._finish_time = None
         self._fail_start_time = None
+        with self._state_lock:
+            self._mission_trigger_time = None
+            self._hover_seen = False
+            self._hover_time = None
+            self._hover_reason_bits = 0
+            self._hover_hard_latched = False
+            self._hover_reason = ""
+            self._attack_info["actual_onset_s"] = 0.0
+
+    def _terminal_feedback_outcome(self):
+        with self._state_lock:
+            hover_seen = self._hover_seen
+            hover_time = self._hover_time
+
+        if not self._finish_seen and not hover_seen:
+            return None
+        if self._finish_seen and not hover_seen:
+            return "SUCCESS_FINISH"
+        if hover_seen and not self._finish_seen:
+            return "SAFETY_HOVER"
+        if hover_time is not None and self._finish_time is not None:
+            return (
+                "SAFETY_HOVER"
+                if hover_time < self._finish_time
+                else "SUCCESS_FINISH"
+            )
+        return "SAFETY_HOVER"
+
+    @staticmethod
+    def _relative_time_s(event_time_s, start_time_s):
+        if event_time_s <= 0.0 or start_time_s <= 0.0 or event_time_s < start_time_s:
+            return ""
+        return round(event_time_s - start_time_s, 6)
+
+    def _append_run_manifest(self, run_id, outcome, ended_at, log_deleted):
+        with self._state_lock:
+            trigger_time = self._mission_trigger_time
+            attack_info = dict(self._attack_info)
+            hover_reason_bits = self._hover_reason_bits
+            hover_hard_latched = self._hover_hard_latched
+            hover_reason = self._hover_reason
+
+        started_at = trigger_time or self._run_start_time
+        started_at_s = started_at.to_sec() if started_at is not None else 0.0
+        ended_at_s = ended_at.to_sec()
+        log_path = self._current_log_path()
+        log_retained = bool(log_path and os.path.isfile(log_path))
+        delete_reason = outcome if outcome != "SUCCESS_FINISH" else ""
+
+        row = {
+            "manifest_version": 1,
+            "run_id": run_id,
+            "scenario": self.scenario,
+            "transport_mode": self.transport_mode,
+            "world_name": self.world_name,
+            "started_at_s": f"{started_at_s:.6f}",
+            "ended_at_s": f"{ended_at_s:.6f}",
+            "duration_s": f"{max(ended_at_s - started_at_s, 0.0):.6f}",
+            "outcome": outcome,
+            "log_retained": str(log_retained).lower(),
+            "log_deleted": str(bool(log_deleted)).lower(),
+            "delete_reason": delete_reason,
+            "attack_source": attack_info["source"],
+            "attack_mode": attack_info["mode"],
+            "attack_severity": attack_info["severity"],
+            "attack_seed": attack_info["seed"],
+            "attack_scheduled_onset_s": self._relative_time_s(
+                float(attack_info["scheduled_start_s"]), started_at_s
+            ),
+            "attack_actual_onset_s": self._relative_time_s(
+                float(attack_info["actual_onset_s"]), started_at_s
+            ),
+            "hover_reason_bits": hover_reason_bits if outcome == "SAFETY_HOVER" else "",
+            "hover_hard_latched": (
+                str(hover_hard_latched).lower()
+                if outcome == "SAFETY_HOVER"
+                else ""
+            ),
+            "hover_reason": hover_reason if outcome == "SAFETY_HOVER" else "",
+        }
+        append_manifest_row(self.manifest_path, row)
+        rospy.loginfo(
+            "[RUN %s] appended outcome=%s to manifest: %s",
+            run_id,
+            outcome,
+            self.manifest_path,
+        )
 
     def _monitor_one_run(self, run_id: str):
         """
         Return outcome:
           - SUCCESS_FINISH
+          - SAFETY_HOVER
           - FAIL_SLAM
           - TIMEOUT_NO_FINISH
+          - ABORTED
         """
         rate = rospy.Rate(20)
         while not rospy.is_shutdown():
-            # 1) success: finish token (唯一成功標準)
-            if self._finish_seen:
+            # 1) Finish/Hover: whichever happened first is the terminal outcome.
+            terminal_outcome = self._terminal_feedback_outcome()
+            if terminal_outcome == "SUCCESS_FINISH":
                 rospy.loginfo(f"[RUN {run_id}] SUCCESS_FINISH at {self._finish_time.to_sec():.3f}")
                 return "SUCCESS_FINISH"
+            if terminal_outcome == "SAFETY_HOVER":
+                with self._state_lock:
+                    hover_time = self._hover_time
+                    hover_reason = self._hover_reason
+                rospy.logwarn(
+                    "[RUN %s] SAFETY_HOVER at %.3f reason=%s",
+                    run_id,
+                    hover_time.to_sec() if hover_time is not None else 0.0,
+                    hover_reason,
+                )
+                return "SAFETY_HOVER"
 
             # 2) fail: e_pos hold
             epos = self._compute_e_pos()
@@ -353,9 +607,33 @@ class ExperimentManager:
                 rospy.logwarn(f"[RUN {run_id}] TIMEOUT_NO_FINISH elapsed={elapsed:.1f}s")
                 return "TIMEOUT_NO_FINISH"
 
-            rate.sleep()
+            try:
+                rate.sleep()
+            except rospy.ROSInterruptException:
+                return "ABORTED"
 
         return "ABORTED"
+
+    def _finalize_run(self, run_id, outcome, ended_at):
+        # Stop logger before annotating or deleting its output.
+        self._stop_logger()
+        try:
+            self._annotate_current_log(outcome)
+        except Exception as exc:
+            rospy.logwarn(f"[RUN {run_id}] annotation failed: {exc}")
+
+        # Dataset governance: only SUCCESS_FINISH keeps the high-frequency CSV.
+        log_deleted = False
+        if outcome != "SUCCESS_FINISH":
+            log_deleted = self._delete_current_log(reason=outcome)
+        else:
+            rospy.loginfo(f"[RUN {run_id}] kept log (SUCCESS_FINISH).")
+
+        try:
+            self._append_run_manifest(run_id, outcome, ended_at, log_deleted)
+        except Exception as exc:
+            rospy.logerr(f"[RUN {run_id}] failed to append manifest: {exc}")
+        self._cached_log_path = ""
 
     def run(self):
         rospy.loginfo(
@@ -372,27 +650,22 @@ class ExperimentManager:
             rospy.loginfo(f"========== RUN {run_id} ==========")
 
             self._reset_run_flags()
-
-            # 先開 logger，再 trigger（避免漏掉起始資料）
-            self._start_logger(run_id)
-            self._publish_start_trigger()
-
-            outcome = self._monitor_one_run(run_id)
-
-            # stop logger (wait for actual process exit before touching file)
-            self._stop_logger()
+            outcome = "ABORTED"
+            interrupted = False
             try:
-                self._annotate_current_log(outcome)
-            except Exception as exc:
-                rospy.logwarn(f"[RUN {run_id}] annotation failed: {exc}")
+                # Start logger before the trigger to avoid losing early samples.
+                self._start_logger(run_id)
+                self._publish_start_trigger()
+                outcome = self._monitor_one_run(run_id)
+            except (rospy.ROSInterruptException, KeyboardInterrupt):
+                interrupted = True
+                outcome = "ABORTED"
+                rospy.logwarn(f"[RUN {run_id}] interrupted; finalizing as ABORTED.")
+            finally:
+                self._finalize_run(run_id, outcome, rospy.Time.now())
 
-            # governance: only keep SUCCESS_FINISH
-            if outcome != "SUCCESS_FINISH":
-                self._delete_current_log(reason=outcome)
-            else:
-                rospy.loginfo(f"[RUN {run_id}] kept log (SUCCESS_FINISH).")
-            self._cached_log_path = ""
-
+            if interrupted or rospy.is_shutdown():
+                break
             rospy.sleep(self.sleep_between_runs_s)
 
         rospy.loginfo("[experiment_manager] All runs completed.")

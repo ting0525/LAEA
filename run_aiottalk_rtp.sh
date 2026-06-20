@@ -26,12 +26,28 @@ EXP_SCENARIO="${EXP_SCENARIO:-normal}"
 EXP_TRANSPORT_MODE="${EXP_TRANSPORT_MODE:-aiottalk_rtp}"
 EXP_WORLD_NAME="${EXP_WORLD_NAME:-indoor_01}"
 EXP_DEPTH_TOPIC="${EXP_DEPTH_TOPIC:-/rtp/depth/image_raw}"
+EXP_TERMINATE_ON_HOVER="${EXP_TERMINATE_ON_HOVER:-true}"
+EXP_SUPERVISOR_COMMAND_TOPIC="${EXP_SUPERVISOR_COMMAND_TOPIC:-/laea/supervisor/command}"
+# Default baseline confirmed to preserve the expected RViz map.
+# Callers may still override these explicitly for controlled comparisons.
+LAEA_RUNTIME_PROFILE="${LAEA_RUNTIME_PROFILE:-scan_mapping_explore_test}"
+MAPPING_LAUNCH="${MAPPING_LAUNCH:-scan_mapping.launch}"
+MAPPING_LAUNCH_ARGS="${MAPPING_LAUNCH_ARGS:-}"
+EXPLORE_LAUNCH="${EXPLORE_LAUNCH:-explore_test.launch}"
+EXPLORE_LAUNCH_ARGS="${EXPLORE_LAUNCH_ARGS:-}"
 LAEA_LOG_DIR="${LAEA_LOG_DIR:-${SCRIPT_DIR}/laea_twin_tools/laea_logs/aiottalk}"
+EXP_MANIFEST_PATH="${EXP_MANIFEST_PATH:-${LAEA_LOG_DIR}/run_manifest.csv}"
 LAEA_SYS_LOG_DIR="${LAEA_SYS_LOG_DIR:-/tmp/laea_aiottalk_logs}"
 ROUND_STATUS_FILE="${ROUND_STATUS_FILE:-${LAEA_LOG_DIR}/last_round_status.env}"
 ENABLE_RVIZ="${ENABLE_RVIZ:-1}"
 ENABLE_DITTO_BRIDGE="${ENABLE_DITTO_BRIDGE:-1}"
 DITTO_ENABLE_SLAM="${DITTO_ENABLE_SLAM:-false}"
+ENABLE_AIOTTALK_RTP="${ENABLE_AIOTTALK_RTP:-1}"
+ENABLE_MISSION_AWARE="${ENABLE_MISSION_AWARE:-0}"
+ATTACK_PROFILE="${ATTACK_PROFILE:-none}"
+ATTACK_SEED="${ATTACK_SEED:-42}"
+DETECTOR_NAME="${DETECTOR_NAME:-rule_mad}"
+SUPERVISOR_POLICY="${SUPERVISOR_POLICY:-hybrid}"
 
 mkdir -p "${LAEA_LOG_DIR}" "${LAEA_SYS_LOG_DIR}"
 
@@ -173,8 +189,24 @@ prepare_offboard_and_arm() {
 
 echo "[run_aiottalk_rtp] log dir  : ${LAEA_SYS_LOG_DIR}"
 echo "[run_aiottalk_rtp] kpi dir  : ${LAEA_LOG_DIR}"
+echo "[run_aiottalk_rtp] profile  : ${LAEA_RUNTIME_PROFILE}"
+echo "[run_aiottalk_rtp] mapping  : ${MAPPING_LAUNCH} ${MAPPING_LAUNCH_ARGS}"
+echo "[run_aiottalk_rtp] explore  : ${EXPLORE_LAUNCH} ${EXPLORE_LAUNCH_ARGS}"
+echo "[run_aiottalk_rtp] RTP bridge enabled: ${ENABLE_AIOTTALK_RTP}"
+echo "[run_aiottalk_rtp] mission-aware: ${ENABLE_MISSION_AWARE}, attack=${ATTACK_PROFILE}, seed=${ATTACK_SEED}"
 before_count="$(count_kept_logs)"
 before_success_count="$(count_success_logs)"
+
+declare -a MAPPING_LAUNCH_ARGS_ARRAY=()
+declare -a EXPLORE_LAUNCH_ARGS_ARRAY=()
+if [ -n "${MAPPING_LAUNCH_ARGS}" ]; then
+  # shellcheck disable=SC2206
+  MAPPING_LAUNCH_ARGS_ARRAY=(${MAPPING_LAUNCH_ARGS})
+fi
+if [ -n "${EXPLORE_LAUNCH_ARGS}" ]; then
+  # shellcheck disable=SC2206
+  EXPLORE_LAUNCH_ARGS_ARRAY=(${EXPLORE_LAUNCH_ARGS})
+fi
 
 # ========= 1) Core stack =========
 launch_bg "px4_gazebo"  roslaunch px4_gazebo laea_gazebo_lidar.launch
@@ -197,15 +229,27 @@ if [ "${ENABLE_DITTO_BRIDGE}" = "1" ]; then
 fi
 
 # ── AIoTtalk_plus RTP bridge (replaces rtp_gazebo + iottalk/sip.py) ──────────
-launch_bg "aiottalk_rtp" python3 "${SCRIPT_DIR}/laea_aiottalk_rtp.py"
-sleep 8   # IoTtalk registration + SDP negotiation needs a few seconds
+if [ "${ENABLE_AIOTTALK_RTP}" = "1" ]; then
+  launch_bg "aiottalk_rtp" python3 "${SCRIPT_DIR}/laea_aiottalk_rtp.py"
+  sleep 8   # IoTtalk registration + SDP negotiation needs a few seconds
+fi
 wait_for_topic "${EXP_DEPTH_TOPIC}" 90
 
+if [ "${ENABLE_MISSION_AWARE}" = "1" ]; then
+  launch_bg "mission_aware" roslaunch laea_twin_tools mission_aware_runtime.launch \
+    attack_profile:="${ATTACK_PROFILE}" \
+    attack_seed:="${ATTACK_SEED}" \
+    detector_name:="${DETECTOR_NAME}" \
+    supervisor_policy:="${SUPERVISOR_POLICY}" \
+    depth_topic:="${EXP_DEPTH_TOPIC}"
+  sleep 3
+fi
+
 # ========= 2) Mapping + Exploration =========
-launch_bg "mapping" roslaunch octomap_server scan_mapping.launch
+launch_bg "mapping" roslaunch octomap_server "${MAPPING_LAUNCH}" "${MAPPING_LAUNCH_ARGS_ARRAY[@]}"
 sleep 5
 
-launch_bg "explore" roslaunch exploration_manager explore_test.launch
+launch_bg "explore" roslaunch exploration_manager "${EXPLORE_LAUNCH}" "${EXPLORE_LAUNCH_ARGS_ARRAY[@]}"
 sleep 5
 
 if [ "${ENABLE_RVIZ}" = "1" ]; then
@@ -235,7 +279,10 @@ python3 "${SCRIPT_DIR}/laea_twin_tools/scripts/experiment_manager.py" \
   _world_name:="${EXP_WORLD_NAME}" \
   _depth_topic:="${EXP_DEPTH_TOPIC}" \
   _use_roslaunch_logger:=false \
-  _delete_on_non_success:="${EXP_DELETE_ON_NON_SUCCESS}"
+  _delete_on_non_success:="${EXP_DELETE_ON_NON_SUCCESS}" \
+  _terminate_on_hover:="${EXP_TERMINATE_ON_HOVER}" \
+  _supervisor_command_topic:="${EXP_SUPERVISOR_COMMAND_TOPIC}" \
+  _manifest_path:="${EXP_MANIFEST_PATH}"
 exp_rc=$?
 set -e
 
