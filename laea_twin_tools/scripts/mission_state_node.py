@@ -262,6 +262,11 @@ class MissionStateNode:
 
         loc_level = self._max_level(
             self._level_high(
+                gps_pos_residual,
+                self._threshold("gps_position_residual_degraded", 2.0),
+                self._threshold("gps_position_residual_critical", 5.0),
+            ),
+            self._level_high(
                 gps_vel_residual,
                 self._threshold("gps_velocity_residual_degraded", 0.8),
                 self._threshold("gps_velocity_residual_critical", 1.8),
@@ -278,7 +283,7 @@ class MissionStateNode:
             ),
         )
         loc_score = max(
-            gps_pos_residual / 2.0,
+            gps_pos_residual / self._threshold("gps_position_residual_degraded", 2.0),
             gps_vel_residual / self._threshold("gps_velocity_residual_degraded", 0.8),
             yaw_rate_residual / self._threshold("yaw_rate_residual_degraded", 0.25),
             baro_residual / self._threshold("baro_altitude_residual_degraded", 0.8),
