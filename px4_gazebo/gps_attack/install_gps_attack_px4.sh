@@ -16,6 +16,12 @@ PLUGIN_SRC="${SITL_DIR}/src/gazebo_gps_attack_plugin.cpp"
 
 install -m 0644 "${SCRIPT_DIR}/gazebo_gps_attack_plugin.cpp" "${PLUGIN_SRC}"
 
+# Shared, dependency-free attack headers consumed by the plugin (the plugin
+# compiles inside ${SITL_DIR}/src so the headers must sit next to it).
+ATTACK_COMMON_DIR="${SCRIPT_DIR}/../attack_common"
+install -m 0644 "${ATTACK_COMMON_DIR}/attack_window.h" "${SITL_DIR}/src/attack_window.h"
+install -m 0644 "${ATTACK_COMMON_DIR}/attack_command_json.h" "${SITL_DIR}/src/attack_command_json.h"
+
 if ! grep -q "add_library(gazebo_gps_attack_plugin" "${CMAKE_FILE}"; then
   cp -n "${CMAKE_FILE}" "${CMAKE_FILE}.laea_gps_attack.bak"
   sed -i "/add_library(gazebo_gps_plugin SHARED src\\/gazebo_gps_plugin.cpp)/a add_library(gazebo_gps_attack_plugin SHARED src/gazebo_gps_attack_plugin.cpp)" "${CMAKE_FILE}"
