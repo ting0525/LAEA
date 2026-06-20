@@ -127,6 +127,24 @@
       <p id="missionSummary" class="summary">尚未收到 mission state。</p>
     </section>
 
+    <section class="panel">
+      <div class="section-title">
+        <div>
+          <p class="eyebrow">Timeline</p>
+          <h2>異常影響趨勢</h2>
+        </div>
+        <div class="legend">
+          <span class="lg lg-loc">Localization</span>
+          <span class="lg lg-perc">Perception</span>
+          <span class="lg lg-plan">Planner</span>
+          <span class="lg lg-flight">Flight</span>
+          <span class="lg lg-atk">Attack</span>
+        </div>
+      </div>
+      <canvas id="trendCanvas"></canvas>
+      <p class="muted">每秒取樣，顯示最近約 3 分鐘的四域 anomaly score；灰紅底為攻擊 active 區間，虛線為 degraded 參考線（score ≈ 1）。</p>
+    </section>
+
     <section class="two-column">
       <article class="panel">
         <p class="eyebrow">Supervisor override</p>
@@ -146,15 +164,20 @@
       </article>
 
       <article class="panel">
-        <p class="eyebrow">Attack scheduler</p>
-        <h2>攻擊狀態</h2>
+        <p class="eyebrow">Attack control</p>
+        <h2>攻擊控制</h2>
+        <div class="override-grid attack-controls">
+          <select id="liveAttackProfile"></select>
+          <button id="triggerAttack" class="warning">立即觸發</button>
+          <button id="stopAttack" class="danger">停止攻擊</button>
+        </div>
         <div class="status-block">
           <div><span>Profile</span><strong id="attackName">—</strong></div>
           <div><span>Status</span><strong id="attackState">—</strong></div>
           <div><span>Elapsed</span><strong id="attackElapsed">—</strong></div>
           <div><span>Detail</span><strong id="attackDetail">—</strong></div>
         </div>
-        <p class="muted">Profile 目前在啟動實驗前設定；畫面只把 scheduler 回報的 active 當作排程狀態。</p>
+        <p class="muted">即時觸發會直接送命令給 source-layer plugin（attack bridge 須在跑）。建議任務以 attack profile = none 啟動，再從這裡手動注入，避免與排程攻擊衝突。</p>
       </article>
     </section>
 

@@ -29,9 +29,14 @@ from flask import Flask, jsonify, request, send_from_directory
 from geometry_msgs.msg import PoseStamped, TwistStamped
 from mavros_msgs.msg import State
 from sensor_msgs.msg import Image
-from std_msgs.msg import UInt32
+from std_msgs.msg import String, UInt32
 
-from laea_twin_tools.msg import AttackStatus, MissionState, SupervisorCommand
+from laea_twin_tools.msg import (
+    AttackCommand,
+    AttackStatus,
+    MissionState,
+    SupervisorCommand,
+)
 
 
 PACKAGE_DIR = Path(__file__).resolve().parents[1]
@@ -360,6 +365,14 @@ class RosMonitor:
             queue_size=5,
             latch=True,
         )
+        # Live attack control. command_json is what attack_gazebo_bridge forwards
+        # to the source-layer plugins; command is what experiment_manager labels.
+        self.attack_cmd_pub = rospy.Publisher(
+            "/laea/attack/command", AttackCommand, queue_size=1, latch=True
+        )
+        self.attack_json_pub = rospy.Publisher(
+            "/laea/attack/command_json", String, queue_size=1, latch=True
+        )
         rospy.Subscriber("/mavros/state", State, self._mavros_cb, queue_size=20)
         rospy.Subscriber(
             "/mavros/local_position/pose", PoseStamped, self._pose_cb, queue_size=20
@@ -508,6 +521,55 @@ class RosMonitor:
         msg.reason = reason or "dashboard_override"
         self.override_pub.publish(msg)
 
+    def publish_attack(self, defn, enabled):
+        defn = dict(defn or {})
+        vector = list(defn.get("vector", [0.0, 0.0, 0.0])) + [0.0, 0.0, 0.0]
+        vx, vy, vz = float(vector[0]), float(vector[1]), float(vector[2])
+        source = str(defn.get("source", "none"))
+        mode = str(defn.get("mode", "none"))
+        severity = str(defn.get("severity", "none"))
+        ramp_s = float(defn.get("ramp_s", 0.0))
+        duration_s = float(defn.get("duration_s", 0.0))
+        recovery_s = float(defn.get("recovery_s", 0.0))
+        scalar = float(defn.get("scalar", 0.0))
+
+        now = rospy.Time.now()
+        start = now if enabled else rospy.Time(0)
+
+        msg = AttackCommand()
+        msg.header.stamp = now
+        msg.run_id = "dashboard"
+        msg.source = source
+        msg.mode = mode
+        msg.severity = severity
+        msg.enabled = bool(enabled)
+        msg.scheduled_start = start
+        msg.ramp = rospy.Duration(max(ramp_s, 0.0))
+        msg.duration = rospy.Duration(max(duration_s, 0.0))
+        msg.recovery = rospy.Duration(max(recovery_s, 0.0))
+        msg.vector_value.x = vx
+        msg.vector_value.y = vy
+        msg.vector_value.z = vz
+        msg.scalar_value = scalar
+        msg.seed = 0
+        self.attack_cmd_pub.publish(msg)
+
+        payload = {
+            "run_id": "dashboard",
+            "source": source,
+            "mode": mode,
+            "severity": severity,
+            "enabled": bool(enabled),
+            "scheduled_start": start.to_sec(),
+            "ramp_s": ramp_s,
+            "duration_s": duration_s,
+            "recovery_s": recovery_s,
+            "vector": [vx, vy, vz],
+            "scalar": scalar,
+            "seed": 0,
+        }
+        self.attack_json_pub.publish(String(data=json.dumps(payload, sort_keys=True)))
+
     def snapshot(self):
         now = time.time()
         with self.lock:
@@ -525,6 +587,14 @@ def load_profiles():
     except (OSError, yaml.YAMLError):
         profiles = {}
     return ["none"] + sorted(profiles.keys())
+
+
+def load_profile_defs():
+    try:
+        with open(PROFILE_CONFIG, "r") as source:
+            return dict(yaml.safe_load(source) or {}).get("profiles", {})
+    except (OSError, yaml.YAMLError):
+        return {}
 
 
 def normalize_start_config(payload, profiles):
@@ -661,6 +731,29 @@ def api_supervisor():
         level = str(payload.get("level", "")).upper()
         monitor.publish_override(level, str(payload.get("reason", "dashboard_override")))
         return jsonify({"ok": True, "level": level})
+    except (ValueError, rospy.ROSException) as exc:
+        return jsonify({"ok": False, "error": str(exc)}), 400
+
+
+@app.post("/api/attack/trigger")
+def api_attack_trigger():
+    payload = request.get_json(silent=True) or {}
+    profile = str(payload.get("profile", "")).strip()
+    defs = load_profile_defs()
+    if profile not in defs:
+        return jsonify({"ok": False, "error": "Unknown attack profile."}), 400
+    try:
+        monitor.publish_attack(defs[profile], enabled=True)
+        return jsonify({"ok": True, "profile": profile})
+    except (ValueError, rospy.ROSException) as exc:
+        return jsonify({"ok": False, "error": str(exc)}), 400
+
+
+@app.post("/api/attack/stop")
+def api_attack_stop():
+    try:
+        monitor.publish_attack({}, enabled=False)
+        return jsonify({"ok": True})
     except (ValueError, rospy.ROSException) as exc:
         return jsonify({"ok": False, "error": str(exc)}), 400
 

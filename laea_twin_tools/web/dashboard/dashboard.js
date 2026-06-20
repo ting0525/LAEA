@@ -104,6 +104,96 @@ async function sendOverride(level) {
   }
 }
 
+const TREND_MAX = 180;
+const trend = [];
+
+function pushTrend(mission, attack) {
+  trend.push({
+    loc: Number(mission.localization_score) || 0,
+    perc: Number(mission.perception_score) || 0,
+    plan: Number(mission.planner_score) || 0,
+    flight: Number(mission.flight_safety_score) || 0,
+    attack: Boolean(attack.active),
+  });
+  while (trend.length > TREND_MAX) trend.shift();
+}
+
+function drawTrends() {
+  const canvas = $("trendCanvas");
+  if (!canvas) return;
+  const ctx = canvas.getContext("2d");
+  const dpr = window.devicePixelRatio || 1;
+  const w = canvas.clientWidth || 600;
+  const h = canvas.clientHeight || 220;
+  if (canvas.width !== Math.round(w * dpr) || canvas.height !== Math.round(h * dpr)) {
+    canvas.width = Math.round(w * dpr);
+    canvas.height = Math.round(h * dpr);
+  }
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, w, h);
+
+  const pad = { l: 26, r: 8, t: 8, b: 8 };
+  const plotW = w - pad.l - pad.r;
+  const plotH = h - pad.t - pad.b;
+  const yMax = 3;
+  const xAt = (i) => pad.l + (i / (TREND_MAX - 1)) * plotW;
+  const yAt = (v) => pad.t + plotH - Math.min(Math.max(v, 0), yMax) / yMax * plotH;
+
+  ctx.fillStyle = "rgba(255, 107, 107, .16)";
+  for (let i = 0; i < trend.length; i++) {
+    if (trend[i].attack) {
+      const x0 = xAt(i);
+      const x1 = xAt(Math.min(i + 1, TREND_MAX - 1));
+      ctx.fillRect(x0, pad.t, Math.max(x1 - x0, 1.5), plotH);
+    }
+  }
+
+  ctx.strokeStyle = "rgba(143, 172, 164, .5)";
+  ctx.setLineDash([4, 4]);
+  ctx.beginPath();
+  ctx.moveTo(pad.l, yAt(1));
+  ctx.lineTo(pad.l + plotW, yAt(1));
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = "#8facA4";
+  ctx.font = "10px sans-serif";
+  [0, 1, 3].forEach((v) => ctx.fillText(String(v), 6, yAt(v) + 3));
+
+  const series = [["loc", "#55c2d9"], ["perc", "#49d49d"], ["plan", "#f2c14e"], ["flight", "#ff6b6b"]];
+  for (const [key, color] of series) {
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    for (let i = 0; i < trend.length; i++) {
+      const x = xAt(i);
+      const y = yAt(trend[i][key]);
+      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+  }
+}
+
+async function triggerAttack() {
+  const profile = $("liveAttackProfile").value;
+  if (!profile) return;
+  if (!confirm(`立即觸發攻擊 ${profile}？`)) return;
+  try {
+    await api("/api/attack/trigger", { method: "POST", body: JSON.stringify({ profile }) });
+    $("actionMessage").textContent = `已觸發攻擊：${profile}`;
+  } catch (error) {
+    $("actionMessage").textContent = `觸發失敗：${error.message}`;
+  }
+}
+
+async function stopAttack() {
+  try {
+    await api("/api/attack/stop", { method: "POST", body: "{}" });
+    $("actionMessage").textContent = "已送出停止攻擊。";
+  } catch (error) {
+    $("actionMessage").textContent = `停止失敗：${error.message}`;
+  }
+}
+
 function renderRuns(rows) {
   const body = $("runsBody");
   if (!rows || rows.length === 0) {
@@ -201,8 +291,13 @@ function renderState(data) {
   text("attackDetail", attack.detail);
   renderRuns(data.recent_runs);
 
+  pushTrend(mission, attack);
+  drawTrends();
+
   if (!profilesLoaded && Array.isArray(data.profiles)) {
-    $("attackProfile").innerHTML = data.profiles.map((profile) => `<option value="${escapeHtml(profile)}">${escapeHtml(profile)}</option>`).join("");
+    const option = (profile) => `<option value="${escapeHtml(profile)}">${escapeHtml(profile)}</option>`;
+    $("attackProfile").innerHTML = data.profiles.map(option).join("");
+    $("liveAttackProfile").innerHTML = data.profiles.filter((p) => p !== "none").map(option).join("");
     profilesLoaded = true;
   }
 }
@@ -229,6 +324,8 @@ $("startButton").addEventListener("click", () => startExperiment("single"));
 $("startBatchButton").addEventListener("click", () => startExperiment("batch"));
 $("stopButton").addEventListener("click", stopExperiment);
 $("refreshLog").addEventListener("click", refreshLog);
+$("triggerAttack").addEventListener("click", triggerAttack);
+$("stopAttack").addEventListener("click", stopAttack);
 document.querySelectorAll("[data-level]").forEach((button) => {
   button.addEventListener("click", () => sendOverride(button.dataset.level));
 });

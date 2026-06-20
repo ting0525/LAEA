@@ -135,8 +135,20 @@ button.warning { border-color: var(--yellow); color: var(--yellow); }
 .two-column { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 .muted { color: var(--muted); }
 .override-grid { margin: 18px 0; }
+.override-grid { align-items: center; }
+.attack-controls select { width: auto; min-width: 220px; margin-top: 0; }
 
 .message { min-height: 24px; margin: 12px 0 0; color: var(--yellow); }
+
+.legend { display: flex; gap: 14px; flex-wrap: wrap; align-items: center; }
+.lg { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: var(--muted); }
+.lg::before { content: ""; width: 14px; height: 3px; border-radius: 2px; background: currentColor; }
+.lg-loc { color: var(--cyan); }
+.lg-perc { color: var(--green); }
+.lg-plan { color: var(--yellow); }
+.lg-flight { color: var(--red); }
+.lg-atk::before { width: 12px; height: 12px; border-radius: 3px; background: rgba(255, 107, 107, .2); border: 1px solid var(--red); }
+#trendCanvas { width: 100%; height: 220px; display: block; margin-top: 8px; border: 1px solid var(--line); border-radius: 10px; background: #06100d; }
 
 .progress-track {
   height: 12px;
