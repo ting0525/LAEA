@@ -289,6 +289,20 @@ function renderState(data) {
   text("attackState", attack.active ? "ACTIVE" : attack.armed ? "ARMED" : "INACTIVE");
   text("attackElapsed", attack.elapsed_s !== undefined ? `${number(attack.elapsed_s, 1)} s` : null);
   text("attackDetail", attack.detail);
+
+  const activeCmd = telemetry.active_command || {};
+  const gt = telemetry.ground_truth || {};
+  const drift = telemetry.localization_drift_m;
+  const cmdActive = Boolean(activeCmd.enabled);
+  $("attackEffectPill").textContent = cmdActive ? "ATTACK COMMAND ACTIVE" : "NO ATTACK";
+  $("attackEffectPill").className = `state-pill ${cmdActive ? "critical" : "normal"}`;
+  text("diagCmd", [activeCmd.source, activeCmd.mode, activeCmd.severity].filter(Boolean).join(" / "));
+  text("diagEnabled", activeCmd.enabled === undefined ? null : activeCmd.enabled ? "true" : "false");
+  text("diagCmdAge", ages.active_command !== undefined ? `${number(ages.active_command, 1)} s` : null);
+  text("driftValue", Number.isFinite(drift) ? `${number(drift, 2)} m` : null);
+  text("gtValue", Number.isFinite(gt.x) ? `${number(gt.x)} / ${number(gt.y)} / ${number(gt.z)} m` : null);
+  text("ekfValue", Number.isFinite(pose.x) ? `${number(pose.x)} / ${number(pose.y)} / ${number(pose.z)} m` : null);
+
   renderRuns(data.recent_runs);
 
   pushTrend(mission, attack);

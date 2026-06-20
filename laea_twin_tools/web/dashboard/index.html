@@ -184,6 +184,29 @@
     <section class="panel">
       <div class="section-title">
         <div>
+          <p class="eyebrow">Attack verification</p>
+          <h2>攻擊診斷</h2>
+        </div>
+        <span id="attackEffectPill" class="state-pill unknown">NO ATTACK</span>
+      </div>
+      <div class="two-column">
+        <div class="status-block">
+          <div><span>Command source / mode</span><strong id="diagCmd">—</strong></div>
+          <div><span>Command enabled</span><strong id="diagEnabled">—</strong></div>
+          <div><span>Command age</span><strong id="diagCmdAge">—</strong></div>
+        </div>
+        <div class="status-block">
+          <div><span>Localization drift (EKF vs GT)</span><strong id="driftValue">—</strong></div>
+          <div><span>Ground truth</span><strong id="gtValue">—</strong></div>
+          <div><span>EKF position</span><strong id="ekfValue">—</strong></div>
+        </div>
+      </div>
+      <p class="muted">觸發 GPS 攻擊後，Command 會出現（代表 bridge→plugin 已收到命令），且 Localization drift（EKF odom 與 Gazebo 真值的水平距離）會上升 —— 這是攻擊真正影響定位的直接證據。</p>
+    </section>
+
+    <section class="panel">
+      <div class="section-title">
+        <div>
           <p class="eyebrow">Dataset governance</p>
           <h2>最近實驗結果</h2>
         </div>

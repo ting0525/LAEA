@@ -26,6 +26,7 @@ import rosgraph
 import rospy
 import yaml
 from flask import Flask, jsonify, request, send_from_directory
+from gazebo_msgs.msg import ModelStates
 from geometry_msgs.msg import PoseStamped, TwistStamped
 from mavros_msgs.msg import State
 from sensor_msgs.msg import Image
@@ -357,7 +358,10 @@ class RosMonitor:
             "mission": {},
             "attack": {},
             "supervisor": {},
+            "ground_truth": {},
+            "active_command": {},
         }
+        self.model_name = rospy.get_param("~ground_truth_model", "iris_0")
 
         self.override_pub = rospy.Publisher(
             "/laea/supervisor/override",
@@ -406,6 +410,12 @@ class RosMonitor:
             SupervisorCommand,
             self._supervisor_cb,
             queue_size=20,
+        )
+        rospy.Subscriber(
+            "/gazebo/model_states", ModelStates, self._model_states_cb, queue_size=5
+        )
+        rospy.Subscriber(
+            "/laea/attack/command", AttackCommand, self._active_command_cb, queue_size=10
         )
 
     def _touch(self, name):
@@ -502,6 +512,27 @@ class RosMonitor:
             }
             self._touch("supervisor")
 
+    def _model_states_cb(self, msg):
+        try:
+            idx = msg.name.index(self.model_name)
+        except ValueError:
+            return
+        p = msg.pose[idx].position
+        with self.lock:
+            self.state["ground_truth"] = {"x": p.x, "y": p.y, "z": p.z}
+            self._touch("ground_truth")
+
+    def _active_command_cb(self, msg):
+        with self.lock:
+            self.state["active_command"] = {
+                "source": msg.source,
+                "mode": msg.mode,
+                "severity": msg.severity,
+                "enabled": bool(msg.enabled),
+                "scheduled_start_s": msg.scheduled_start.to_sec(),
+            }
+            self._touch("active_command")
+
     def publish_override(self, level, reason):
         levels = {
             "NONE": SupervisorCommand.NONE,
@@ -577,6 +608,14 @@ class RosMonitor:
             result["ages_s"] = {
                 name: round(now - stamp, 3) for name, stamp in self.received.items()
             }
+        pose = result.get("pose") or {}
+        gt = result.get("ground_truth") or {}
+        if {"x", "y"} <= set(pose) and {"x", "y"} <= set(gt):
+            result["localization_drift_m"] = (
+                (pose["x"] - gt["x"]) ** 2 + (pose["y"] - gt["y"]) ** 2
+            ) ** 0.5
+        else:
+            result["localization_drift_m"] = None
         return result
 
 
