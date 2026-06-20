@@ -25,6 +25,7 @@ import threading
 import time
 import io
 import math
+from collections import deque
 
 import numpy as np
 
@@ -33,7 +34,7 @@ import rospy
 from geometry_msgs.msg import PoseStamped, TwistStamped
 from nav_msgs.msg import Odometry
 from sensor_msgs.msg import CameraInfo, Image, Imu, NavSatFix, PointCloud2
-from std_msgs.msg import UInt32
+from std_msgs.msg import Header, UInt32
 from cv_bridge import CvBridge
 
 # ── pybind11 RTPSession ───────────────────────────────────────────────────────
@@ -237,6 +238,27 @@ STREAMS = [
     },
 ]
 
+def _filter_streams(streams):
+    raw_keys = os.environ.get("LAEA_RTP_STREAM_KEYS", "").strip()
+    if not raw_keys:
+        return streams
+
+    requested = {key.strip() for key in raw_keys.split(",") if key.strip()}
+    known = {stream["key"] for stream in streams}
+    unknown = sorted(requested - known)
+    if unknown:
+        raise RuntimeError(
+            "Unknown LAEA_RTP_STREAM_KEYS entries: %s. Known keys: %s"
+            % (", ".join(unknown), ", ".join(sorted(known)))
+        )
+
+    selected = [stream for stream in streams if stream["key"] in requested]
+    if not selected:
+        raise RuntimeError("LAEA_RTP_STREAM_KEYS selected no RTP streams")
+    return selected
+
+
+STREAMS = _filter_streams(STREAMS)
 STREAMS_BY_ID = {stream["stream_id"]: stream for stream in STREAMS}
 STREAMS_BY_KEY = {stream["key"]: stream for stream in STREAMS}
 SDP_LINE_RE = re.compile(r"^a=(\d+)\s+(\d+)\s+(\w+)\s+(\w+)\s+(\d+)\s+(\w+)\s*$")
@@ -249,6 +271,11 @@ _sessions_ready = threading.Event()
 _send_lock = threading.Lock()
 _last_send_time = {}
 _image_seq = {"rgb": 0, "depth": 0}
+_image_header_lock = threading.Lock()
+_image_headers = {
+    "rgb": deque(maxlen=240),
+    "depth": deque(maxlen=240),
+}
 
 
 def _local_ip() -> str:
@@ -317,15 +344,30 @@ def _depth_to_uint16_mm(img: np.ndarray) -> np.ndarray:
     return np.ascontiguousarray(out)
 
 
-def _send_stream(stream: dict, img: np.ndarray):
+def _copy_header(header: Header) -> Header:
+    copied = Header()
+    copied.seq = header.seq
+    copied.stamp = header.stamp
+    copied.frame_id = header.frame_id
+    return copied
+
+
+def _send_stream(stream: dict, img: np.ndarray, header: Header = None):
     if not _sessions_ready.is_set():
-        return
+        return -1
     data = np.ascontiguousarray(img)
     try:
         with _send_lock:
-            _send_session.send_data(stream["stream_id"], Data_Wrapper(data), True)
+            ret = _send_session.send_data(stream["stream_id"], Data_Wrapper(data), True)
+        if ret == 0 and header is not None:
+            queue = _image_headers.get(stream["key"])
+            if queue is not None:
+                with _image_header_lock:
+                    queue.append(_copy_header(header))
+        return ret
     except Exception as exc:
         rospy.logerr("[laea_aiottalk_rtp] %s send error: %s", stream["key"], exc)
+        return -1
 
 
 def _serialize_ros_msg(msg) -> bytes:
@@ -439,7 +481,7 @@ def _ensure_ok(action: str, ret: int):
 def _rgb_callback(msg: Image):
     try:
         img = _bridge.imgmsg_to_cv2(msg, desired_encoding="bgr8")
-        _send_stream(STREAMS_BY_KEY["rgb"], img)
+        _send_stream(STREAMS_BY_KEY["rgb"], img, msg.header)
     except Exception as exc:
         rospy.logerr("[laea_aiottalk_rtp] rgb callback error: %s", exc)
 
@@ -447,7 +489,7 @@ def _rgb_callback(msg: Image):
 def _depth_callback(msg: Image):
     try:
         img = _bridge.imgmsg_to_cv2(msg, desired_encoding="passthrough")
-        _send_stream(STREAMS_BY_KEY["depth"], _depth_to_uint16_mm(img))
+        _send_stream(STREAMS_BY_KEY["depth"], _depth_to_uint16_mm(img), msg.header)
     except Exception as exc:
         rospy.logerr("[laea_aiottalk_rtp] depth callback error: %s", exc)
 
@@ -477,10 +519,21 @@ def _recv_loop(stream: dict, pub: rospy.Publisher):
                 else:
                     out = np.ascontiguousarray(mat.astype(np.uint8))
                 msg = _bridge.cv2_to_imgmsg(out, encoding=stream["output_encoding"])
-                msg.header.stamp = rospy.Time.now()
-                msg.header.frame_id = stream["output_frame_id"]
-                msg.header.seq = _image_seq[stream["key"]]
-                _image_seq[stream["key"]] += 1
+                queue = _image_headers.get(stream["key"])
+                source_header = None
+                if queue is not None:
+                    with _image_header_lock:
+                        if queue:
+                            source_header = queue.popleft()
+                if source_header is not None:
+                    msg.header = source_header
+                    if not msg.header.frame_id:
+                        msg.header.frame_id = stream["output_frame_id"]
+                else:
+                    msg.header.stamp = rospy.Time.now()
+                    msg.header.frame_id = stream["output_frame_id"]
+                    msg.header.seq = _image_seq[stream["key"]]
+                    _image_seq[stream["key"]] += 1
                 pub.publish(msg)
         except Exception as exc:
             rospy.logerr("[laea_aiottalk_rtp] %s recv error: %s", stream["key"], exc)
