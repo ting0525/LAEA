@@ -86,6 +86,7 @@ public:
   void getPathForTour(const Vector3d& pos, const vector<int>& frontier_ids, vector<Vector3d>& path);
 
   void setNextFrontier(const int& id);
+  bool deactivateFrontierByViewpoint(const Vector3d& viewpoint);
   bool isFrontierCovered();
   void wrapYaw(double& yaw);
 
@@ -115,6 +116,9 @@ private:
   void computeFrontierInfo(Frontier& frontier);
   void downsample(const vector<Vector3d>& cluster_in, vector<Vector3d>& cluster_out);
   void sampleViewpoints(Frontier& frontier);
+  bool isNearUnreachableViewpoint(const Vector3d& pos) const;
+  bool shouldDeactivateUnreachableViewpoint(const Vector3d& viewpoint);
+  void rememberUnreachableViewpoint(const Vector3d& viewpoint);
 
   int countVisibleCells(const Vector3d& pos, const double& yaw, const vector<Vector3d>& cluster);
   bool isNearUnknown(const Vector3d& pos);
@@ -141,6 +145,17 @@ private:
   vector<int> removed_ids_;
   list<Frontier>::iterator first_new_ftr_;
   Frontier next_frontier_;
+  bool force_recompute_cost_matrix_ = false;
+  vector<Vector3d> unreachable_viewpoints_;
+  Vector3d last_unreachable_viewpoint_ = Vector3d::Zero();
+  bool has_last_unreachable_viewpoint_ = false;
+  int repeated_unreachable_count_ = 0;
+  double unreachable_viewpoint_radius_ = 0.50;
+  double unreachable_repeat_radius_ = 0.35;
+  double unreachable_deactivation_cooldown_ = 0.25;
+  double last_unreachable_deactivation_time_ = -1.0;
+  int unreachable_failure_threshold_ = 3;
+  int max_unreachable_viewpoints_ = 50;
 
   // Params
   int cluster_min_;

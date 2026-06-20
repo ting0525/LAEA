@@ -31,6 +31,8 @@ struct FSMParam {
   double init_y;
   double init_z;
   double replan_time_;  // second
+  double min_finish_time_;
+  double min_finish_dist_;
 };
 
 struct ExplorationData {

@@ -30,6 +30,8 @@ namespace fast_planner
     nh.param("fsm/init_y", fp_->init_y, 0.0);
     nh.param("fsm/init_z", fp_->init_z, 0.0);
     nh.param("fsm/replan_time", fp_->replan_time_, -1.0);
+    nh.param("fsm/min_finish_time", fp_->min_finish_time_, 0.0);
+    nh.param("fsm/min_finish_dist", fp_->min_finish_dist_, 0.0);
 
     nh.param("fsm/enable_yawing", enable_yawing, false);
 
@@ -553,10 +555,19 @@ namespace fast_planner
       {
         plan_cost_time += ros::Time::now().toSec() - startPlan;
         plan_loop_num++;
+        double cur_flight_time = ros::Time::now().toSec() - flight_start;
+        if (cur_flight_time < fp_->min_finish_time_ ||
+            flight_distance < fp_->min_finish_dist_)
+        {
+          ROS_ERROR(
+              "Reject early no-frontier finish: flight_time %.3f / %.3f, flight_dist %.3f / %.3f",
+              cur_flight_time, fp_->min_finish_time_, flight_distance, fp_->min_finish_dist_);
+          break;
+        }
         cout << "finish" << endl;
         transitState(FINISH, "FSM");
         fd_->static_state_ = true;
-        flight_time = ros::Time::now().toSec() - flight_start;
+        flight_time = cur_flight_time;
       }
       else if (res == FAIL)
       {

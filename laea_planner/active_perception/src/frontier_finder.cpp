@@ -18,6 +18,7 @@
 #include <pcl/filters/voxel_grid.h>
 
 #include <Eigen/Eigenvalues>
+#include <algorithm>
 
 namespace fast_planner
 {
@@ -44,6 +45,11 @@ namespace fast_planner
     nh.param("frontier/y_bound_min", y_bound_min, -1.0);
     nh.param("frontier/x_bound_max", x_bound_max, -1.0);
     nh.param("frontier/y_bound_max", y_bound_max, -1.0);
+    nh.param("frontier/unreachable_viewpoint_radius", unreachable_viewpoint_radius_, 0.50);
+    nh.param("frontier/unreachable_repeat_radius", unreachable_repeat_radius_, 0.35);
+    nh.param("frontier/unreachable_deactivation_cooldown", unreachable_deactivation_cooldown_, 0.25);
+    nh.param("frontier/unreachable_failure_threshold", unreachable_failure_threshold_, 3);
+    nh.param("frontier/max_unreachable_viewpoints", max_unreachable_viewpoints_, 50);
 
     raycaster_.reset(new RayCaster);
     resolution_ = edt_env_->sdf_map_->getResolution();
@@ -376,6 +382,18 @@ namespace fast_planner
   {
 
     // std::cout << "cost mat size remove: " << std::endl;
+    if (force_recompute_cost_matrix_)
+    {
+      for (auto &frontier : frontiers_)
+      {
+        frontier.paths_.clear();
+        frontier.costs_.clear();
+      }
+      removed_ids_.clear();
+      first_new_ftr_ = frontiers_.begin();
+      force_recompute_cost_matrix_ = false;
+    }
+
     if (!removed_ids_.empty())
     {
       // Delete path and cost for removed clusters
@@ -554,10 +572,15 @@ namespace fast_planner
         Eigen::Vector3d avg_dir;
         avg_dir[0]=avg_dir[1]=avg_dir[2]=0;
         inserted->lidar_gains_ = count_Lidar_VisibleCells(bestViewpoint.pos_,bestViewpoint.yaw_,inserted->cells_,ray_nums,avg_dir);
-        
-        // 0.15 - map.res() 
-        inserted->avg_gains_ = double(1.0*inserted->lidar_gains_/ray_nums)*0.15;
-        inserted->extend_pos_ = inserted->average_ + 0.1*inserted->avg_gains_*avg_dir;
+
+        // 0.15 - map.res()
+        if (ray_nums > 0) {
+          inserted->avg_gains_ = double(1.0*inserted->lidar_gains_/ray_nums)*0.15;
+          inserted->extend_pos_ = inserted->average_ + 0.1*inserted->avg_gains_*avg_dir;
+        } else {
+          inserted->avg_gains_ = 0.0;
+          inserted->extend_pos_ = inserted->average_;
+        }
         
         }
 
@@ -613,6 +636,105 @@ namespace fast_planner
         averages.push_back(frontier.average_);
       }
     }
+  }
+
+  bool FrontierFinder::deactivateFrontierByViewpoint(const Vector3d &viewpoint)
+  {
+    if (!shouldDeactivateUnreachableViewpoint(viewpoint))
+      return false;
+
+    const double now = ros::Time::now().toSec();
+    if (last_unreachable_deactivation_time_ >= 0.0 &&
+        now - last_unreachable_deactivation_time_ < unreachable_deactivation_cooldown_)
+    {
+      ROS_WARN(
+          "Unreachable viewpoint deactivation cooldown: %.2fs remaining, blacklist: %zu",
+          unreachable_deactivation_cooldown_ - (now - last_unreachable_deactivation_time_),
+          unreachable_viewpoints_.size());
+      return false;
+    }
+
+    auto matched = frontiers_.end();
+    double best_dist = 1e9;
+
+    for (auto iter = frontiers_.begin(); iter != frontiers_.end(); ++iter)
+    {
+      for (const auto &view : iter->viewpoints_)
+      {
+        const double dist = (view.pos_ - viewpoint).norm();
+        if (dist < best_dist)
+        {
+          best_dist = dist;
+          matched = iter;
+        }
+      }
+    }
+
+    double max_match_dist = 2.0 * edt_env_->sdf_map_->getResolution();
+    if (max_match_dist < 0.5)
+      max_match_dist = 0.5;
+
+    if (matched == frontiers_.end() || best_dist > max_match_dist)
+    {
+      ROS_WARN(
+          "No matching frontier for unreachable viewpoint, best_dist: %.3f", best_dist);
+      return false;
+    }
+
+    const int old_id = matched->id_;
+    const Frontier *matched_frontier = &(*matched);
+    rememberUnreachableViewpoint(viewpoint);
+
+    int removed_viewpoint_count = 0;
+    int dormant_frontier_count = 0;
+    bool matched_frontier_dormant = false;
+    for (auto iter = frontiers_.begin(); iter != frontiers_.end();)
+    {
+      const bool is_matched_frontier = &(*iter) == matched_frontier;
+      const int before_count = static_cast<int>(iter->viewpoints_.size());
+      auto view_iter = std::remove_if(
+          iter->viewpoints_.begin(), iter->viewpoints_.end(),
+          [this, &viewpoint, max_match_dist](const Viewpoint &view)
+          {
+            return isNearUnreachableViewpoint(view.pos_) ||
+                   (view.pos_ - viewpoint).norm() <= max_match_dist;
+          });
+      iter->viewpoints_.erase(view_iter, iter->viewpoints_.end());
+      removed_viewpoint_count += before_count - static_cast<int>(iter->viewpoints_.size());
+
+      if (iter->viewpoints_.empty())
+      {
+        iter->paths_.clear();
+        iter->costs_.clear();
+        if (is_matched_frontier)
+          matched_frontier_dormant = true;
+        dormant_frontiers_.splice(dormant_frontiers_.end(), frontiers_, iter++);
+        ++dormant_frontier_count;
+        continue;
+      }
+
+      ++iter;
+    }
+
+    int idx = 0;
+    for (auto &frontier : frontiers_)
+    {
+      frontier.id_ = idx++;
+      frontier.paths_.clear();
+      frontier.costs_.clear();
+    }
+    first_new_ftr_ = frontiers_.end();
+    force_recompute_cost_matrix_ = true;
+    has_last_unreachable_viewpoint_ = false;
+    repeated_unreachable_count_ = 0;
+    last_unreachable_deactivation_time_ = now;
+
+    ROS_WARN(
+        "Removed %d unreachable viewpoint(s) near frontier %d after %d repeated failures, dormant_frontiers: %d, matched_dormant: %d, viewpoint_dist: %.3f, remaining: %zu, dormant: %zu, blacklist: %zu, cost cache reset",
+        removed_viewpoint_count, old_id, unreachable_failure_threshold_, dormant_frontier_count,
+        matched_frontier_dormant ? 1 : 0, best_dist, frontiers_.size(),
+        dormant_frontiers_.size(), unreachable_viewpoints_.size());
+    return true;
   }
 
   void FrontierFinder::getViewpointsInfo(
@@ -949,7 +1071,8 @@ namespace fast_planner
 
         // Qualified viewpoint is in bounding box and in safe region
         if (!edt_env_->sdf_map_->isInBox(sample_pos) ||
-            edt_env_->sdf_map_->getInflateOccupancy(sample_pos) == 1 || isNearUnknown(sample_pos))
+            edt_env_->sdf_map_->getInflateOccupancy(sample_pos) == 1 || isNearUnknown(sample_pos) ||
+            isNearUnreachableViewpoint(sample_pos))
           continue;
 
         // Compute average yaw
@@ -976,6 +1099,58 @@ namespace fast_planner
         }
         // }
       }
+  }
+
+  bool FrontierFinder::isNearUnreachableViewpoint(const Vector3d &pos) const
+  {
+    for (const auto &viewpoint : unreachable_viewpoints_)
+    {
+      if ((pos - viewpoint).norm() <= unreachable_viewpoint_radius_)
+        return true;
+    }
+    return false;
+  }
+
+  bool FrontierFinder::shouldDeactivateUnreachableViewpoint(const Vector3d &viewpoint)
+  {
+    if (unreachable_failure_threshold_ <= 1)
+      return true;
+
+    if (!has_last_unreachable_viewpoint_ ||
+        (viewpoint - last_unreachable_viewpoint_).norm() > unreachable_repeat_radius_)
+    {
+      last_unreachable_viewpoint_ = viewpoint;
+      has_last_unreachable_viewpoint_ = true;
+      repeated_unreachable_count_ = 1;
+    }
+    else
+    {
+      ++repeated_unreachable_count_;
+    }
+
+    if (repeated_unreachable_count_ < unreachable_failure_threshold_)
+    {
+      ROS_WARN(
+          "Unreachable viewpoint pending: repeat %d/%d, blacklist: %zu",
+          repeated_unreachable_count_, unreachable_failure_threshold_,
+          unreachable_viewpoints_.size());
+      return false;
+    }
+    return true;
+  }
+
+  void FrontierFinder::rememberUnreachableViewpoint(const Vector3d &viewpoint)
+  {
+    for (const auto &known : unreachable_viewpoints_)
+    {
+      if ((known - viewpoint).norm() <= 0.5 * unreachable_viewpoint_radius_)
+        return;
+    }
+
+    unreachable_viewpoints_.push_back(viewpoint);
+    while (max_unreachable_viewpoints_ > 0 &&
+           static_cast<int>(unreachable_viewpoints_.size()) > max_unreachable_viewpoints_)
+      unreachable_viewpoints_.erase(unreachable_viewpoints_.begin());
   }
 
   bool FrontierFinder::isFrontierCovered()
@@ -1257,7 +1432,15 @@ int FrontierFinder::count_Lidar_VisibleCells(const Eigen::Vector3d& pos, const d
       ray_start_temp.push_back(cell+(temp_normalize*start_threshold));  // for sdf_map
 
   }
-  avg_dir = avg_dir.normalized();
+  if (cluster_2d.empty()) {
+    ray_num = 0;
+    avg_dir.setZero();
+    return 0;
+  }
+  if (avg_dir.norm() > 1e-6)
+    avg_dir = avg_dir.normalized();
+  else
+    avg_dir.setZero();
 
   if(!use_hybird_map){
     Eigen::Vector3i idx;

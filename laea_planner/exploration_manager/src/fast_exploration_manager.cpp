@@ -153,6 +153,8 @@ namespace fast_planner
     vector<double> yawList;
     double middle_yaw;
     vector<double> yawList_normal;
+    vector<Vector3d> candidate_points;
+    vector<double> candidate_yaws;
 
 
     if (ed_->points_.size() > 1)
@@ -196,8 +198,15 @@ namespace fast_planner
         ed_->refined_views_.clear();
         // add
         refineLocalTour(pos, vel, yaw, ed_->n_points_, n_yaws, ed_->refined_points_, refined_yaws, smallAreaData, smallArea);
+        if (ed_->refined_points_.empty() || refined_yaws.empty())
+        {
+          ROS_ERROR("No refined candidate viewpoint");
+          return FAIL;
+        }
         next_pos = ed_->refined_points_[0];
         next_yaw = refined_yaws[0];
+        candidate_points = ed_->refined_points_;
+        candidate_yaws = refined_yaws;
 
         // Get marker for view visualization
         for (int i = 0; i < ed_->refined_points_.size(); ++i)
@@ -224,6 +233,11 @@ namespace fast_planner
         // Choose the next viewpoint from global tour
         next_pos = ed_->points_[indices[0]];
         next_yaw = ed_->yaws_[indices[0]];
+        for (const auto &id : indices)
+        {
+          candidate_points.push_back(ed_->points_[id]);
+          candidate_yaws.push_back(ed_->yaws_[id]);
+        }
       }
 
       
@@ -277,6 +291,12 @@ namespace fast_planner
         vector<bool> ifSmallArea;
         frontier_finder_->getViewpointsInfo(
             pos, {0}, ep_->top_view_num_, ep_->max_decay_, ed_->n_points_, n_yaws, ifSmallArea);
+        if (ed_->n_points_.empty() || ed_->n_points_[0].empty() ||
+            n_yaws.empty() || n_yaws[0].empty())
+        {
+          ROS_ERROR("No candidate viewpoint for single frontier");
+          return FAIL;
+        }
 
         double min_cost = 100000;
         int min_cost_id = -1;
@@ -291,8 +311,22 @@ namespace fast_planner
             min_cost_id = i;
           }
         }
+        if (min_cost_id < 0)
+        {
+          ROS_ERROR("No candidate viewpoint for single frontier");
+          return FAIL;
+        }
         next_pos = ed_->n_points_[0][min_cost_id];
         next_yaw = n_yaws[0][min_cost_id];
+        candidate_points.push_back(next_pos);
+        candidate_yaws.push_back(next_yaw);
+        for (int i = 0; i < ed_->n_points_[0].size(); ++i)
+        {
+          if (i == min_cost_id)
+            continue;
+          candidate_points.push_back(ed_->n_points_[0][i]);
+          candidate_yaws.push_back(n_yaws[0][i]);
+        }
         ed_->refined_points_ = {next_pos};
         ed_->refined_views_ = {next_pos + 2.0 * Vector3d(cos(next_yaw), sin(next_yaw), 0)};
       }
@@ -300,6 +334,8 @@ namespace fast_planner
       {
         next_pos = ed_->points_[0];
         next_yaw = ed_->yaws_[0];
+        candidate_points.push_back(next_pos);
+        candidate_yaws.push_back(next_yaw);
         // next_pos_ave = ed_->averages_[0];
       }
     }
@@ -316,12 +352,39 @@ namespace fast_planner
 
 
     // Generate trajectory of x,y,z
-    planner_manager_->path_finder_->reset();
-    planner_manager_->path_finder_->cur_vel = vel;
-    if (planner_manager_->path_finder_->search(pos, next_pos, true) == Astar::NO_PATH)
+    if (candidate_points.empty())
     {
-      ROS_ERROR("No path to next viewpoint");
+      candidate_points.push_back(next_pos);
+      candidate_yaws.push_back(next_yaw);
+    }
+
+    int reachable_candidate = -1;
+    for (int i = 0; i < candidate_points.size(); ++i)
+    {
+      planner_manager_->path_finder_->reset();
+      planner_manager_->path_finder_->cur_vel = vel;
+      if (planner_manager_->path_finder_->search(pos, candidate_points[i], true) != Astar::NO_PATH)
+      {
+        reachable_candidate = i;
+        next_pos = candidate_points[i];
+        if (i < candidate_yaws.size())
+          next_yaw = candidate_yaws[i];
+        break;
+      }
+    }
+
+    if (reachable_candidate < 0)
+    {
+      ROS_ERROR("No path to any candidate viewpoint");
+      frontier_finder_->deactivateFrontierByViewpoint(next_pos);
       return FAIL;
+    }
+    if (reachable_candidate > 0)
+    {
+      manyViewPoints = false;
+      ROS_WARN(
+          "Use fallback reachable viewpoint %d/%zu for current planning cycle",
+          reachable_candidate + 1, candidate_points.size());
     }
     ed_->path_next_goal_ = planner_manager_->path_finder_->getPath();
     kino_use_shorten = false;
@@ -441,7 +504,14 @@ namespace fast_planner
 
       if (!planner_manager_->kinodynamicReplan(
               pos, vel, acc, ed_->next_goal_, Vector3d(0, 0, 0), time_to_firstView, time_lb))
+      {
+        if ((ed_->next_goal_ - next_pos).norm() < 0.1)
+        {
+          ROS_ERROR("No kinodynamic path to next viewpoint");
+          frontier_finder_->deactivateFrontierByViewpoint(next_pos);
+        }
         return FAIL;
+      }
     }
     
     if(len > temp_next_yaw_thresh){  

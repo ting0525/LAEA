@@ -16,6 +16,10 @@ void Lidar_gain::setFov_Params(const double& lidar_range, const double& depth_ra
 
 void Lidar_gain::Init(){
     raycaster.reset(new RayCaster);
+    map_flag = false;
+    yaw = 0.0;
+    R.setIdentity();
+    T.setZero();
 }
 
 void Lidar_gain::Update_Occgrid_data(const nav_msgs::OccupancyGrid::ConstPtr& msg){
@@ -36,7 +40,7 @@ void Lidar_gain::Update_Occgrid_data(const nav_msgs::OccupancyGrid::ConstPtr& ms
     double roll, pitch, yaw_;
     geometry_msgs::Quaternion q = OccGrid.info.origin.orientation;
     tf::Quaternion quat(q.x, q.y, q.z, q.w); // x, y, z, w
-    tf::Matrix3x3(quat).getRPY(roll, pitch, yaw);
+    tf::Matrix3x3(quat).getRPY(roll, pitch, yaw_);
     yaw = yaw_;
 
     // Calculate R, t
@@ -213,8 +217,10 @@ bool Lidar_gain::If_Count_LidarGains(const Vector3i& idx){
 // -1 unknown | 0 free | 100 occupied
 inline int Lidar_gain::getOccupancy(const Eigen::Vector3i& id) {
     if (!isInMap(id)) return -1;
+    if (OccGrid.data.empty()) return -1;
     // idex = y*width + x
     int idex = id[1]*OccGrid.info.width + id[0];
+    if (idex < 0 || idex >= static_cast<int>(OccGrid.data.size())) return -1;
     int occ = OccGrid.data[idex];
     // clamp_min_log_ p_min_ 0.12
     if (occ < free_thresh) return UNKNOWN;
@@ -232,6 +238,12 @@ inline bool Lidar_gain::isInMap(const Eigen::Vector3i& idx) {
 
 
 int Lidar_gain::Get_Multi_Raycast(vector<Eigen::Vector3d> ray_start, vector<Eigen::Vector3d> ray_end){
+
+    if (!map_flag || OccGrid.data.empty()) return 0;
+    if (ray_start.size() != ray_end.size()) {
+        ROS_WARN_THROTTLE(1.0, "Lidar_gain raycast input size mismatch: %zu vs %zu", ray_start.size(), ray_end.size());
+        return 0;
+    }
 
     int count = 0, d_count = 0;
     while (ray_start.size())
@@ -266,6 +278,12 @@ int Lidar_gain::Get_Multi_Raycast(vector<Eigen::Vector3d> ray_start, vector<Eige
 int Lidar_gain::Get_Multi_Raycast(vector<Eigen::Vector3d> ray_start, vector<Eigen::Vector3d> ray_end, vector<Eigen::Vector3d>& ray_visual_){
     
     ray_visual_.clear();
+    if (!map_flag || OccGrid.data.empty()) return 0;
+    if (ray_start.size() != ray_end.size()) {
+        ROS_WARN_THROTTLE(1.0, "Lidar_gain raycast input size mismatch: %zu vs %zu", ray_start.size(), ray_end.size());
+        return 0;
+    }
+
     int count = 0, d_count = 0;
     while (ray_start.size())
     {
@@ -357,4 +375,3 @@ int Lidar_gain::Count_Lidar_Gains(Vector3d pos, double yaw){
     std::cout << " All Counts " << count << std::endl;
     return count;
 }
-

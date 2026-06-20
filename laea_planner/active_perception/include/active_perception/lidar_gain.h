@@ -48,6 +48,16 @@ private:
 
 public:
   Lidar_gain(/* args */) {
+    max_range_lidar = 0.0;
+    max_range_depth = 0.0;
+    h_fov_depth = 0.0;
+    subdivide_rate = 0.0;
+    dt_temp = 0.0;
+    dt_num = 0;
+    yaw = 0.0;
+    R.setIdentity();
+    T.setZero();
+    map_flag = false;
   }
   ~Lidar_gain() {
   } 
