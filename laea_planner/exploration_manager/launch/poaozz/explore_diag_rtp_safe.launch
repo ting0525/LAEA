@@ -1,0 +1,10 @@
+<launch>
+  <include file="$(find exploration_manager)/launch/poaozz/explore_diagnostic.launch">
+    <arg name="algorithm_file" value="$(find exploration_manager)/launch/poaozz/algorithm_rtp_safe.xml"/>
+    <arg name="depth_topic" value="/rtp/depth/image_raw"/>
+    <arg name="init_z" value="1.5"/>
+    <arg name="box_z_min" value="1.20"/>
+    <arg name="max_vel" value="0.6"/>
+    <arg name="max_acc" value="0.6"/>
+  </include>
+</launch>
