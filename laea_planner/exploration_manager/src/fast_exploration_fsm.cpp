@@ -56,6 +56,7 @@ namespace fast_planner
     trigger_sub_ =
         nh.subscribe("/waypoint_generator/waypoints", 1, &FastExplorationFSM::triggerCallback, this);
     odom_sub_ = nh.subscribe("/odom_world", 1, &FastExplorationFSM::odometryCallback, this);
+    pause_sub_ = nh.subscribe("/laea/feedback/pause_exploration", 1, &FastExplorationFSM::pauseCallback, this);
 
     pg_T_vio_sub = nh.subscribe("/loop_fusion/pg_T_vio", 10, &FastExplorationFSM::pgTVioCallback, this);
 
@@ -408,6 +409,15 @@ namespace fast_planner
   void FastExplorationFSM::FSMCallback(const ros::TimerEvent &e)
   {
     ROS_INFO_STREAM_THROTTLE(1.0, "[FSM]: state: " << fd_->state_str_[int(state_)]);
+
+    // Mission-aware feedback HOVER: stop planning new tours. The command thread
+    // (cmdCallback) keeps running and drains plan_ to a static hover. Planning
+    // resumes from the current state once the pause is cleared.
+    if (paused_)
+    {
+      ROS_WARN_THROTTLE(2.0, "[FSM]: paused by feedback supervisor (HOVER); holding position.");
+      return;
+    }
 
     switch (state_)
     {
@@ -846,6 +856,15 @@ namespace fast_planner
     file << msg->pose.pose.position.x << "," << msg->pose.pose.position.y << "," << msg->pose.pose.position.z << std::endl;
 
     fd_->have_odom_ = true;
+  }
+
+  void FastExplorationFSM::pauseCallback(const std_msgs::Bool::ConstPtr &msg)
+  {
+    const bool requested = msg->data;
+    if (requested == paused_)
+      return;
+    paused_ = requested;
+    ROS_WARN("[FSM]: feedback pause %s", paused_ ? "ENGAGED (hover)" : "RELEASED (resume)");
   }
 
   void FastExplorationFSM::transitState(EXPL_STATE new_state, string pos_call)

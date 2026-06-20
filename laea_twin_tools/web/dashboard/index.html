@@ -149,7 +149,7 @@
       <article class="panel">
         <p class="eyebrow">Supervisor override</p>
         <h2>手動回饋指令</h2>
-        <p class="muted">Override 會保持到按下 Clear。Hover 目前是監督命令，command guard 完成後才會真正攔截飛行軌跡。</p>
+        <p class="muted">Override 會保持到按下 Clear。Hover 會經 feedback_actuator 讓探索暫停（無人機懸停），清除後從現狀恢復；自動 HOVER 進行中時手動清除不會解除（fail-safe）。</p>
         <div class="override-grid">
           <button data-level="ALERT">Alert</button>
           <button data-level="SLOW_DOWN" class="warning">Slow Down</button>

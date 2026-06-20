@@ -229,6 +229,7 @@ catkin_install_python(
     scripts/dashboard_server.py
     scripts/mission_state_node.py
     scripts/supervisor_node.py
+    scripts/feedback_actuator.py
     scripts/slam_kpi_logger.py
     scripts/summarize_missions.py
     scripts/label_missions.py

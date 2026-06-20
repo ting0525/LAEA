@@ -25,4 +25,7 @@
     <rosparam command="load" file="$(find laea_twin_tools)/config/mission_state.yaml"/>
     <param name="policy" value="$(arg supervisor_policy)"/>
   </node>
+
+  <!-- Turns supervisor HOVER (auto or dashboard override) into a planner pause. -->
+  <node pkg="laea_twin_tools" type="feedback_actuator.py" name="feedback_actuator" output="screen"/>
 </launch>

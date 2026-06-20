@@ -6,6 +6,7 @@
 #include <ros/ros.h>
 #include <nav_msgs/Path.h>
 #include <std_msgs/Empty.h>
+#include <std_msgs/Bool.h>
 #include <nav_msgs/Odometry.h>
 #include <visualization_msgs/Marker.h>
 
@@ -57,11 +58,15 @@ private:
 
   bool classic_;
 
+  // Mission-aware feedback: when true the FSM stops planning new tours so the
+  // command thread drains the trajectory and hovers (supervisor HOVER).
+  bool paused_ = false;
+
   /* ROS utils */
   ros::NodeHandle node_;
   ros::Timer exec_timer_, safety_timer_, vis_timer_, frontier_timer_, vis_timer, vis_all_timer_;
   ros::Timer cmd_timer_;
-  ros::Subscriber trigger_sub_, odom_sub_, pg_T_vio_sub;
+  ros::Subscriber trigger_sub_, odom_sub_, pg_T_vio_sub, pause_sub_;
   ros::Publisher replan_pub_, new_pub_, bspline_pub_;
 
   /*  start plan time */
@@ -80,6 +85,7 @@ private:
   void frontierCallback(const ros::TimerEvent& e);
   void triggerCallback(const nav_msgs::PathConstPtr& msg);
   void odometryCallback(const nav_msgs::OdometryConstPtr& msg);
+  void pauseCallback(const std_msgs::Bool::ConstPtr& msg);
   void visualize(const ros::TimerEvent &e);
   void clearVisMarker();
 
