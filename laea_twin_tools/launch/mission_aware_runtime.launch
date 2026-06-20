@@ -1,0 +1,24 @@
+<launch>
+  <arg name="attack_profile" default="none"/>
+  <arg name="attack_seed" default="42"/>
+  <arg name="detector_name" default="rule_mad"/>
+  <arg name="supervisor_policy" default="hybrid"/>
+  <arg name="depth_topic" default="/rtp/depth/image_raw"/>
+
+  <node pkg="laea_twin_tools" type="attack_scheduler.py" name="attack_scheduler" output="screen">
+    <rosparam command="load" file="$(find laea_twin_tools)/config/attack_profiles.yaml"/>
+    <param name="profile" value="$(arg attack_profile)"/>
+    <param name="seed" value="$(arg attack_seed)"/>
+  </node>
+
+  <node pkg="laea_twin_tools" type="mission_state_node.py" name="mission_state_node" output="screen">
+    <rosparam command="load" file="$(find laea_twin_tools)/config/mission_state.yaml"/>
+    <param name="detector_name" value="$(arg detector_name)"/>
+    <param name="depth_topic" value="$(arg depth_topic)"/>
+  </node>
+
+  <node pkg="laea_twin_tools" type="supervisor_node.py" name="mission_supervisor" output="screen">
+    <rosparam command="load" file="$(find laea_twin_tools)/config/mission_state.yaml"/>
+    <param name="policy" value="$(arg supervisor_policy)"/>
+  </node>
+</launch>

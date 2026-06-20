@@ -1,0 +1,73 @@
+profiles:
+  gps_bias_low:
+    source: gps
+    mode: bias
+    severity: low
+    ramp_s: 10.0
+    duration_s: 30.0
+    recovery_s: 10.0
+    vector: [2.0, 0.0, 0.0]
+    scalar: 0.0
+  gps_bias_high:
+    source: gps
+    mode: bias
+    severity: high
+    ramp_s: 10.0
+    duration_s: 30.0
+    recovery_s: 10.0
+    vector: [6.0, 0.0, 0.0]
+    scalar: 0.0
+  imu_gyro_z_low:
+    source: imu
+    mode: gyro_bias
+    severity: low
+    ramp_s: 5.0
+    duration_s: 30.0
+    recovery_s: 5.0
+    vector: [0.0, 0.0, 0.03]
+    scalar: 0.03
+  imu_gyro_z_high:
+    source: imu
+    mode: gyro_bias
+    severity: high
+    ramp_s: 5.0
+    duration_s: 30.0
+    recovery_s: 5.0
+    vector: [0.0, 0.0, 0.10]
+    scalar: 0.10
+  barometer_drift_low:
+    source: barometer
+    mode: drift
+    severity: low
+    ramp_s: 0.0
+    duration_s: 30.0
+    recovery_s: 30.0
+    vector: [0.0, 0.0, 0.0]
+    scalar: 1.0
+  barometer_drift_high:
+    source: barometer
+    mode: drift
+    severity: high
+    ramp_s: 0.0
+    duration_s: 30.0
+    recovery_s: 30.0
+    vector: [0.0, 0.0, 0.0]
+    scalar: 5.0
+  depth_freeze_low:
+    source: depth
+    mode: freeze
+    severity: low
+    ramp_s: 0.0
+    duration_s: 5.0
+    recovery_s: 0.0
+    vector: [0.0, 0.0, 0.0]
+    scalar: 5.0
+  depth_freeze_high:
+    source: depth
+    mode: freeze
+    severity: high
+    ramp_s: 0.0
+    duration_s: 20.0
+    recovery_s: 0.0
+    vector: [0.0, 0.0, 0.0]
+    scalar: 20.0
