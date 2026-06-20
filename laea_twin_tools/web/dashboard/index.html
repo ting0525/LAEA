@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LAEA Mission Control</title>
+  <link rel="stylesheet" href="/assets/dashboard.css">
+</head>
+<body>
+  <header>
+    <div>
+      <p class="eyebrow">ROS / PX4 / Digital Twin</p>
+      <h1>LAEA Mission Control</h1>
+    </div>
+    <div class="header-status">
+      <span id="rosBadge" class="badge neutral">ROS UNKNOWN</span>
+      <span id="processBadge" class="badge neutral">IDLE</span>
+    </div>
+  </header>
+
+  <main>
+    <section class="panel control-panel">
+      <div class="section-title">
+        <div>
+          <p class="eyebrow">Experiment</p>
+          <h2>任務啟動設定</h2>
+        </div>
+        <div class="actions">
+          <button id="startButton" class="primary">啟動單次實驗</button>
+          <button id="startBatchButton" class="primary secondary-primary">開始自動蒐集</button>
+          <button id="stopButton" class="danger">停止實驗</button>
+        </div>
+      </div>
+
+      <div class="form-grid">
+        <label>資料集名稱<input id="datasetName" value="dashboard"></label>
+        <label>Scenario<input id="scenario" value="normal"></label>
+        <label>World
+          <select id="worldName">
+            <option value="indoor_01">indoor_01</option>
+            <option value="indoor_02">indoor_02</option>
+          </select>
+        </label>
+        <label>Attack profile<select id="attackProfile"><option value="none">none</option></select></label>
+        <label>Attack seed<input id="attackSeed" type="number" min="0" value="42"></label>
+        <label>最長時間（秒）<input id="maxDuration" type="number" min="30" value="900"></label>
+        <label>Detector<input id="detectorName" value="rule_mad"></label>
+        <label>Supervisor policy
+          <select id="supervisorPolicy">
+            <option value="hybrid">hybrid</option>
+            <option value="none">none</option>
+          </select>
+        </label>
+        <label>批次輪數<input id="totalRounds" type="number" min="1" max="1000" value="10"></label>
+        <label>每輪間隔（秒）<input id="roundInterval" type="number" min="0" max="600" value="5"></label>
+      </div>
+      <div class="checks">
+        <label><input id="enableRtp" type="checkbox" checked> AIoTtalk RTP</label>
+        <label><input id="enableRviz" type="checkbox" checked> RViz</label>
+        <label><input id="enableDitto" type="checkbox"> Ditto bridge</label>
+        <label><input id="incrementSeed" type="checkbox" checked> 每輪 seed +1</label>
+      </div>
+      <p class="muted">自動蒐集會完整重啟 PX4/Gazebo，每輪只保留 SUCCESS_FINISH 的 KPI CSV；失敗、Timeout、Abort、Hover 只留 manifest。建立 detector 訓練集時建議先把 Supervisor policy 設為 none，避免回饋改變資料分布。</p>
+      <p id="actionMessage" class="message"></p>
+    </section>
+
+    <section id="batchPanel" class="panel batch-panel">
+      <div class="section-title">
+        <div>
+          <p class="eyebrow">Automatic collection</p>
+          <h2>訓練資料蒐集進度</h2>
+        </div>
+        <span id="batchState" class="state-pill unknown">NOT STARTED</span>
+      </div>
+      <div class="progress-track"><div id="batchProgressBar" class="progress-value"></div></div>
+      <div class="batch-stats">
+        <div><span>進度</span><strong id="batchRounds">0 / 0</strong></div>
+        <div><span>成功保留</span><strong id="batchSuccess">0</strong></div>
+        <div><span>失敗刪除</span><strong id="batchFailed">0</strong></div>
+        <div><span>目前 Seed</span><strong id="batchSeed">—</strong></div>
+        <div><span>上一輪</span><strong id="batchLastResult">—</strong></div>
+      </div>
+    </section>
+
+    <section class="telemetry-grid">
+      <article class="panel metric-card">
+        <p class="eyebrow">PX4</p>
+        <div class="metric-row"><span>Connection</span><strong id="px4Connection">—</strong></div>
+        <div class="metric-row"><span>Mode</span><strong id="px4Mode">—</strong></div>
+        <div class="metric-row"><span>Armed</span><strong id="px4Armed">—</strong></div>
+      </article>
+      <article class="panel metric-card">
+        <p class="eyebrow">Position</p>
+        <strong id="positionValue" class="large-value">—</strong>
+        <div class="metric-row"><span>Speed</span><strong id="speedValue">—</strong></div>
+        <div class="metric-row"><span>Satellites</span><strong id="satellitesValue">—</strong></div>
+      </article>
+      <article class="panel metric-card">
+        <p class="eyebrow">Perception</p>
+        <div class="metric-row"><span>Depth</span><strong id="depthStatus">—</strong></div>
+        <div class="metric-row"><span>Frame age</span><strong id="depthAge">—</strong></div>
+        <div class="metric-row"><span>Format</span><strong id="depthFormat">—</strong></div>
+      </article>
+      <article class="panel metric-card">
+        <p class="eyebrow">Current run</p>
+        <div class="metric-row"><span>Mode</span><strong id="collectionMode">—</strong></div>
+        <div class="metric-row"><span>PID</span><strong id="processPid">—</strong></div>
+        <div class="metric-row"><span>Exit code</span><strong id="exitCode">—</strong></div>
+        <div class="metric-row"><span>Dataset</span><strong id="datasetPath">—</strong></div>
+      </article>
+    </section>
+
+    <section class="panel">
+      <div class="section-title">
+        <div>
+          <p class="eyebrow">Mission-aware Digital Twin</p>
+          <h2>Mission State</h2>
+        </div>
+        <span id="overallState" class="state-pill unknown">UNKNOWN</span>
+      </div>
+      <div class="domain-grid">
+        <div><span>Localization</span><strong id="localizationState">—</strong><small id="localizationScore">—</small></div>
+        <div><span>Perception</span><strong id="perceptionState">—</strong><small id="perceptionScore">—</small></div>
+        <div><span>Planner</span><strong id="plannerState">—</strong><small id="plannerScore">—</small></div>
+        <div><span>Flight safety</span><strong id="flightState">—</strong><small id="flightScore">—</small></div>
+      </div>
+      <p id="missionSummary" class="summary">尚未收到 mission state。</p>
+    </section>
+
+    <section class="two-column">
+      <article class="panel">
+        <p class="eyebrow">Supervisor override</p>
+        <h2>手動回饋指令</h2>
+        <p class="muted">Override 會保持到按下 Clear。Hover 目前是監督命令，command guard 完成後才會真正攔截飛行軌跡。</p>
+        <div class="override-grid">
+          <button data-level="ALERT">Alert</button>
+          <button data-level="SLOW_DOWN" class="warning">Slow Down</button>
+          <button data-level="HOVER" class="danger">Hover</button>
+          <button data-level="NONE">Clear Override</button>
+        </div>
+        <div class="status-block">
+          <div><span>Output</span><strong id="supervisorLevel">—</strong></div>
+          <div><span>Speed scale</span><strong id="speedScale">—</strong></div>
+          <div><span>Reason</span><strong id="supervisorReason">—</strong></div>
+        </div>
+      </article>
+
+      <article class="panel">
+        <p class="eyebrow">Attack scheduler</p>
+        <h2>攻擊狀態</h2>
+        <div class="status-block">
+          <div><span>Profile</span><strong id="attackName">—</strong></div>
+          <div><span>Status</span><strong id="attackState">—</strong></div>
+          <div><span>Elapsed</span><strong id="attackElapsed">—</strong></div>
+          <div><span>Detail</span><strong id="attackDetail">—</strong></div>
+        </div>
+        <p class="muted">Profile 目前在啟動實驗前設定；畫面只把 scheduler 回報的 active 當作排程狀態。</p>
+      </article>
+    </section>
+
+    <section class="panel">
+      <div class="section-title">
+        <div>
+          <p class="eyebrow">Dataset governance</p>
+          <h2>最近實驗結果</h2>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Run</th><th>Outcome</th><th>Duration</th><th>Scenario</th><th>Attack</th><th>CSV</th></tr></thead>
+          <tbody id="runsBody"><tr><td colspan="6">尚無 manifest 資料</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="section-title">
+        <div>
+          <p class="eyebrow">Process output</p>
+          <h2>實驗 Log</h2>
+        </div>
+        <button id="refreshLog">更新 Log</button>
+      </div>
+      <pre id="logOutput">尚未啟動實驗。</pre>
+    </section>
+  </main>
+
+  <script src="/assets/dashboard.js"></script>
+</body>
+</html>

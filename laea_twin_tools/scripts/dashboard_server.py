@@ -1,0 +1,671 @@
+#!/usr/bin/env python3
+
+import csv
+import json
+import os
+import re
+import signal
+import site
+import subprocess
+import sys
+import threading
+import time
+from collections import deque
+from datetime import datetime, timezone
+from pathlib import Path
+
+# ROS environments often prepend Ubuntu's Python packages. Prefer the user's
+# site packages when present so Flask and its Click dependency stay compatible.
+USER_SITE = site.getusersitepackages()
+if USER_SITE in sys.path:
+    sys.path.remove(USER_SITE)
+if os.path.isdir(USER_SITE):
+    sys.path.insert(0, USER_SITE)
+
+import rosgraph
+import rospy
+import yaml
+from flask import Flask, jsonify, request, send_from_directory
+from geometry_msgs.msg import PoseStamped, TwistStamped
+from mavros_msgs.msg import State
+from sensor_msgs.msg import Image
+from std_msgs.msg import UInt32
+
+from laea_twin_tools.msg import AttackStatus, MissionState, SupervisorCommand
+
+
+PACKAGE_DIR = Path(__file__).resolve().parents[1]
+REPO_DIR = PACKAGE_DIR.parent
+WEB_DIR = PACKAGE_DIR / "web" / "dashboard"
+LOGS_ROOT = PACKAGE_DIR / "laea_logs"
+RUN_SCRIPT = REPO_DIR / "run_aiottalk_rtp.sh"
+BATCH_SCRIPT = REPO_DIR / "run_aiottalk_batches_restart.sh"
+PROFILE_CONFIG = PACKAGE_DIR / "config" / "attack_profiles.yaml"
+NAME_RE = re.compile(r"^[A-Za-z0-9_.-]+$")
+STABLE_RUNTIME_PROFILE = "scan_mapping_explore_test"
+STABLE_MAPPING_LAUNCH = "scan_mapping.launch"
+STABLE_EXPLORE_LAUNCH = "explore_test.launch"
+
+
+def level_name(value):
+    return {0: "NORMAL", 1: "DEGRADED", 2: "CRITICAL"}.get(int(value), "UNKNOWN")
+
+
+def feedback_name(value):
+    return {
+        SupervisorCommand.NONE: "NONE",
+        SupervisorCommand.ALERT: "ALERT",
+        SupervisorCommand.SLOW_DOWN: "SLOW_DOWN",
+        SupervisorCommand.HOVER: "HOVER",
+    }.get(int(value), "UNKNOWN")
+
+
+def utc_timestamp():
+    return datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+
+
+def tail_text(path, line_count=160):
+    if not path or not os.path.isfile(path):
+        return ""
+    lines = deque(maxlen=max(1, min(int(line_count), 1000)))
+    with open(path, "r", errors="replace") as source:
+        for line in source:
+            lines.append(line.rstrip("\n"))
+    return "\n".join(lines)
+
+
+def read_json_file(path):
+    if not path or not os.path.isfile(path):
+        return {}
+    try:
+        with open(path, "r") as source:
+            value = json.load(source)
+        return value if isinstance(value, dict) else {}
+    except (OSError, json.JSONDecodeError):
+        return {}
+
+
+def write_json_file(path, payload):
+    parent = os.path.dirname(path)
+    if parent:
+        os.makedirs(parent, exist_ok=True)
+    temp_path = path + ".tmp"
+    with open(temp_path, "w") as target:
+        json.dump(payload, target, indent=2, sort_keys=True)
+        target.write("\n")
+    os.replace(temp_path, path)
+
+
+def process_descendants(root_pid):
+    children = {}
+    for entry in Path("/proc").iterdir():
+        if not entry.name.isdigit():
+            continue
+        try:
+            with open(entry / "status", "r") as source:
+                parent_pid = None
+                for line in source:
+                    if line.startswith("PPid:"):
+                        parent_pid = int(line.split()[1])
+                        break
+            if parent_pid is not None:
+                children.setdefault(parent_pid, set()).add(int(entry.name))
+        except (OSError, ValueError):
+            continue
+
+    descendants = set()
+    pending = [int(root_pid)]
+    while pending:
+        parent = pending.pop()
+        for child in children.get(parent, ()):
+            if child not in descendants:
+                descendants.add(child)
+                pending.append(child)
+    return descendants
+
+
+def live_pids(pids):
+    alive = set()
+    for pid in pids:
+        try:
+            with open(f"/proc/{pid}/stat", "r") as source:
+                state = source.read().split()[2]
+            if state != "Z":
+                alive.add(pid)
+        except (OSError, IndexError):
+            pass
+    return alive
+
+
+def signal_process_tree(pids, process_groups, sig):
+    own_group = os.getpgrp()
+    for group in sorted(process_groups, reverse=True):
+        if group <= 1 or group == own_group:
+            continue
+        try:
+            os.killpg(group, sig)
+        except ProcessLookupError:
+            pass
+    for pid in sorted(pids, reverse=True):
+        if pid <= 1 or pid == os.getpid():
+            continue
+        try:
+            os.kill(pid, sig)
+        except ProcessLookupError:
+            pass
+
+
+def wait_for_processes(pids, timeout_s):
+    deadline = time.time() + timeout_s
+    remaining = live_pids(pids)
+    while remaining and time.time() < deadline:
+        time.sleep(0.2)
+        remaining = live_pids(remaining)
+    return remaining
+
+
+class ExperimentProcess:
+    def __init__(self):
+        self.lock = threading.Lock()
+        self.process = None
+        self.started_at = None
+        self.ended_at = None
+        self.exit_code = None
+        self.log_path = ""
+        self.dataset_dir = str(LOGS_ROOT / "dashboard")
+        self.progress_path = ""
+        self.config_path = ""
+        self.config = {}
+
+    def _refresh_locked(self):
+        if self.process is None:
+            return
+        code = self.process.poll()
+        if code is not None and self.exit_code is None:
+            self.exit_code = code
+            self.ended_at = time.time()
+
+    def start(self, config):
+        with self.lock:
+            self._refresh_locked()
+            if self.process is not None and self.process.poll() is None:
+                raise RuntimeError("An experiment is already running.")
+
+            mode = config["collection_mode"]
+            runner = BATCH_SCRIPT if mode == "batch" else RUN_SCRIPT
+            if not runner.is_file() or not os.access(str(runner), os.X_OK):
+                raise RuntimeError(f"Experiment runner is unavailable: {runner}")
+
+            dataset_name = config["dataset_name"]
+            dataset_dir = (LOGS_ROOT / dataset_name).resolve()
+            logs_root = LOGS_ROOT.resolve()
+            if logs_root not in dataset_dir.parents and dataset_dir != logs_root:
+                raise ValueError("Invalid dataset name.")
+            dataset_dir.mkdir(parents=True, exist_ok=True)
+
+            system_log_dir = Path("/tmp/laea_dashboard") / utc_timestamp()
+            system_log_dir.mkdir(parents=True, exist_ok=True)
+            process_log = system_log_dir / (
+                "collection.log" if mode == "batch" else "experiment.log"
+            )
+            progress_path = dataset_dir / "batch_progress.json"
+            config_path = dataset_dir / f"collection_{utc_timestamp()}.json"
+            if mode == "batch":
+                try:
+                    progress_path.unlink()
+                except FileNotFoundError:
+                    pass
+
+            env = os.environ.copy()
+            env.update(
+                {
+                    "EXP_NUM_RUNS": "1",
+                    "EXP_SCENARIO": config["scenario"],
+                    "EXP_WORLD_NAME": config["world_name"],
+                    "EXP_MAX_DURATION_S": str(config["max_duration_s"]),
+                    "EXP_DELETE_ON_NON_SUCCESS": "true",
+                    "EXP_TERMINATE_ON_HOVER": "true",
+                    "EXP_MANIFEST_PATH": str(dataset_dir / "run_manifest.csv"),
+                    "LAEA_LOG_DIR": str(dataset_dir),
+                    "LAEA_SYS_LOG_DIR": str(system_log_dir / "components"),
+                    "ENABLE_RVIZ": "1" if config["enable_rviz"] else "0",
+                    "ENABLE_DITTO_BRIDGE": "1" if config["enable_ditto"] else "0",
+                    "ENABLE_AIOTTALK_RTP": "1" if config["enable_rtp"] else "0",
+                    "ENABLE_MISSION_AWARE": "1",
+                    "LAEA_RUNTIME_PROFILE": STABLE_RUNTIME_PROFILE,
+                    "MAPPING_LAUNCH": STABLE_MAPPING_LAUNCH,
+                    "EXPLORE_LAUNCH": STABLE_EXPLORE_LAUNCH,
+                    "ATTACK_PROFILE": config["attack_profile"],
+                    "ATTACK_SEED": str(config["attack_seed"]),
+                    "DETECTOR_NAME": config["detector_name"],
+                    "SUPERVISOR_POLICY": config["supervisor_policy"],
+                    "TOTAL_ROUNDS": str(config["total_rounds"]),
+                    "SLEEP_BETWEEN_ROUNDS": str(
+                        config["sleep_between_rounds_s"]
+                    ),
+                    "BATCH_INCREMENT_SEED": (
+                        "true" if config["increment_seed"] else "false"
+                    ),
+                    "BATCH_PROGRESS_FILE": str(progress_path),
+                }
+            )
+
+            monitor.publish_override("NONE", "dashboard_start_reset")
+            rospy.sleep(0.1)
+            write_json_file(
+                str(config_path),
+                {
+                    "created_at": datetime.now(timezone.utc).isoformat(),
+                    "runner": str(runner),
+                    **config,
+                },
+            )
+            log_handle = open(process_log, "a", buffering=1)
+            try:
+                self.process = subprocess.Popen(
+                    [str(runner)],
+                    cwd=str(REPO_DIR),
+                    env=env,
+                    stdout=log_handle,
+                    stderr=subprocess.STDOUT,
+                    preexec_fn=os.setsid,
+                )
+            finally:
+                log_handle.close()
+
+            self.started_at = time.time()
+            self.ended_at = None
+            self.exit_code = None
+            self.log_path = str(process_log)
+            self.dataset_dir = str(dataset_dir)
+            self.progress_path = str(progress_path) if mode == "batch" else ""
+            self.config_path = str(config_path)
+            self.config = dict(config)
+            return self.snapshot_locked()
+
+    def stop(self):
+        with self.lock:
+            self._refresh_locked()
+            process = self.process
+            if process is None or process.poll() is not None:
+                return self.snapshot_locked()
+
+            target_pids = process_descendants(process.pid)
+            target_pids.add(process.pid)
+            target_groups = set()
+            for pid in target_pids:
+                try:
+                    target_groups.add(os.getpgid(pid))
+                except ProcessLookupError:
+                    pass
+
+        signal_process_tree(target_pids, target_groups, signal.SIGINT)
+        remaining = wait_for_processes(target_pids, 8.0)
+        if remaining:
+            signal_process_tree(remaining, target_groups, signal.SIGTERM)
+            remaining = wait_for_processes(remaining, 4.0)
+        if remaining:
+            signal_process_tree(remaining, target_groups, signal.SIGKILL)
+            wait_for_processes(remaining, 2.0)
+
+        try:
+            process.wait(timeout=1.0)
+        except subprocess.TimeoutExpired:
+            pass
+
+        with self.lock:
+            self._refresh_locked()
+            return self.snapshot_locked()
+
+    def snapshot_locked(self):
+        self._refresh_locked()
+        running = self.process is not None and self.process.poll() is None
+        return {
+            "running": running,
+            "pid": self.process.pid if self.process is not None else None,
+            "started_at": self.started_at,
+            "ended_at": self.ended_at,
+            "exit_code": self.exit_code,
+            "log_path": self.log_path,
+            "dataset_dir": self.dataset_dir,
+            "config_path": self.config_path,
+            "collection_mode": self.config.get("collection_mode", "single"),
+            "batch_progress": read_json_file(self.progress_path),
+            "config": self.config,
+        }
+
+    def snapshot(self):
+        with self.lock:
+            return self.snapshot_locked()
+
+
+class RosMonitor:
+    def __init__(self):
+        self.lock = threading.Lock()
+        self.received = {}
+        self.state = {
+            "mavros": {},
+            "pose": {},
+            "velocity": {},
+            "satellites": None,
+            "depth": {},
+            "mission": {},
+            "attack": {},
+            "supervisor": {},
+        }
+
+        self.override_pub = rospy.Publisher(
+            "/laea/supervisor/override",
+            SupervisorCommand,
+            queue_size=5,
+            latch=True,
+        )
+        rospy.Subscriber("/mavros/state", State, self._mavros_cb, queue_size=20)
+        rospy.Subscriber(
+            "/mavros/local_position/pose", PoseStamped, self._pose_cb, queue_size=20
+        )
+        rospy.Subscriber(
+            "/mavros/local_position/velocity_local",
+            TwistStamped,
+            self._velocity_cb,
+            queue_size=20,
+        )
+        rospy.Subscriber(
+            "/mavros/global_position/raw/satellites",
+            UInt32,
+            self._satellites_cb,
+            queue_size=20,
+        )
+        rospy.Subscriber(
+            "/rtp/depth/image_raw", Image, self._depth_cb, queue_size=2
+        )
+        rospy.Subscriber(
+            "/laea/twin/mission_state",
+            MissionState,
+            self._mission_cb,
+            queue_size=20,
+        )
+        rospy.Subscriber(
+            "/laea/attack/status", AttackStatus, self._attack_cb, queue_size=20
+        )
+        rospy.Subscriber(
+            "/laea/supervisor/command",
+            SupervisorCommand,
+            self._supervisor_cb,
+            queue_size=20,
+        )
+
+    def _touch(self, name):
+        self.received[name] = time.time()
+
+    def _mavros_cb(self, msg):
+        with self.lock:
+            self.state["mavros"] = {
+                "connected": bool(msg.connected),
+                "armed": bool(msg.armed),
+                "guided": bool(msg.guided),
+                "mode": msg.mode,
+                "system_status": int(msg.system_status),
+            }
+            self._touch("mavros")
+
+    def _pose_cb(self, msg):
+        p = msg.pose.position
+        with self.lock:
+            self.state["pose"] = {"x": p.x, "y": p.y, "z": p.z}
+            self._touch("pose")
+
+    def _velocity_cb(self, msg):
+        v = msg.twist.linear
+        speed = (v.x * v.x + v.y * v.y + v.z * v.z) ** 0.5
+        with self.lock:
+            self.state["velocity"] = {
+                "x": v.x,
+                "y": v.y,
+                "z": v.z,
+                "speed": speed,
+            }
+            self._touch("velocity")
+
+    def _satellites_cb(self, msg):
+        with self.lock:
+            self.state["satellites"] = int(msg.data)
+            self._touch("satellites")
+
+    def _depth_cb(self, msg):
+        with self.lock:
+            self.state["depth"] = {
+                "width": int(msg.width),
+                "height": int(msg.height),
+                "encoding": msg.encoding,
+            }
+            self._touch("depth")
+
+    def _mission_cb(self, msg):
+        with self.lock:
+            self.state["mission"] = {
+                "localization": level_name(msg.localization_level),
+                "perception": level_name(msg.perception_level),
+                "planner": level_name(msg.planner_level),
+                "flight_safety": level_name(msg.flight_safety_level),
+                "overall": level_name(msg.overall_level),
+                "localization_score": msg.localization_score,
+                "perception_score": msg.perception_score,
+                "planner_score": msg.planner_score,
+                "flight_safety_score": msg.flight_safety_score,
+                "detector_name": msg.detector_name,
+                "anomaly_score": msg.anomaly_score,
+                "reason_bits": int(msg.reason_bits),
+                "recommended_feedback": feedback_name(msg.recommended_feedback),
+                "hard_safety_latched": bool(msg.hard_safety_latched),
+                "summary": msg.summary,
+            }
+            self._touch("mission")
+
+    def _attack_cb(self, msg):
+        with self.lock:
+            self.state["attack"] = {
+                "run_id": msg.run_id,
+                "source": msg.source,
+                "mode": msg.mode,
+                "severity": msg.severity,
+                "armed": bool(msg.armed),
+                "active": bool(msg.active),
+                "actual_onset_s": msg.actual_onset.to_sec(),
+                "elapsed_s": msg.elapsed.to_sec(),
+                "detail": msg.detail,
+            }
+            self._touch("attack")
+
+    def _supervisor_cb(self, msg):
+        with self.lock:
+            self.state["supervisor"] = {
+                "level": feedback_name(msg.level),
+                "speed_scale": msg.speed_scale,
+                "hold_position": bool(msg.hold_position),
+                "hard_latched": bool(msg.hard_latched),
+                "reason_bits": int(msg.reason_bits),
+                "reason": msg.reason,
+            }
+            self._touch("supervisor")
+
+    def publish_override(self, level, reason):
+        levels = {
+            "NONE": SupervisorCommand.NONE,
+            "ALERT": SupervisorCommand.ALERT,
+            "SLOW_DOWN": SupervisorCommand.SLOW_DOWN,
+            "HOVER": SupervisorCommand.HOVER,
+        }
+        if level not in levels:
+            raise ValueError("Unsupported supervisor level.")
+
+        msg = SupervisorCommand()
+        msg.header.stamp = rospy.Time.now()
+        msg.level = levels[level]
+        msg.speed_scale = 0.5 if level == "SLOW_DOWN" else 0.0 if level == "HOVER" else 1.0
+        msg.hold_position = level == "HOVER"
+        msg.hard_latched = False
+        msg.reason = reason or "dashboard_override"
+        self.override_pub.publish(msg)
+
+    def snapshot(self):
+        now = time.time()
+        with self.lock:
+            result = json.loads(json.dumps(self.state))
+            result["ages_s"] = {
+                name: round(now - stamp, 3) for name, stamp in self.received.items()
+            }
+        return result
+
+
+def load_profiles():
+    try:
+        with open(PROFILE_CONFIG, "r") as source:
+            profiles = dict(yaml.safe_load(source) or {}).get("profiles", {})
+    except (OSError, yaml.YAMLError):
+        profiles = {}
+    return ["none"] + sorted(profiles.keys())
+
+
+def normalize_start_config(payload, profiles):
+    payload = dict(payload or {})
+
+    def clean_name(key, default):
+        value = str(payload.get(key, default)).strip()
+        if not NAME_RE.match(value):
+            raise ValueError(f"Invalid {key}.")
+        return value
+
+    profile = clean_name("attack_profile", "none")
+    if profile not in profiles:
+        raise ValueError("Unknown attack profile.")
+
+    seed = int(payload.get("attack_seed", 42))
+    if seed < 0 or seed > 4294967295:
+        raise ValueError("attack_seed must fit uint32.")
+    max_duration = float(payload.get("max_duration_s", 900.0))
+    if max_duration < 30.0 or max_duration > 7200.0:
+        raise ValueError("max_duration_s must be between 30 and 7200.")
+    collection_mode = str(payload.get("collection_mode", "single")).lower()
+    if collection_mode not in ("single", "batch"):
+        raise ValueError("collection_mode must be single or batch.")
+    total_rounds = int(payload.get("total_rounds", 10))
+    if total_rounds < 1 or total_rounds > 1000:
+        raise ValueError("total_rounds must be between 1 and 1000.")
+    sleep_between_rounds_s = float(payload.get("sleep_between_rounds_s", 5.0))
+    if sleep_between_rounds_s < 0.0 or sleep_between_rounds_s > 600.0:
+        raise ValueError("sleep_between_rounds_s must be between 0 and 600.")
+    increment_seed = bool(payload.get("increment_seed", True))
+    if increment_seed and seed + total_rounds - 1 > 4294967295:
+        raise ValueError("The final incremented attack seed would exceed uint32.")
+
+    return {
+        "runtime_profile": STABLE_RUNTIME_PROFILE,
+        "collection_mode": collection_mode,
+        "dataset_name": clean_name("dataset_name", "dashboard"),
+        "scenario": clean_name("scenario", "normal"),
+        "world_name": clean_name("world_name", "indoor_01"),
+        "attack_profile": profile,
+        "attack_seed": seed,
+        "max_duration_s": max_duration,
+        "detector_name": clean_name("detector_name", "rule_mad"),
+        "supervisor_policy": clean_name("supervisor_policy", "hybrid"),
+        "total_rounds": total_rounds,
+        "sleep_between_rounds_s": sleep_between_rounds_s,
+        "increment_seed": increment_seed,
+        "enable_rviz": bool(payload.get("enable_rviz", True)),
+        "enable_ditto": bool(payload.get("enable_ditto", False)),
+        "enable_rtp": bool(payload.get("enable_rtp", True)),
+    }
+
+
+def read_recent_runs(dataset_dir, limit=12):
+    path = os.path.join(dataset_dir, "run_manifest.csv")
+    if not os.path.isfile(path):
+        return []
+    try:
+        with open(path, "r", newline="") as source:
+            rows = list(csv.DictReader(source))
+    except (OSError, csv.Error):
+        return []
+    return rows[-max(1, min(int(limit), 100)) :][::-1]
+
+
+def ros_master_online():
+    try:
+        rosgraph.Master("/laea_dashboard").getPid()
+        return True
+    except Exception:
+        return False
+
+
+rospy.init_node("laea_dashboard", anonymous=False, disable_signals=True)
+monitor = RosMonitor()
+experiment = ExperimentProcess()
+profiles = load_profiles()
+app = Flask(__name__, static_folder=None)
+
+
+@app.get("/")
+def index():
+    return send_from_directory(str(WEB_DIR), "index.html")
+
+
+@app.get("/assets/<path:name>")
+def assets(name):
+    return send_from_directory(str(WEB_DIR), name)
+
+
+@app.get("/api/state")
+def api_state():
+    process = experiment.snapshot()
+    return jsonify(
+        {
+            "ros_master_online": ros_master_online(),
+            "process": process,
+            "telemetry": monitor.snapshot(),
+            "recent_runs": read_recent_runs(process["dataset_dir"]),
+            "profiles": profiles,
+            "server_time": time.time(),
+        }
+    )
+
+
+@app.get("/api/logs")
+def api_logs():
+    process = experiment.snapshot()
+    return jsonify({"text": tail_text(process["log_path"], request.args.get("lines", 160))})
+
+
+@app.post("/api/experiment/start")
+def api_experiment_start():
+    try:
+        config = normalize_start_config(request.get_json(silent=True), profiles)
+        return jsonify({"ok": True, "process": experiment.start(config)})
+    except (ValueError, RuntimeError, OSError) as exc:
+        return jsonify({"ok": False, "error": str(exc)}), 400
+
+
+@app.post("/api/experiment/stop")
+def api_experiment_stop():
+    try:
+        return jsonify({"ok": True, "process": experiment.stop()})
+    except (OSError, subprocess.SubprocessError) as exc:
+        return jsonify({"ok": False, "error": str(exc)}), 500
+
+
+@app.post("/api/supervisor")
+def api_supervisor():
+    payload = request.get_json(silent=True) or {}
+    try:
+        level = str(payload.get("level", "")).upper()
+        monitor.publish_override(level, str(payload.get("reason", "dashboard_override")))
+        return jsonify({"ok": True, "level": level})
+    except (ValueError, rospy.ROSException) as exc:
+        return jsonify({"ok": False, "error": str(exc)}), 400
+
+
+if __name__ == "__main__":
+    host = os.environ.get("LAEA_DASHBOARD_HOST", "127.0.0.1")
+    port = int(os.environ.get("LAEA_DASHBOARD_PORT", "8088"))
+    app.run(host=host, port=port, threaded=True, use_reloader=False)
