@@ -25,6 +25,22 @@ EXP_DELETE_ON_NON_SUCCESS="${EXP_DELETE_ON_NON_SUCCESS:-true}"
 EXP_SCENARIO="${EXP_SCENARIO:-normal}"
 EXP_TRANSPORT_MODE="${EXP_TRANSPORT_MODE:-aiottalk_rtp}"
 EXP_WORLD_NAME="${EXP_WORLD_NAME:-indoor_01}"
+EXP_WORLD_FILE="${EXP_WORLD_FILE:-/home/tim/PX4-Autopilot/Tools/sitl_gazebo/worlds/${EXP_WORLD_NAME}.world}"
+EXP_SPAWN_X="${EXP_SPAWN_X:-0.0}"
+EXP_SPAWN_Y="${EXP_SPAWN_Y:-0.0}"
+EXP_SPAWN_Z="${EXP_SPAWN_Z:-1.0}"
+EXP_SPAWN_ROLL="${EXP_SPAWN_ROLL:-0.0}"
+EXP_SPAWN_PITCH="${EXP_SPAWN_PITCH:-0.0}"
+EXP_SPAWN_YAW="${EXP_SPAWN_YAW:-0.0}"
+EXP_MAP_SIZE_X="${EXP_MAP_SIZE_X:-80.0}"
+EXP_MAP_SIZE_Y="${EXP_MAP_SIZE_Y:-80.0}"
+EXP_MAP_SIZE_Z="${EXP_MAP_SIZE_Z:-3.0}"
+EXP_BOX_X_MIN="${EXP_BOX_X_MIN:--23.0}"
+EXP_BOX_Y_MIN="${EXP_BOX_Y_MIN:--11.0}"
+EXP_BOX_Z_MIN="${EXP_BOX_Z_MIN:--0.1}"
+EXP_BOX_X_MAX="${EXP_BOX_X_MAX:-23.0}"
+EXP_BOX_Y_MAX="${EXP_BOX_Y_MAX:-11.0}"
+EXP_BOX_Z_MAX="${EXP_BOX_Z_MAX:-2.3}"
 EXP_DEPTH_TOPIC="${EXP_DEPTH_TOPIC:-/rtp/depth/image_raw}"
 EXP_TERMINATE_ON_HOVER="${EXP_TERMINATE_ON_HOVER:-true}"
 EXP_SUPERVISOR_COMMAND_TOPIC="${EXP_SUPERVISOR_COMMAND_TOPIC:-/laea/supervisor/command}"
@@ -190,6 +206,8 @@ prepare_offboard_and_arm() {
 echo "[run_aiottalk_rtp] log dir  : ${LAEA_SYS_LOG_DIR}"
 echo "[run_aiottalk_rtp] kpi dir  : ${LAEA_LOG_DIR}"
 echo "[run_aiottalk_rtp] profile  : ${LAEA_RUNTIME_PROFILE}"
+echo "[run_aiottalk_rtp] world    : ${EXP_WORLD_NAME} (${EXP_WORLD_FILE})"
+echo "[run_aiottalk_rtp] bounds   : x=[${EXP_BOX_X_MIN},${EXP_BOX_X_MAX}] y=[${EXP_BOX_Y_MIN},${EXP_BOX_Y_MAX}] z=[${EXP_BOX_Z_MIN},${EXP_BOX_Z_MAX}]"
 echo "[run_aiottalk_rtp] mapping  : ${MAPPING_LAUNCH} ${MAPPING_LAUNCH_ARGS}"
 echo "[run_aiottalk_rtp] explore  : ${EXPLORE_LAUNCH} ${EXPLORE_LAUNCH_ARGS}"
 echo "[run_aiottalk_rtp] RTP bridge enabled: ${ENABLE_AIOTTALK_RTP}"
@@ -199,6 +217,20 @@ before_success_count="$(count_success_logs)"
 
 declare -a MAPPING_LAUNCH_ARGS_ARRAY=()
 declare -a EXPLORE_LAUNCH_ARGS_ARRAY=()
+declare -a WORLD_EXPLORE_LAUNCH_ARGS_ARRAY=(
+  "map_size_x:=${EXP_MAP_SIZE_X}"
+  "map_size_y:=${EXP_MAP_SIZE_Y}"
+  "map_size_z:=${EXP_MAP_SIZE_Z}"
+  "init_x:=${EXP_SPAWN_X}"
+  "init_y:=${EXP_SPAWN_Y}"
+  "init_z:=${EXP_SPAWN_Z}"
+  "box_x_min:=${EXP_BOX_X_MIN}"
+  "box_y_min:=${EXP_BOX_Y_MIN}"
+  "box_z_min:=${EXP_BOX_Z_MIN}"
+  "box_x_max:=${EXP_BOX_X_MAX}"
+  "box_y_max:=${EXP_BOX_Y_MAX}"
+  "box_z_max:=${EXP_BOX_Z_MAX}"
+)
 if [ -n "${MAPPING_LAUNCH_ARGS}" ]; then
   # shellcheck disable=SC2206
   MAPPING_LAUNCH_ARGS_ARRAY=(${MAPPING_LAUNCH_ARGS})
@@ -209,7 +241,14 @@ if [ -n "${EXPLORE_LAUNCH_ARGS}" ]; then
 fi
 
 # ========= 1) Core stack =========
-launch_bg "px4_gazebo"  roslaunch px4_gazebo laea_gazebo_lidar.launch
+launch_bg "px4_gazebo" roslaunch px4_gazebo laea_gazebo_lidar.launch \
+  world:="${EXP_WORLD_FILE}" \
+  init_x:="${EXP_SPAWN_X}" \
+  init_y:="${EXP_SPAWN_Y}" \
+  init_z:="${EXP_SPAWN_Z}" \
+  init_R:="${EXP_SPAWN_ROLL}" \
+  init_P:="${EXP_SPAWN_PITCH}" \
+  init_Y:="${EXP_SPAWN_YAW}"
 sleep 5
 
 launch_bg "controller"  roslaunch px4_gazebo controller.launch
@@ -249,7 +288,9 @@ fi
 launch_bg "mapping" roslaunch octomap_server "${MAPPING_LAUNCH}" "${MAPPING_LAUNCH_ARGS_ARRAY[@]}"
 sleep 5
 
-launch_bg "explore" roslaunch exploration_manager "${EXPLORE_LAUNCH}" "${EXPLORE_LAUNCH_ARGS_ARRAY[@]}"
+launch_bg "explore" roslaunch exploration_manager "${EXPLORE_LAUNCH}" \
+  "${WORLD_EXPLORE_LAUNCH_ARGS_ARRAY[@]}" \
+  "${EXPLORE_LAUNCH_ARGS_ARRAY[@]}"
 sleep 5
 
 if [ "${ENABLE_RVIZ}" = "1" ]; then

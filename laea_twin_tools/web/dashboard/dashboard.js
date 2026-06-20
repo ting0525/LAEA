@@ -1,5 +1,8 @@
 const $ = (id) => document.getElementById(id);
 let profilesLoaded = false;
+let worldsLoaded = false;
+let worldCatalog = [];
+let lastProcessPid = null;
 
 function text(id, value, fallback = "—") {
   $(id).textContent = value === undefined || value === null || value === "" ? fallback : value;
@@ -26,6 +29,16 @@ function setBadge(element, label, style) {
 
 function stateClass(value) {
   return (value || "unknown").toLowerCase();
+}
+
+function capabilityStyle(value) {
+  if (["ready", "online", "active"].includes(value)) return "normal";
+  if (["partial", "command_only", "profile_only"].includes(value)) return "degraded";
+  return "unknown";
+}
+
+function capabilityLabel(value) {
+  return String(value || "unknown").replaceAll("_", " ").toUpperCase();
 }
 
 async function api(url, options = {}) {
@@ -107,13 +120,13 @@ async function sendOverride(level) {
 const TREND_MAX = 180;
 const trend = [];
 
-function pushTrend(mission, attack) {
+function pushTrend(mission, attackActive) {
   trend.push({
     loc: Number(mission.localization_score) || 0,
     perc: Number(mission.perception_score) || 0,
     plan: Number(mission.planner_score) || 0,
     flight: Number(mission.flight_safety_score) || 0,
-    attack: Boolean(attack.active),
+    attack: Boolean(attackActive),
   });
   while (trend.length > TREND_MAX) trend.shift();
 }
@@ -211,6 +224,48 @@ function renderRuns(rows) {
     </tr>`).join("");
 }
 
+function renderCapabilities(capabilities) {
+  const grid = $("capabilityGrid");
+  if (!Array.isArray(capabilities) || capabilities.length === 0) {
+    grid.innerHTML = '<div class="capability-card"><strong>無狀態資料</strong><span>後端尚未回報功能狀態。</span></div>';
+    return;
+  }
+  grid.innerHTML = capabilities.map((item) => `
+    <article class="capability-card">
+      <div class="capability-title">
+        <strong>${escapeHtml(item.name)}</strong>
+        <span class="mini-pill ${capabilityStyle(item.maturity)}">${capabilityLabel(item.maturity)}</span>
+      </div>
+      <span>${escapeHtml(item.detail || "—")}</span>
+      <small class="${capabilityStyle(item.runtime)}">${capabilityLabel(item.runtime)}</small>
+    </article>
+  `).join("");
+}
+
+function updateWorldDescription() {
+  const selected = worldCatalog.find((item) => item.name === $("worldName").value);
+  if (!selected) return;
+  const availability = selected.available ? "" : ` 無法使用：${selected.error}`;
+  $("worldDescription").textContent =
+    `${selected.description || selected.label} Gazebo、起飛位置與探索邊界會一起切換。${availability}`;
+}
+
+function renderWorldCatalog(catalog) {
+  if (worldsLoaded || !Array.isArray(catalog)) return;
+  const selectedName = $("worldName").value || "indoor_01";
+  worldCatalog = catalog;
+  $("worldName").innerHTML = catalog.map((item) => {
+    const disabled = item.available ? "" : " disabled";
+    const suffix = item.available ? "" : "（檔案不可用）";
+    return `<option value="${escapeHtml(item.name)}"${disabled}>${escapeHtml(item.label || item.name)}${suffix}</option>`;
+  }).join("");
+  if (catalog.some((item) => item.name === selectedName && item.available)) {
+    $("worldName").value = selectedName;
+  }
+  worldsLoaded = true;
+  updateWorldDescription();
+}
+
 function renderState(data) {
   const process = data.process || {};
   const telemetry = data.telemetry || {};
@@ -224,8 +279,19 @@ function renderState(data) {
   const ages = telemetry.ages_s || {};
   const batch = process.batch_progress || {};
   const isBatch = process.collection_mode === "batch";
+  const components = data.components || {};
+  const telemetryFresh = Boolean(
+    process.running
+    && ages.mavros !== undefined
+    && ages.mavros < 2
+  );
 
   setBadge($("rosBadge"), data.ros_master_online ? "ROS ONLINE" : "ROS OFFLINE", data.ros_master_online ? "good" : "bad");
+  setBadge(
+    $("dataBadge"),
+    telemetryFresh ? "DATA LIVE" : process.running ? "DATA STALE" : "DATA STOPPED",
+    telemetryFresh ? "good" : process.running ? "bad" : "neutral",
+  );
   const processLabel = process.running
     ? isBatch
       ? "COLLECTING DATA"
@@ -235,6 +301,16 @@ function renderState(data) {
   $("startButton").disabled = Boolean(process.running);
   $("startBatchButton").disabled = Boolean(process.running);
   $("stopButton").disabled = !process.running;
+  const attackReady = Boolean(
+    process.running
+    && components.gazebo?.online
+    && components.attack_bridge?.online
+  );
+  $("triggerAttack").disabled = !attackReady;
+  $("stopAttack").disabled = !process.running;
+  document.querySelectorAll("[data-level]").forEach((button) => {
+    button.disabled = !process.running;
+  });
 
   text("px4Connection", mavros.connected ? "CONNECTED" : "DISCONNECTED");
   text("px4Mode", mavros.mode);
@@ -247,6 +323,10 @@ function renderState(data) {
   text("depthFormat", depth.encoding ? `${depth.width}×${depth.height} ${depth.encoding}` : null);
 
   text("collectionMode", isBatch ? "BATCH" : "SINGLE");
+  const runtimeProfile = process.config?.runtime_profile || "scan_mapping_explore_test";
+  text("currentProfile", runtimeProfile);
+  $("runtimeProfile").textContent = runtimeProfile;
+  $("runtimeProfile").className = "state-pill normal";
   text("processPid", process.pid);
   text("exitCode", process.exit_code);
   text("datasetPath", process.dataset_dir);
@@ -285,17 +365,35 @@ function renderState(data) {
   text("speedScale", number(supervisor.speed_scale, 2));
   text("supervisorReason", supervisor.reason);
 
-  text("attackName", [attack.source, attack.mode, attack.severity].filter(Boolean).join(" / "));
-  text("attackState", attack.active ? "ACTIVE" : attack.armed ? "ARMED" : "INACTIVE");
-  text("attackElapsed", attack.elapsed_s !== undefined ? `${number(attack.elapsed_s, 1)} s` : null);
-  text("attackDetail", attack.detail);
-
   const activeCmd = telemetry.active_command || {};
   const gt = telemetry.ground_truth || {};
   const drift = telemetry.localization_drift_m;
-  const cmdActive = Boolean(activeCmd.enabled);
-  $("attackEffectPill").textContent = cmdActive ? "ATTACK COMMAND ACTIVE" : "NO ATTACK";
-  $("attackEffectPill").className = `state-pill ${cmdActive ? "critical" : "normal"}`;
+  const cmdEnabled = Boolean(activeCmd.enabled && activeCmd.source !== "none");
+  const attackEffectActive = Boolean(attack.active || activeCmd.effect_active);
+  const attackIdentity = cmdEnabled ? activeCmd : attack;
+  text("attackName", [attackIdentity.source, attackIdentity.mode, attackIdentity.severity].filter(Boolean).join(" / "));
+  text(
+    "attackState",
+    activeCmd.effect_active
+      ? capabilityLabel(activeCmd.phase)
+      : attack.active
+        ? "ACTIVE"
+        : attack.armed
+          ? "ARMED"
+          : "INACTIVE",
+  );
+  text(
+    "attackElapsed",
+    cmdEnabled
+      ? `${number(activeCmd.elapsed_s, 1)} s`
+      : attack.elapsed_s !== undefined
+        ? `${number(attack.elapsed_s, 1)} s`
+        : null,
+  );
+  text("attackDetail", cmdEnabled ? `command ${activeCmd.phase || "published"}` : attack.detail);
+
+  $("attackEffectPill").textContent = cmdEnabled ? `COMMAND ${capabilityLabel(activeCmd.phase)}` : "NO ATTACK";
+  $("attackEffectPill").className = `state-pill ${attackEffectActive ? "critical" : cmdEnabled ? "degraded" : "normal"}`;
   text("diagCmd", [activeCmd.source, activeCmd.mode, activeCmd.severity].filter(Boolean).join(" / "));
   text("diagEnabled", activeCmd.enabled === undefined ? null : activeCmd.enabled ? "true" : "false");
   text("diagCmdAge", ages.active_command !== undefined ? `${number(ages.active_command, 1)} s` : null);
@@ -304,14 +402,29 @@ function renderState(data) {
   text("ekfValue", Number.isFinite(pose.x) ? `${number(pose.x)} / ${number(pose.y)} / ${number(pose.z)} m` : null);
 
   renderRuns(data.recent_runs);
+  renderCapabilities(data.capabilities);
+  renderWorldCatalog(data.world_catalog);
 
-  pushTrend(mission, attack);
+  if (process.pid !== lastProcessPid) {
+    trend.length = 0;
+    lastProcessPid = process.pid;
+  }
+  if (telemetryFresh && ages.mission !== undefined && ages.mission < 2) {
+    pushTrend(mission, attackEffectActive);
+  }
   drawTrends();
 
-  if (!profilesLoaded && Array.isArray(data.profiles)) {
-    const option = (profile) => `<option value="${escapeHtml(profile)}">${escapeHtml(profile)}</option>`;
-    $("attackProfile").innerHTML = data.profiles.map(option).join("");
-    $("liveAttackProfile").innerHTML = data.profiles.filter((p) => p !== "none").map(option).join("");
+  if (!profilesLoaded && Array.isArray(data.profile_catalog)) {
+    const option = (item) => {
+      const disabled = item.live_supported ? "" : " disabled";
+      const suffix = item.live_supported ? "" : "（injector 尚未接通）";
+      return `<option value="${escapeHtml(item.name)}"${disabled}>${escapeHtml(item.name)}${suffix}</option>`;
+    };
+    $("attackProfile").innerHTML = data.profile_catalog.map(option).join("");
+    $("liveAttackProfile").innerHTML = data.profile_catalog
+      .filter((item) => item.name !== "none")
+      .map(option)
+      .join("");
     profilesLoaded = true;
   }
 }
@@ -338,6 +451,7 @@ $("startButton").addEventListener("click", () => startExperiment("single"));
 $("startBatchButton").addEventListener("click", () => startExperiment("batch"));
 $("stopButton").addEventListener("click", stopExperiment);
 $("refreshLog").addEventListener("click", refreshLog);
+$("worldName").addEventListener("change", updateWorldDescription);
 $("triggerAttack").addEventListener("click", triggerAttack);
 $("stopAttack").addEventListener("click", stopAttack);
 document.querySelectorAll("[data-level]").forEach((button) => {

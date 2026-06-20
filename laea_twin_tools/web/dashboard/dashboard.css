@@ -140,6 +140,60 @@ button.warning { border-color: var(--yellow); color: var(--yellow); }
 
 .message { min-height: 24px; margin: 12px 0 0; color: var(--yellow); }
 
+.capability-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(180px, 1fr));
+  gap: 10px;
+}
+
+.capability-card {
+  display: grid;
+  align-content: start;
+  gap: 9px;
+  min-height: 128px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: rgba(5, 17, 14, .55);
+  padding: 14px;
+}
+
+.capability-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.capability-card > span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.capability-card small {
+  align-self: end;
+  font-weight: 800;
+  letter-spacing: .06em;
+}
+
+.capability-card small.normal { color: var(--green); }
+.capability-card small.degraded { color: var(--yellow); }
+.capability-card small.unknown { color: var(--muted); }
+
+.mini-pill {
+  flex: 0 0 auto;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  padding: 3px 7px;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: .06em;
+}
+
+.mini-pill.normal { color: var(--green); }
+.mini-pill.degraded { color: var(--yellow); }
+.mini-pill.unknown { color: var(--muted); }
+.capability-note { margin: 13px 0 0; }
+
 .legend { display: flex; gap: 14px; flex-wrap: wrap; align-items: center; }
 .lg { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: var(--muted); }
 .lg::before { content: ""; width: 14px; height: 3px; border-radius: 2px; background: currentColor; }
@@ -201,12 +255,12 @@ pre {
 }
 
 @media (max-width: 1000px) {
-  .form-grid, .telemetry-grid { grid-template-columns: repeat(2, 1fr); }
+  .form-grid, .telemetry-grid, .capability-grid { grid-template-columns: repeat(2, 1fr); }
   .batch-stats { grid-template-columns: repeat(3, 1fr); }
 }
 
 @media (max-width: 680px) {
   header, main { width: min(100% - 22px, 1440px); }
   header, .section-title { align-items: stretch; flex-direction: column; }
-  .form-grid, .telemetry-grid, .domain-grid, .two-column, .batch-stats { grid-template-columns: 1fr; }
+  .form-grid, .telemetry-grid, .domain-grid, .two-column, .batch-stats, .capability-grid { grid-template-columns: 1fr; }
 }

@@ -14,6 +14,7 @@
     </div>
     <div class="header-status">
       <span id="rosBadge" class="badge neutral">ROS UNKNOWN</span>
+      <span id="dataBadge" class="badge neutral">DATA UNKNOWN</span>
       <span id="processBadge" class="badge neutral">IDLE</span>
     </div>
   </header>
@@ -37,8 +38,7 @@
         <label>Scenario<input id="scenario" value="normal"></label>
         <label>World
           <select id="worldName">
-            <option value="indoor_01">indoor_01</option>
-            <option value="indoor_02">indoor_02</option>
+            <option value="indoor_01">載入地圖設定中…</option>
           </select>
         </label>
         <label>Attack profile<select id="attackProfile"><option value="none">none</option></select></label>
@@ -54,6 +54,7 @@
         <label>批次輪數<input id="totalRounds" type="number" min="1" max="1000" value="10"></label>
         <label>每輪間隔（秒）<input id="roundInterval" type="number" min="0" max="600" value="5"></label>
       </div>
+      <p id="worldDescription" class="muted">地圖選擇會同時切換 Gazebo world、起飛位置與探索邊界。</p>
       <div class="checks">
         <label><input id="enableRtp" type="checkbox" checked> AIoTtalk RTP</label>
         <label><input id="enableRviz" type="checkbox" checked> RViz</label>
@@ -62,6 +63,20 @@
       </div>
       <p class="muted">自動蒐集會完整重啟 PX4/Gazebo，每輪只保留 SUCCESS_FINISH 的 KPI CSV；失敗、Timeout、Abort、Hover 只留 manifest。建立 detector 訓練集時建議先把 Supervisor policy 設為 none，避免回饋改變資料分布。</p>
       <p id="actionMessage" class="message"></p>
+    </section>
+
+    <section class="panel">
+      <div class="section-title">
+        <div>
+          <p class="eyebrow">Platform readiness</p>
+          <h2>目前功能與執行狀態</h2>
+        </div>
+        <span id="runtimeProfile" class="state-pill unknown">PROFILE UNKNOWN</span>
+      </div>
+      <div id="capabilityGrid" class="capability-grid">
+        <div class="capability-card"><strong>載入中</strong><span>正在取得平台狀態…</span></div>
+      </div>
+      <p class="muted capability-note">READY 表示程式已完成；ONLINE 表示本次實驗的相關 ROS 節點正在執行。PARTIAL 功能會清楚標示目前尚未接通的部分。</p>
     </section>
 
     <section id="batchPanel" class="panel batch-panel">
@@ -104,6 +119,7 @@
       <article class="panel metric-card">
         <p class="eyebrow">Current run</p>
         <div class="metric-row"><span>Mode</span><strong id="collectionMode">—</strong></div>
+        <div class="metric-row"><span>Profile</span><strong id="currentProfile">—</strong></div>
         <div class="metric-row"><span>PID</span><strong id="processPid">—</strong></div>
         <div class="metric-row"><span>Exit code</span><strong id="exitCode">—</strong></div>
         <div class="metric-row"><span>Dataset</span><strong id="datasetPath">—</strong></div>
@@ -177,7 +193,7 @@
           <div><span>Elapsed</span><strong id="attackElapsed">—</strong></div>
           <div><span>Detail</span><strong id="attackDetail">—</strong></div>
         </div>
-        <p class="muted">即時觸發會直接送命令給 source-layer plugin（attack bridge 須在跑）。建議任務以 attack profile = none 啟動，再從這裡手動注入，避免與排程攻擊衝突。</p>
+        <p class="muted">目前只有 GPS bias／velocity bias 已接上 Gazebo injector。IMU 與 Barometer 尚只有 profile，因此不會列入可觸發選項。</p>
       </article>
     </section>
 
@@ -201,7 +217,7 @@
           <div><span>EKF position</span><strong id="ekfValue">—</strong></div>
         </div>
       </div>
-      <p class="muted">觸發 GPS 攻擊後，Command 會出現（代表 bridge→plugin 已收到命令），且 Localization drift（EKF odom 與 Gazebo 真值的水平距離）會上升 —— 這是攻擊真正影響定位的直接證據。</p>
+      <p class="muted">Command 表示 Dashboard 已發布攻擊命令；目前尚未有 plugin ACK。Localization drift 上升才是攻擊已影響 EKF 定位的直接證據。</p>
     </section>
 
     <section class="panel">

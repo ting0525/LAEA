@@ -47,10 +47,24 @@ LOGS_ROOT = PACKAGE_DIR / "laea_logs"
 RUN_SCRIPT = REPO_DIR / "run_aiottalk_rtp.sh"
 BATCH_SCRIPT = REPO_DIR / "run_aiottalk_batches_restart.sh"
 PROFILE_CONFIG = PACKAGE_DIR / "config" / "attack_profiles.yaml"
+WORLD_CONFIG = PACKAGE_DIR / "config" / "world_profiles.yaml"
 NAME_RE = re.compile(r"^[A-Za-z0-9_.-]+$")
 STABLE_RUNTIME_PROFILE = "scan_mapping_explore_test"
 STABLE_MAPPING_LAUNCH = "scan_mapping.launch"
 STABLE_EXPLORE_LAUNCH = "explore_test.launch"
+LIVE_ATTACK_SOURCES = {"gps"}
+COMPONENT_NODES = {
+    "px4": "/mavros",
+    "gazebo": "/gazebo",
+    "planner": "/exploration_node",
+    "mapping": "/octomap_server",
+    "rtp": "/laea_aiottalk_rtp",
+    "attack_scheduler": "/attack_scheduler",
+    "attack_bridge": "/attack_gazebo_bridge",
+    "mission_state": "/mission_state_node",
+    "supervisor": "/mission_supervisor",
+    "feedback_actuator": "/feedback_actuator",
+}
 
 
 def level_name(value):
@@ -68,6 +82,213 @@ def feedback_name(value):
 
 def utc_timestamp():
     return datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+
+
+def ros_nodes_online():
+    try:
+        publishers, subscribers, services = rosgraph.Master(
+            "/laea_dashboard"
+        ).getSystemState()
+    except Exception:
+        return set()
+
+    nodes = set()
+    for state_group in (publishers, subscribers, services):
+        for _resource, resource_nodes in state_group:
+            nodes.update(resource_nodes)
+    return nodes
+
+
+def profile_catalog():
+    definitions = load_profile_defs()
+    catalog = [
+        {
+            "name": "none",
+            "source": "none",
+            "mode": "none",
+            "severity": "none",
+            "live_supported": True,
+            "note": "clean baseline",
+        }
+    ]
+    for name in sorted(definitions):
+        definition = dict(definitions[name] or {})
+        source = str(definition.get("source", "none"))
+        live_supported = source in LIVE_ATTACK_SOURCES
+        catalog.append(
+            {
+                "name": name,
+                "source": source,
+                "mode": str(definition.get("mode", "none")),
+                "severity": str(definition.get("severity", "none")),
+                "live_supported": live_supported,
+                "note": (
+                    "source-layer injector connected"
+                    if live_supported
+                    else "profile only; injector not connected"
+                ),
+            }
+        )
+    return catalog
+
+
+def load_world_defs():
+    try:
+        with open(WORLD_CONFIG, "r") as source:
+            return dict(yaml.safe_load(source) or {}).get("worlds", {})
+    except (OSError, yaml.YAMLError):
+        return {}
+
+
+def normalized_world_profile(name, definitions=None):
+    definitions = definitions if definitions is not None else load_world_defs()
+    if name not in definitions:
+        raise ValueError("Unknown world profile.")
+
+    definition = dict(definitions[name] or {})
+    world_file = Path(
+        os.path.expandvars(os.path.expanduser(str(definition.get("world_file", ""))))
+    )
+    if not world_file.is_file():
+        raise ValueError(f"World file is unavailable: {world_file}")
+
+    spawn_source = dict(definition.get("spawn") or {})
+    planner_source = dict(definition.get("planner") or {})
+
+    def number(source, key, default):
+        try:
+            return float(source.get(key, default))
+        except (TypeError, ValueError) as exc:
+            raise ValueError(f"Invalid {name}.{key}.") from exc
+
+    spawn = {
+        "x": number(spawn_source, "x", 0.0),
+        "y": number(spawn_source, "y", 0.0),
+        "z": number(spawn_source, "z", 1.0),
+        "roll": number(spawn_source, "roll", 0.0),
+        "pitch": number(spawn_source, "pitch", 0.0),
+        "yaw": number(spawn_source, "yaw", 0.0),
+    }
+    planner = {
+        "map_size_x": number(planner_source, "map_size_x", 80.0),
+        "map_size_y": number(planner_source, "map_size_y", 80.0),
+        "map_size_z": number(planner_source, "map_size_z", 3.0),
+        "box_x_min": number(planner_source, "box_x_min", -23.0),
+        "box_y_min": number(planner_source, "box_y_min", -11.0),
+        "box_z_min": number(planner_source, "box_z_min", -0.1),
+        "box_x_max": number(planner_source, "box_x_max", 23.0),
+        "box_y_max": number(planner_source, "box_y_max", 11.0),
+        "box_z_max": number(planner_source, "box_z_max", 2.3),
+    }
+    for axis in ("x", "y", "z"):
+        if planner[f"box_{axis}_min"] >= planner[f"box_{axis}_max"]:
+            raise ValueError(f"Invalid {name} planner boundary for axis {axis}.")
+
+    return {
+        "name": name,
+        "label": str(definition.get("label", name)),
+        "description": str(definition.get("description", "")),
+        "world_file": str(world_file.resolve()),
+        "spawn": spawn,
+        "planner": planner,
+    }
+
+
+def world_catalog():
+    definitions = load_world_defs()
+    catalog = []
+    for name in definitions:
+        try:
+            profile = normalized_world_profile(name, definitions)
+            profile["available"] = True
+            profile["error"] = ""
+        except ValueError as exc:
+            definition = dict(definitions.get(name) or {})
+            profile = {
+                "name": name,
+                "label": str(definition.get("label", name)),
+                "description": str(definition.get("description", "")),
+                "available": False,
+                "error": str(exc),
+            }
+        catalog.append(profile)
+    return catalog
+
+
+def runtime_capabilities(process, components):
+    running = bool(process.get("running"))
+
+    def online(*keys):
+        return all(components.get(key, {}).get("online", False) for key in keys)
+
+    return [
+        {
+            "key": "experiment_control",
+            "name": "單次實驗控制",
+            "maturity": "ready",
+            "runtime": "active" if running else "idle",
+            "detail": STABLE_RUNTIME_PROFILE,
+        },
+        {
+            "key": "batch_collection",
+            "name": "自動訓練資料蒐集",
+            "maturity": "ready",
+            "runtime": (
+                "active"
+                if running and process.get("collection_mode") == "batch"
+                else "idle"
+            ),
+            "detail": "restart each round; retain SUCCESS_FINISH only",
+        },
+        {
+            "key": "gps_attack",
+            "name": "GPS source-layer attack",
+            "maturity": "ready",
+            "runtime": (
+                "online" if online("gazebo", "attack_bridge") else "offline"
+            ),
+            "detail": "position bias and velocity bias",
+        },
+        {
+            "key": "mission_state",
+            "name": "Mission State 評估",
+            "maturity": "ready",
+            "runtime": "online" if online("mission_state") else "offline",
+            "detail": "localization / perception / planner / flight safety",
+        },
+        {
+            "key": "supervisor",
+            "name": "Supervisor Alert",
+            "maturity": "ready",
+            "runtime": "online" if online("supervisor") else "offline",
+            "detail": "Alert and policy escalation",
+        },
+        {
+            "key": "hover",
+            "name": "HOVER feedback",
+            "maturity": "ready",
+            "runtime": (
+                "online"
+                if online("supervisor", "feedback_actuator", "planner")
+                else "offline"
+            ),
+            "detail": "planner pause; experiment ends as SAFETY_HOVER",
+        },
+        {
+            "key": "slow_down",
+            "name": "SLOW_DOWN feedback",
+            "maturity": "partial",
+            "runtime": "command_only",
+            "detail": "speed_scale is published; planner speed actuator pending",
+        },
+        {
+            "key": "imu_baro_attack",
+            "name": "IMU / Barometer attack",
+            "maturity": "partial",
+            "runtime": "profile_only",
+            "detail": "profiles exist; Gazebo injectors pending",
+        },
+    ]
 
 
 def tail_text(path, line_count=160):
@@ -228,6 +449,46 @@ class ExperimentProcess:
                     "EXP_NUM_RUNS": "1",
                     "EXP_SCENARIO": config["scenario"],
                     "EXP_WORLD_NAME": config["world_name"],
+                    "EXP_WORLD_FILE": config["world_profile"]["world_file"],
+                    "EXP_SPAWN_X": str(config["world_profile"]["spawn"]["x"]),
+                    "EXP_SPAWN_Y": str(config["world_profile"]["spawn"]["y"]),
+                    "EXP_SPAWN_Z": str(config["world_profile"]["spawn"]["z"]),
+                    "EXP_SPAWN_ROLL": str(
+                        config["world_profile"]["spawn"]["roll"]
+                    ),
+                    "EXP_SPAWN_PITCH": str(
+                        config["world_profile"]["spawn"]["pitch"]
+                    ),
+                    "EXP_SPAWN_YAW": str(
+                        config["world_profile"]["spawn"]["yaw"]
+                    ),
+                    "EXP_MAP_SIZE_X": str(
+                        config["world_profile"]["planner"]["map_size_x"]
+                    ),
+                    "EXP_MAP_SIZE_Y": str(
+                        config["world_profile"]["planner"]["map_size_y"]
+                    ),
+                    "EXP_MAP_SIZE_Z": str(
+                        config["world_profile"]["planner"]["map_size_z"]
+                    ),
+                    "EXP_BOX_X_MIN": str(
+                        config["world_profile"]["planner"]["box_x_min"]
+                    ),
+                    "EXP_BOX_Y_MIN": str(
+                        config["world_profile"]["planner"]["box_y_min"]
+                    ),
+                    "EXP_BOX_Z_MIN": str(
+                        config["world_profile"]["planner"]["box_z_min"]
+                    ),
+                    "EXP_BOX_X_MAX": str(
+                        config["world_profile"]["planner"]["box_x_max"]
+                    ),
+                    "EXP_BOX_Y_MAX": str(
+                        config["world_profile"]["planner"]["box_y_max"]
+                    ),
+                    "EXP_BOX_Z_MAX": str(
+                        config["world_profile"]["planner"]["box_z_max"]
+                    ),
                     "EXP_MAX_DURATION_S": str(config["max_duration_s"]),
                     "EXP_DELETE_ON_NON_SUCCESS": "true",
                     "EXP_TERMINATE_ON_HOVER": "true",
@@ -530,6 +791,9 @@ class RosMonitor:
                 "severity": msg.severity,
                 "enabled": bool(msg.enabled),
                 "scheduled_start_s": msg.scheduled_start.to_sec(),
+                "ramp_s": msg.ramp.to_sec(),
+                "duration_s": msg.duration.to_sec(),
+                "recovery_s": msg.recovery.to_sec(),
             }
             self._touch("active_command")
 
@@ -603,6 +867,7 @@ class RosMonitor:
 
     def snapshot(self):
         now = time.time()
+        ros_now = rospy.Time.now().to_sec()
         with self.lock:
             result = json.loads(json.dumps(self.state))
             result["ages_s"] = {
@@ -616,6 +881,34 @@ class RosMonitor:
             ) ** 0.5
         else:
             result["localization_drift_m"] = None
+
+        command = result.get("active_command") or {}
+        command_start = float(command.get("scheduled_start_s") or 0.0)
+        command_enabled = bool(command.get("enabled"))
+        command_age = ros_now - command_start if command_start > 0.0 else -1.0
+        if not command_enabled or command_start <= 0.0:
+            command_phase = "inactive"
+            command_effect_active = False
+        elif command_age < 0.0:
+            command_phase = "scheduled"
+            command_effect_active = False
+        else:
+            duration = float(command.get("duration_s") or 0.0)
+            recovery = float(command.get("recovery_s") or 0.0)
+            ramp = float(command.get("ramp_s") or 0.0)
+            command_effect_active = duration <= 0.0 or command_age < duration + recovery
+            if not command_effect_active:
+                command_phase = "complete"
+            elif ramp > 0.0 and command_age < ramp:
+                command_phase = "ramp"
+            elif duration > 0.0 and command_age >= duration:
+                command_phase = "recovery"
+            else:
+                command_phase = "active"
+        command["effect_active"] = command_effect_active
+        command["phase"] = command_phase
+        command["elapsed_s"] = max(command_age, 0.0) if command_start > 0.0 else 0.0
+        result["active_command"] = command
         return result
 
 
@@ -648,6 +941,12 @@ def normalize_start_config(payload, profiles):
     profile = clean_name("attack_profile", "none")
     if profile not in profiles:
         raise ValueError("Unknown attack profile.")
+    if profile != "none":
+        definition = load_profile_defs().get(profile, {})
+        if str(definition.get("source", "none")) not in LIVE_ATTACK_SOURCES:
+            raise ValueError(
+                "This attack profile is not connected to a source-layer injector yet."
+            )
 
     seed = int(payload.get("attack_seed", 42))
     if seed < 0 or seed > 4294967295:
@@ -668,12 +967,16 @@ def normalize_start_config(payload, profiles):
     if increment_seed and seed + total_rounds - 1 > 4294967295:
         raise ValueError("The final incremented attack seed would exceed uint32.")
 
+    world_name = clean_name("world_name", "indoor_01")
+    world_profile = normalized_world_profile(world_name)
+
     return {
         "runtime_profile": STABLE_RUNTIME_PROFILE,
         "collection_mode": collection_mode,
         "dataset_name": clean_name("dataset_name", "dashboard"),
         "scenario": clean_name("scenario", "normal"),
-        "world_name": clean_name("world_name", "indoor_01"),
+        "world_name": world_name,
+        "world_profile": world_profile,
         "attack_profile": profile,
         "attack_seed": seed,
         "max_duration_s": max_duration,
@@ -728,6 +1031,14 @@ def assets(name):
 @app.get("/api/state")
 def api_state():
     process = experiment.snapshot()
+    online_nodes = ros_nodes_online()
+    components = {
+        key: {
+            "node": node,
+            "online": node in online_nodes,
+        }
+        for key, node in COMPONENT_NODES.items()
+    }
     return jsonify(
         {
             "ros_master_online": ros_master_online(),
@@ -735,6 +1046,10 @@ def api_state():
             "telemetry": monitor.snapshot(),
             "recent_runs": read_recent_runs(process["dataset_dir"]),
             "profiles": profiles,
+            "profile_catalog": profile_catalog(),
+            "world_catalog": world_catalog(),
+            "components": components,
+            "capabilities": runtime_capabilities(process, components),
             "server_time": time.time(),
         }
     )
@@ -781,6 +1096,16 @@ def api_attack_trigger():
     defs = load_profile_defs()
     if profile not in defs:
         return jsonify({"ok": False, "error": "Unknown attack profile."}), 400
+    if str(defs[profile].get("source", "none")) not in LIVE_ATTACK_SOURCES:
+        return (
+            jsonify(
+                {
+                    "ok": False,
+                    "error": "This profile has no connected Gazebo injector yet.",
+                }
+            ),
+            400,
+        )
     try:
         monitor.publish_attack(defs[profile], enabled=True)
         return jsonify({"ok": True, "profile": profile})

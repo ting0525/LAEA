@@ -1,0 +1,44 @@
+worlds:
+  indoor_01:
+    label: Indoor 01
+    description: Stable baseline map used by the current dashboard workflow.
+    world_file: /home/tim/PX4-Autopilot/Tools/sitl_gazebo/worlds/indoor_01.world
+    spawn:
+      x: 0.0
+      y: 0.0
+      z: 1.0
+      roll: 0.0
+      pitch: 0.0
+      yaw: 0.0
+    planner:
+      map_size_x: 80.0
+      map_size_y: 80.0
+      map_size_z: 3.0
+      box_x_min: -23.0
+      box_y_min: -11.0
+      box_z_min: -0.1
+      box_x_max: 23.0
+      box_y_max: 11.0
+      box_z_max: 2.3
+
+  indoor_02:
+    label: Indoor 02
+    description: Larger indoor layout with its own exploration boundary.
+    world_file: /home/tim/PX4-Autopilot/Tools/sitl_gazebo/worlds/indoor_02.world
+    spawn:
+      x: 0.0
+      y: 0.0
+      z: 1.0
+      roll: 0.0
+      pitch: 0.0
+      yaw: 0.0
+    planner:
+      map_size_x: 80.0
+      map_size_y: 80.0
+      map_size_z: 3.0
+      box_x_min: -18.0
+      box_y_min: -14.0
+      box_z_min: -0.1
+      box_x_max: 18.0
+      box_y_max: 16.0
+      box_z_max: 2.5
