@@ -108,21 +108,33 @@ class ExperimentProcess:
         except FileNotFoundError:
             pass
 
-    def _refresh_locked(self):
+    def _refresh_locked(self, table=None):
+        table = process_table() if table is None else table
         if self.process is not None:
             code = self.process.poll()
             if code is not None and self.exit_code is None:
                 self.exit_code = code
                 self.ended_at = time.time()
-        if not self._active_roots_locked():
+        if not self._active_roots_locked(table):
             self.root_pid = None
             self._clear_control_state()
+        return table
 
     def start(self, config):
         with self.lock:
-            self._refresh_locked()
-            if self._active_roots_locked():
+            table = self._refresh_locked()
+            if self._active_roots_locked(table):
                 raise RuntimeError("An experiment is already running.")
+
+            config = dict(config)
+            attack_capable_model = config["attack_profile"] != "none"
+            px4_sdf = (
+                ATTACK_CAPABLE_PX4_SDF
+                if attack_capable_model
+                else BASELINE_PX4_SDF
+            )
+            config["px4_sdf"] = px4_sdf
+            config["attack_capable_model"] = attack_capable_model
 
             mode = config["collection_mode"]
             runner = BATCH_SCRIPT if mode == "batch" else RUN_SCRIPT
@@ -208,11 +220,17 @@ class ExperimentProcess:
                     "ENABLE_DITTO_BRIDGE": "1" if config["enable_ditto"] else "0",
                     "ENABLE_AIOTTALK_RTP": "1" if config["enable_rtp"] else "0",
                     "ENABLE_MISSION_AWARE": "1",
-                    # The standard iris_d435_lidar model has no subscriber for
-                    # runtime attack commands. This drop-in variant behaves as
-                    # a normal GPS sensor while attacks are disabled and lets
-                    # the Dashboard activate source-layer GPS injection later.
-                    "LAEA_PX4_SDF": ATTACK_CAPABLE_PX4_SDF,
+                    # The supervisory framework (mission_state / supervisor /
+                    # feedback) runs for every mission, but the source-layer
+                    # attack command plane (scheduler + Gazebo bridge) is wired
+                    # only for attack runs, so baseline collection never carries
+                    # injection infrastructure.
+                    "ENABLE_ATTACK_PLANE": "true" if attack_capable_model else "false",
+                    # Keep normal training data on PX4's stock GPS plugin.
+                    # Load the attack-capable model only for an attack profile,
+                    # so baseline and attack runs do not silently share a
+                    # different sensor implementation.
+                    "LAEA_PX4_SDF": px4_sdf,
                     "LAEA_RUNTIME_PROFILE": STABLE_RUNTIME_PROFILE,
                     "MAPPING_LAUNCH": STABLE_MAPPING_LAUNCH,
                     "EXPLORE_LAUNCH": STABLE_EXPLORE_LAUNCH,
@@ -231,11 +249,14 @@ class ExperimentProcess:
                 }
             )
 
-            if not rospy.is_shutdown():
+            if not rospy.is_shutdown() and self._monitor is not None:
                 try:
                     self._monitor.publish_override("NONE", "dashboard_start_reset")
-                except rospy.ROSException as exc:
-                    rospy.logwarn("Dashboard reset override failed: %s", exc)
+                    # Clear any latched attack command from a prior session so a
+                    # freshly started bridge cannot replay a stale enabled=True.
+                    self._monitor.publish_attack({}, enabled=False)
+                except (ValueError, rospy.ROSException) as exc:
+                    rospy.logwarn("Dashboard start reset failed: %s", exc)
             time.sleep(0.1)
             write_json_file(
                 str(config_path),

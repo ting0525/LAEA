@@ -25,6 +25,7 @@ NAME_RE = re.compile(r"^[A-Za-z0-9_.-]+$")
 STABLE_RUNTIME_PROFILE = "scan_mapping_explore_test"
 STABLE_MAPPING_LAUNCH = "scan_mapping.launch"
 STABLE_EXPLORE_LAUNCH = "explore_test.launch"
+BASELINE_PX4_SDF = "iris_d435_lidar"
 ATTACK_CAPABLE_PX4_SDF = "iris_d435_lidar_gps_attack"
 LIVE_ATTACK_SOURCES = {"gps"}
 COMPONENT_NODES = {

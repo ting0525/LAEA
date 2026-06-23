@@ -132,6 +132,22 @@ def api_supervisor():
 def api_attack_trigger():
     payload = request.get_json(silent=True) or {}
     profile = str(payload.get("profile", "")).strip()
+    process = experiment.snapshot()
+    if not process.get("running"):
+        return jsonify({"ok": False, "error": "No experiment is running."}), 400
+    if not process.get("config", {}).get("attack_capable_model", False):
+        return (
+            jsonify(
+                {
+                    "ok": False,
+                    "error": (
+                        "This normal run uses the stock GPS model. "
+                        "Start an attack-profile experiment to enable injection."
+                    ),
+                }
+            ),
+            400,
+        )
     defs = load_profile_defs()
     if profile not in defs:
         return jsonify({"ok": False, "error": "Unknown attack profile."}), 400

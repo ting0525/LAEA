@@ -66,6 +66,14 @@ ATTACK_PROFILE="${ATTACK_PROFILE:-none}"
 ATTACK_SEED="${ATTACK_SEED:-42}"
 DETECTOR_NAME="${DETECTOR_NAME:-rule_mad}"
 SUPERVISOR_POLICY="${SUPERVISOR_POLICY:-none}"
+# Gate the source-layer attack command plane (scheduler + Gazebo bridge). It must
+# stay off for baseline/normal collection so clean runs never wire injection
+# infrastructure. Default follows ATTACK_PROFILE; the dashboard sets it directly.
+if [ "${ATTACK_PROFILE}" = "none" ]; then
+  ENABLE_ATTACK_PLANE="${ENABLE_ATTACK_PLANE:-false}"
+else
+  ENABLE_ATTACK_PLANE="${ENABLE_ATTACK_PLANE:-true}"
+fi
 
 if [ -f "${LAEA_HEADLESS_FLAG}" ]; then
   ENABLE_RVIZ=0
@@ -397,6 +405,7 @@ if [ "${ENABLE_MISSION_AWARE}" = "1" ]; then
   launch_bg "mission_aware" roslaunch laea_twin_tools mission_aware_runtime.launch \
     attack_profile:="${ATTACK_PROFILE}" \
     attack_seed:="${ATTACK_SEED}" \
+    enable_attack:="${ENABLE_ATTACK_PLANE}" \
     detector_name:="${DETECTOR_NAME}" \
     supervisor_policy:="${SUPERVISOR_POLICY}" \
     depth_topic:="${EXP_DEPTH_TOPIC}"

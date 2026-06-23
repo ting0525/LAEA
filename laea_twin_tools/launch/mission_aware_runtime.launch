@@ -4,8 +4,13 @@
   <arg name="detector_name" default="rule_mad"/>
   <arg name="supervisor_policy" default="none"/>
   <arg name="depth_topic" default="/rtp/depth/image_raw"/>
+  <!-- Only wire the source-layer attack command plane for attack runs. Baseline
+       / normal data collection must NOT launch the scheduler or the Gazebo
+       bridge, so the clean stock-GPS model is never shadowed by injection
+       infrastructure. The supervisory framework below stays on either way. -->
+  <arg name="enable_attack" default="false"/>
 
-  <node pkg="laea_twin_tools" type="attack_scheduler.py" name="attack_scheduler" output="screen">
+  <node if="$(arg enable_attack)" pkg="laea_twin_tools" type="attack_scheduler.py" name="attack_scheduler" output="screen">
     <rosparam command="load" file="$(find laea_twin_tools)/config/attack_profiles.yaml"/>
     <param name="profile" value="$(arg attack_profile)"/>
     <param name="seed" value="$(arg attack_seed)"/>
@@ -13,7 +18,7 @@
 
   <!-- Relays the ROS attack command onto Gazebo transport for the source-layer
        sensor attack plugins (which build in the PX4 tree without roscpp). -->
-  <node pkg="px4_gazebo" type="attack_gazebo_bridge" name="attack_gazebo_bridge" output="screen"/>
+  <node if="$(arg enable_attack)" pkg="px4_gazebo" type="attack_gazebo_bridge" name="attack_gazebo_bridge" output="screen"/>
 
   <node pkg="laea_twin_tools" type="mission_state_node.py" name="mission_state_node" output="screen">
     <rosparam command="load" file="$(find laea_twin_tools)/config/mission_state.yaml"/>

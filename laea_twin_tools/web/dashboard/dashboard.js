@@ -324,6 +324,7 @@ function renderState(data) {
   $("stopButton").disabled = !(process.running || process.cleanup_needed);
   const attackReady = Boolean(
     process.running
+    && process.config?.attack_capable_model
     && components.gazebo?.online
     && components.attack_bridge?.online
   );
