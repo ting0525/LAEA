@@ -72,7 +72,7 @@ class ExperimentProcess:
             }
 
     def _active_roots_locked(self, table=None):
-        table = table or process_table()
+        table = process_table() if table is None else table
         roots = discover_experiment_roots(table)
         if self.process is not None and self.process.poll() is None:
             roots.add(self.process.pid)
@@ -302,9 +302,9 @@ class ExperimentProcess:
 
     def stop(self):
         with self.lock:
-            self._refresh_locked()
             process = self.process
             table = process_table()
+            self._refresh_locked(table)
             roots = self._active_roots_locked(table)
             run_ids = {self.run_id}
             for root_pid in roots:
@@ -379,12 +379,16 @@ class ExperimentProcess:
             return snapshot
 
     def snapshot_locked(self):
-        self._refresh_locked()
         table = process_table()
+        self._refresh_locked(table)
         roots = self._active_roots_locked(table)
-        residual_pids = live_pids(experiment_component_pids(table))
-        residual_ros_nodes = registered_experiment_ros_nodes()
         running = bool(roots)
+        if running:
+            residual_pids = set()
+            residual_ros_nodes = []
+        else:
+            residual_pids = live_pids(experiment_component_pids(table))
+            residual_ros_nodes = registered_experiment_ros_nodes()
         return {
             "running": running,
             "pid": min(roots) if roots else None,
@@ -408,6 +412,3 @@ class ExperimentProcess:
     def snapshot(self):
         with self.lock:
             return self.snapshot_locked()
-
-
-

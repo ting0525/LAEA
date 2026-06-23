@@ -1,9 +1,15 @@
 """Purge stale experiment node registrations from the ROS master."""
 
+import socket
+
 import rosgraph
 import rosnode
 
-from .common import EXPERIMENT_ROS_NODE_NAMES, EXPERIMENT_ROS_NODE_PREFIXES
+from .common import (
+    DASHBOARD_ROS_NODE_PREFIX,
+    EXPERIMENT_ROS_NODE_NAMES,
+    EXPERIMENT_ROS_NODE_PREFIXES,
+)
 
 
 def ros_nodes_online():
@@ -46,5 +52,46 @@ def purge_experiment_ros_nodes():
     if remaining:
         errors.append(
             "ROS registrations remain after cleanup: " + ", ".join(remaining)
+        )
+    return purged, errors
+
+
+def purge_stale_dashboard_ros_nodes(current_node):
+    """Remove dead anonymous Dashboard registrations without touching a live one."""
+    candidates = sorted(
+        node
+        for node in ros_nodes_online()
+        if node.startswith(DASHBOARD_ROS_NODE_PREFIX) and node != current_node
+    )
+    stale = []
+    for node in candidates:
+        previous_timeout = socket.getdefaulttimeout()
+        try:
+            alive = rosnode.rosnode_ping(
+                node, max_count=1, verbose=False, skip_cache=True
+            )
+        except Exception:
+            alive = False
+        finally:
+            socket.setdefaulttimeout(previous_timeout)
+        if not alive:
+            stale.append(node)
+
+    if not stale:
+        return [], []
+    try:
+        master = rosgraph.Master("/laea_dashboard_stale_cleanup")
+        rosnode.cleanup_master_blacklist(master, stale)
+    except Exception as exc:
+        return [], [f"Dashboard ROS cleanup failed: {exc}"]
+
+    remaining = set(ros_nodes_online())
+    purged = sorted(node for node in stale if node not in remaining)
+    errors = []
+    unpurged = sorted(node for node in stale if node in remaining)
+    if unpurged:
+        errors.append(
+            "Dashboard ROS registrations remain after cleanup: "
+            + ", ".join(unpurged)
         )
     return purged, errors

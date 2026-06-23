@@ -8,7 +8,7 @@ import rospy
 from gazebo_msgs.msg import ModelStates
 from geometry_msgs.msg import PoseStamped, TwistStamped
 from mavros_msgs.msg import State
-from sensor_msgs.msg import Image
+from sensor_msgs.msg import CameraInfo
 from std_msgs.msg import String, UInt32
 
 from laea_twin_tools.msg import (
@@ -82,7 +82,10 @@ class RosMonitor:
             queue_size=20,
         )
         rospy.Subscriber(
-            "/rtp/depth/image_raw", Image, self._depth_cb, queue_size=2
+            "/rtp/depth/camera_info",
+            CameraInfo,
+            self._depth_info_cb,
+            queue_size=2,
         )
         rospy.Subscriber(
             "/laea/twin/mission_state",
@@ -143,12 +146,12 @@ class RosMonitor:
             self.state["satellites"] = int(msg.data)
             self._touch("satellites")
 
-    def _depth_cb(self, msg):
+    def _depth_info_cb(self, msg):
         with self.lock:
             self.state["depth"] = {
                 "width": int(msg.width),
                 "height": int(msg.height),
-                "encoding": msg.encoding,
+                "encoding": "metadata",
             }
             self._touch("depth")
 
@@ -388,6 +391,5 @@ class RosMonitor:
             evidence["effect_active"] = command_effect_active
             result["attack_evidence"] = json.loads(json.dumps(evidence))
         return result
-
 
 

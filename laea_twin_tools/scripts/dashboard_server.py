@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import atexit
 import csv
 import json
 import os
@@ -31,7 +32,6 @@ from flask import Flask, jsonify, request, send_from_directory
 from gazebo_msgs.msg import ModelStates
 from geometry_msgs.msg import PoseStamped, TwistStamped
 from mavros_msgs.msg import State
-from sensor_msgs.msg import Image
 from std_msgs.msg import String, UInt32
 
 from laea_twin_tools.msg import (
@@ -51,6 +51,32 @@ from dashboard.monitor import RosMonitor
 
 
 rospy.init_node("laea_dashboard", anonymous=True, disable_signals=True)
+purged_dashboard_nodes, dashboard_cleanup_errors = purge_stale_dashboard_ros_nodes(
+    rospy.get_name()
+)
+if purged_dashboard_nodes:
+    rospy.loginfo(
+        "[laea_dashboard] removed stale ROS registrations: %s",
+        ", ".join(purged_dashboard_nodes),
+    )
+for cleanup_error in dashboard_cleanup_errors:
+    rospy.logwarn("[laea_dashboard] %s", cleanup_error)
+
+
+def shutdown_dashboard(reason="dashboard server exiting"):
+    if not rospy.is_shutdown():
+        rospy.signal_shutdown(reason)
+
+
+def handle_shutdown_signal(signum, _frame):
+    shutdown_dashboard(f"received signal {signum}")
+    raise SystemExit(0)
+
+
+atexit.register(shutdown_dashboard)
+signal.signal(signal.SIGINT, handle_shutdown_signal)
+signal.signal(signal.SIGTERM, handle_shutdown_signal)
+
 monitor = RosMonitor()
 experiment = ExperimentProcess(monitor)
 profiles = load_profiles()

@@ -29,7 +29,9 @@ if ! rosparam list >/dev/null 2>&1; then
   # and the Dashboard must stay on the same master across UI restarts;
   # otherwise rospy subscribers remain attached to a dead master and all
   # telemetry/trend data silently stops.
-  setsid roscore </dev/null >/tmp/laea_dashboard/roscore.log 2>&1 &
+  # Do not let the independent roscore inherit fd 9. Otherwise it keeps the
+  # Dashboard singleton lock after the web server exits and prevents restart.
+  setsid roscore 9>&- </dev/null >/tmp/laea_dashboard/roscore.log 2>&1 &
   for _ in $(seq 1 30); do
     rosparam list >/dev/null 2>&1 && break
     sleep 0.5
