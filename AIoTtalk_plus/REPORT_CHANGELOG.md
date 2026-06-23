@@ -388,7 +388,7 @@ flowchart LR
 
 ### 7.1 已成功驗證
 
-| 測試項目 | 結果 | 證據 |
+| 測試項目 | 結果 | 數據 |
 |---|---|---|
 | IoTtalk project 建立 | 成功 | `IoTtalk project ready: AIoTtalk_plus_Auto` |
 | 4 個 device object 建立 | 成功 | 啟動時對 4 組 profile `POST` 皆回 `200` |
@@ -593,7 +593,7 @@ sequenceDiagram
 |---|---|---|
 | `Decode error!` | decoder 在啟動初期遇到一次解碼錯誤 | 警告，但不是 blocker |
 | `======== rgb_images: 0 ========` | receiver 啟動後第一次計數時尚未累積有效影像 | 正常啟動初期現象 |
-| `======== rgb_images: 1 ========` 重複出現 | receiver 已成功收到並累積至少 1 張 RGB image/frame | 正常，這是 media plane 已有資料流的直接證據 |
+| `======== rgb_images: 1 ========` 重複出現 | receiver 已成功收到並累積至少 1 張 RGB image/frame | 正常，這是 media plane 已有資料流的直接數據 |
 
 這一段代表：**就算沒有真實資料集，server 端仍已收到 synthetic sender 送來的 RTP payload。**
 
@@ -680,7 +680,7 @@ sequenceDiagram
 | `_NH_SIPInvitationGotSDPUpdate` | 已收到對端 SDP answer update | 正常 |
 | `notification.data.state: connected` | client 端 session 正式進到 connected | 正常 |
 
-這一段是最重要的 SIP 成功證據之一：**client 並不是卡在 `early`，而是已經走到 `connected`。**
+這一段是最重要的 SIP 成功數據之一：**client 並不是卡在 `early`，而是已經走到 `connected`。**
 
 ### 10.5 local / remote SDP 對照階段
 
