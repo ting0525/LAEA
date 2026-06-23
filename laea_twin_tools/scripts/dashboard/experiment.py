@@ -209,6 +209,14 @@ class ExperimentProcess:
                     "EXP_BOX_Z_MAX": str(
                         config["world_profile"]["planner"]["box_z_max"]
                     ),
+                    "EXP_MIN_FINISH_TIME_S": str(
+                        config["world_profile"]["planner"]["min_finish_time_s"]
+                    ),
+                    "EXP_MIN_FINISH_DISTANCE_M": str(
+                        config["world_profile"]["planner"][
+                            "min_finish_distance_m"
+                        ]
+                    ),
                     "EXP_MAX_DURATION_S": str(config["max_duration_s"]),
                     "EXP_DELETE_ON_NON_SUCCESS": "true",
                     "EXP_TERMINATE_ON_HOVER": "true",

@@ -20,6 +20,8 @@ worlds:
       box_x_max: 23.0
       box_y_max: 11.0
       box_z_max: 2.3
+      min_finish_time_s: 300.0
+      min_finish_distance_m: 200.0
 
   indoor_02:
     label: Indoor 02
@@ -42,3 +44,5 @@ worlds:
       box_x_max: 18.0
       box_y_max: 16.0
       box_z_max: 2.5
+      min_finish_time_s: 300.0
+      min_finish_distance_m: 200.0

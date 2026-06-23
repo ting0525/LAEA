@@ -97,14 +97,26 @@ class ExperimentManager:
         self.start_pub = rospy.Publisher(self.start_topic, PoseStamped, queue_size=1, latch=True)
 
         # ----------------------------
-        # Success token (唯一成功標準)
+        # Planner finish candidate. It is accepted only after duration and
+        # ground-truth travel-distance validation.
         # ----------------------------
         self._run_start_time = None
         self._finish_seen = False
         self._finish_time = None
+        self._early_finish_first_time = None
+        self._early_finish_last_time = None
 
         self.rosout_topic = rospy.get_param("~rosout_topic", "/rosout_agg")
         self.finish_token = rospy.get_param("~finish_token", "finish exploration.")
+        self.early_finish_token = rospy.get_param(
+            "~early_finish_token", "Reject early no-frontier finish"
+        )
+        self.early_finish_hold_s = float(
+            rospy.get_param("~early_finish_hold_s", 5.0)
+        )
+        self.early_finish_max_gap_s = float(
+            rospy.get_param("~early_finish_max_gap_s", 1.0)
+        )
         
         self.finish_node_name = rospy.get_param("~finish_node_name", "")  # "" = 不限制
         rospy.Subscriber(self.rosout_topic, RosLog, self._rosout_cb, queue_size=200)
@@ -118,6 +130,15 @@ class ExperimentManager:
 
         # Timeout: 沒 finish 一律視為非成功（刪檔）
         self.max_duration_s = float(rospy.get_param("~max_duration_s", 900.0))
+        self.success_min_duration_s = float(
+            rospy.get_param("~success_min_duration_s", 300.0)
+        )
+        self.success_min_distance_m = float(
+            rospy.get_param("~success_min_distance_m", 200.0)
+        )
+        self.distance_sample_period_s = float(
+            rospy.get_param("~distance_sample_period_s", 0.05)
+        )
 
         # ----------------------------
         # Logger control
@@ -183,6 +204,9 @@ class ExperimentManager:
         # ----------------------------
         self.gt_xyz = None
         self.est_xyz = None
+        self._travel_distance_m = 0.0
+        self._last_gt_for_distance = None
+        self._last_gt_distance_time = None
 
         # Callback-visible state must exist before subscribers are registered,
         # because latched ROS messages may invoke callbacks immediately.
@@ -240,6 +264,19 @@ class ExperimentManager:
         if self.finish_token in (msg.msg or ""):
             self._finish_seen = True
             self._finish_time = msg.header.stamp
+        if self.early_finish_token in (msg.msg or ""):
+            event_time = (
+                msg.header.stamp
+                if msg.header.stamp.to_sec() > 0.0
+                else rospy.Time.now()
+            )
+            if (
+                self._early_finish_last_time is None
+                or (event_time - self._early_finish_last_time).to_sec()
+                > self.early_finish_max_gap_s
+            ):
+                self._early_finish_first_time = event_time
+            self._early_finish_last_time = event_time
 
     def _gt_cb(self, msg: ModelStates):
         try:
@@ -247,7 +284,27 @@ class ExperimentManager:
         except ValueError:
             return
         p = msg.pose[idx].position
-        self.gt_xyz = (p.x, p.y, p.z)
+        current = (p.x, p.y, p.z)
+        current_time = rospy.Time.now()
+        with self._state_lock:
+            self.gt_xyz = current
+            if self._mission_trigger_time is not None:
+                sample_due = (
+                    self._last_gt_distance_time is None
+                    or (current_time - self._last_gt_distance_time).to_sec()
+                    >= self.distance_sample_period_s
+                )
+                if sample_due and self._last_gt_for_distance is not None:
+                    dx = current[0] - self._last_gt_for_distance[0]
+                    dy = current[1] - self._last_gt_for_distance[1]
+                    dz = current[2] - self._last_gt_for_distance[2]
+                    segment = math.sqrt(dx * dx + dy * dy + dz * dz)
+                    # Ignore model reset/teleport discontinuities.
+                    if segment <= 2.0:
+                        self._travel_distance_m += segment
+                if sample_due:
+                    self._last_gt_for_distance = current
+                    self._last_gt_distance_time = current_time
 
     def _est_cb(self, msg: PoseStamped):
         p = msg.pose.position
@@ -335,6 +392,9 @@ class ExperimentManager:
         msg.pose.orientation.w = 1.0
         with self._state_lock:
             self._mission_trigger_time = msg.header.stamp
+            self._travel_distance_m = 0.0
+            self._last_gt_for_distance = self.gt_xyz
+            self._last_gt_distance_time = msg.header.stamp
         self.start_pub.publish(msg)
 
     def _next_global_run_id(self) -> str:
@@ -471,9 +531,14 @@ class ExperimentManager:
         self._run_start_time = rospy.Time.now()
         self._finish_seen = False
         self._finish_time = None
+        self._early_finish_first_time = None
+        self._early_finish_last_time = None
         self._fail_start_time = None
         with self._state_lock:
             self._mission_trigger_time = None
+            self._travel_distance_m = 0.0
+            self._last_gt_for_distance = None
+            self._last_gt_distance_time = None
             self._hover_seen = False
             self._hover_time = None
             self._hover_reason_bits = 0
@@ -499,6 +564,38 @@ class ExperimentManager:
                 else "SUCCESS_FINISH"
             )
         return "SAFETY_HOVER"
+
+    def _completion_metrics(self, ended_at=None):
+        ended_at = ended_at or rospy.Time.now()
+        with self._state_lock:
+            trigger_time = self._mission_trigger_time
+            travel_distance_m = self._travel_distance_m
+        started_at = trigger_time or self._run_start_time
+        duration_s = (
+            max((ended_at - started_at).to_sec(), 0.0)
+            if started_at is not None
+            else 0.0
+        )
+        return duration_s, travel_distance_m
+
+    def _completion_is_valid(self):
+        duration_s, travel_distance_m = self._completion_metrics(self._finish_time)
+        valid = (
+            duration_s >= self.success_min_duration_s
+            and travel_distance_m >= self.success_min_distance_m
+        )
+        return valid, duration_s, travel_distance_m
+
+    def _persistent_early_finish(self):
+        first = self._early_finish_first_time
+        last = self._early_finish_last_time
+        if first is None or last is None:
+            return False
+        now = rospy.Time.now()
+        return (
+            (last - first).to_sec() >= self.early_finish_hold_s
+            and (now - last).to_sec() <= self.early_finish_max_gap_s
+        )
 
     @staticmethod
     def _relative_time_s(event_time_s, start_time_s):
@@ -566,6 +663,7 @@ class ExperimentManager:
           - SUCCESS_FINISH
           - SAFETY_HOVER
           - FAIL_SLAM
+          - FAIL_PREMATURE_FINISH
           - TIMEOUT_NO_FINISH
           - ABORTED
         """
@@ -574,6 +672,18 @@ class ExperimentManager:
             # 1) Finish/Hover: whichever happened first is the terminal outcome.
             terminal_outcome = self._terminal_feedback_outcome()
             if terminal_outcome == "SUCCESS_FINISH":
+                valid, duration_s, travel_distance_m = self._completion_is_valid()
+                if not valid:
+                    rospy.logerr(
+                        "[RUN %s] FAIL_PREMATURE_FINISH duration=%.1f/%.1fs "
+                        "distance=%.1f/%.1fm",
+                        run_id,
+                        duration_s,
+                        self.success_min_duration_s,
+                        travel_distance_m,
+                        self.success_min_distance_m,
+                    )
+                    return "FAIL_PREMATURE_FINISH"
                 rospy.loginfo(f"[RUN {run_id}] SUCCESS_FINISH at {self._finish_time.to_sec():.3f}")
                 return "SUCCESS_FINISH"
             if terminal_outcome == "SAFETY_HOVER":
@@ -587,6 +697,18 @@ class ExperimentManager:
                     hover_reason,
                 )
                 return "SAFETY_HOVER"
+            if self._persistent_early_finish():
+                duration_s, travel_distance_m = self._completion_metrics()
+                rospy.logerr(
+                    "[RUN %s] FAIL_PREMATURE_FINISH persistent no-frontier "
+                    "duration=%.1f/%.1fs distance=%.1f/%.1fm",
+                    run_id,
+                    duration_s,
+                    self.success_min_duration_s,
+                    travel_distance_m,
+                    self.success_min_distance_m,
+                )
+                return "FAIL_PREMATURE_FINISH"
 
             # 2) fail: e_pos hold
             epos = self._compute_e_pos()

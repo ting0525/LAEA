@@ -20,6 +20,8 @@
   <arg name="box_x_max" default="23"/>
   <arg name="box_y_max" default="11"/>
   <arg name="box_z_max" default="2.3"/>
+  <arg name="min_finish_time" default="300.0"/>
+  <arg name="min_finish_dist" default="200.0"/>
 
   <!-- topic of your odometry such as VIO or LIO -->
   <arg name="odom_topic" value="/mavros/local_position/odom" /> 
@@ -65,6 +67,8 @@
     <arg name="box_x_max" value="$(arg box_x_max)" />
     <arg name="box_y_max" value="$(arg box_y_max)" />
     <arg name="box_z_max" value="$(arg box_z_max)" />
+    <arg name="min_finish_time" value="$(arg min_finish_time)" />
+    <arg name="min_finish_dist" value="$(arg min_finish_dist)" />
 
   </include>
 

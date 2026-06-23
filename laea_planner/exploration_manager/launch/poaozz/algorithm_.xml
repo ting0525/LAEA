@@ -26,6 +26,8 @@
   <arg name="box_x_max"/>
   <arg name="box_y_max"/>
   <arg name="box_z_max"/> 
+  <arg name="min_finish_time" default="300.0"/>
+  <arg name="min_finish_dist" default="200.0"/>
   
 
   <!-- main node -->
@@ -109,6 +111,8 @@
 
     <!-- Fsm -->
     <param name="fsm/enable_yawing" value="false" type="bool"/>
+    <param name="fsm/min_finish_time" value="$(arg min_finish_time)" type="double"/>
+    <param name="fsm/min_finish_dist" value="$(arg min_finish_dist)" type="double"/>
 
     <param name="fsm/thresh_replan1" value="0.05" type="double"/>
     <param name="fsm/thresh_replan2" value="0.10" type="double"/>

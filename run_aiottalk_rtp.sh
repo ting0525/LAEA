@@ -41,6 +41,9 @@ EXP_BOX_Z_MIN="${EXP_BOX_Z_MIN:--0.1}"
 EXP_BOX_X_MAX="${EXP_BOX_X_MAX:-23.0}"
 EXP_BOX_Y_MAX="${EXP_BOX_Y_MAX:-11.0}"
 EXP_BOX_Z_MAX="${EXP_BOX_Z_MAX:-2.3}"
+EXP_MIN_FINISH_TIME_S="${EXP_MIN_FINISH_TIME_S:-300.0}"
+EXP_MIN_FINISH_DISTANCE_M="${EXP_MIN_FINISH_DISTANCE_M:-200.0}"
+EXP_EARLY_FINISH_HOLD_S="${EXP_EARLY_FINISH_HOLD_S:-5.0}"
 EXP_DEPTH_TOPIC="${EXP_DEPTH_TOPIC:-/rtp/depth/image_raw}"
 EXP_TERMINATE_ON_HOVER="${EXP_TERMINATE_ON_HOVER:-true}"
 EXP_SUPERVISOR_COMMAND_TOPIC="${EXP_SUPERVISOR_COMMAND_TOPIC:-/laea/supervisor/command}"
@@ -334,10 +337,11 @@ echo "[run_aiottalk_rtp] kpi dir  : ${LAEA_LOG_DIR}"
 echo "[run_aiottalk_rtp] profile  : ${LAEA_RUNTIME_PROFILE}"
 echo "[run_aiottalk_rtp] world    : ${EXP_WORLD_NAME} (${EXP_WORLD_FILE})"
 echo "[run_aiottalk_rtp] bounds   : x=[${EXP_BOX_X_MIN},${EXP_BOX_X_MAX}] y=[${EXP_BOX_Y_MIN},${EXP_BOX_Y_MAX}] z=[${EXP_BOX_Z_MIN},${EXP_BOX_Z_MAX}]"
+echo "[run_aiottalk_rtp] finish   : min_time=${EXP_MIN_FINISH_TIME_S}s min_dist=${EXP_MIN_FINISH_DISTANCE_M}m"
 echo "[run_aiottalk_rtp] mapping  : ${MAPPING_LAUNCH} ${MAPPING_LAUNCH_ARGS}"
 echo "[run_aiottalk_rtp] explore  : ${EXPLORE_LAUNCH} ${EXPLORE_LAUNCH_ARGS}"
 echo "[run_aiottalk_rtp] RTP bridge enabled: ${ENABLE_AIOTTALK_RTP}"
-echo "[run_aiottalk_rtp] mission-aware: ${ENABLE_MISSION_AWARE}, attack=${ATTACK_PROFILE}, seed=${ATTACK_SEED}"
+echo "[run_aiottalk_rtp] mission-aware: ${ENABLE_MISSION_AWARE}, attack=${ATTACK_PROFILE}, attack_plane=${ENABLE_ATTACK_PLANE}, seed=${ATTACK_SEED}"
 before_count="$(count_kept_logs)"
 before_success_count="$(count_success_logs)"
 
@@ -356,6 +360,8 @@ declare -a WORLD_EXPLORE_LAUNCH_ARGS_ARRAY=(
   "box_x_max:=${EXP_BOX_X_MAX}"
   "box_y_max:=${EXP_BOX_Y_MAX}"
   "box_z_max:=${EXP_BOX_Z_MAX}"
+  "min_finish_time:=${EXP_MIN_FINISH_TIME_S}"
+  "min_finish_dist:=${EXP_MIN_FINISH_DISTANCE_M}"
 )
 if [ -n "${MAPPING_LAUNCH_ARGS}" ]; then
   # shellcheck disable=SC2206
@@ -439,6 +445,9 @@ python3 "${SCRIPT_DIR}/laea_twin_tools/scripts/experiment_manager.py" \
   _sleep_between_runs_s:="${EXP_SLEEP_BETWEEN_RUNS}" \
   _fail_error_m:="${EXP_FAIL_ERROR_M}" \
   _fail_hold_s:="${EXP_FAIL_HOLD_S}" \
+  _success_min_duration_s:="${EXP_MIN_FINISH_TIME_S}" \
+  _success_min_distance_m:="${EXP_MIN_FINISH_DISTANCE_M}" \
+  _early_finish_hold_s:="${EXP_EARLY_FINISH_HOLD_S}" \
   _rosout_topic:=/rosout \
   _finish_token:="${EXP_FINISH_TOKEN}" \
   _finish_node_name:="${EXP_FINISH_NODE_NAME}" \

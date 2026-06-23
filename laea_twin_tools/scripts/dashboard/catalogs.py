@@ -97,10 +97,20 @@ def normalized_world_profile(name, definitions=None):
         "box_x_max": number(planner_source, "box_x_max", 23.0),
         "box_y_max": number(planner_source, "box_y_max", 11.0),
         "box_z_max": number(planner_source, "box_z_max", 2.3),
+        "min_finish_time_s": number(
+            planner_source, "min_finish_time_s", 300.0
+        ),
+        "min_finish_distance_m": number(
+            planner_source, "min_finish_distance_m", 200.0
+        ),
     }
     for axis in ("x", "y", "z"):
         if planner[f"box_{axis}_min"] >= planner[f"box_{axis}_max"]:
             raise ValueError(f"Invalid {name} planner boundary for axis {axis}.")
+    if planner["min_finish_time_s"] < 0.0:
+        raise ValueError(f"Invalid {name}.min_finish_time_s.")
+    if planner["min_finish_distance_m"] < 0.0:
+        raise ValueError(f"Invalid {name}.min_finish_distance_m.")
 
     return {
         "name": name,
