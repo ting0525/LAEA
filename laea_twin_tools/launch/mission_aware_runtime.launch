@@ -2,7 +2,7 @@
   <arg name="attack_profile" default="none"/>
   <arg name="attack_seed" default="42"/>
   <arg name="detector_name" default="rule_mad"/>
-  <arg name="supervisor_policy" default="hybrid"/>
+  <arg name="supervisor_policy" default="none"/>
   <arg name="depth_topic" default="/rtp/depth/image_raw"/>
 
   <node pkg="laea_twin_tools" type="attack_scheduler.py" name="attack_scheduler" output="screen">

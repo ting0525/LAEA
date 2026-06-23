@@ -55,7 +55,9 @@ LAEA_LOG_DIR="${LAEA_LOG_DIR:-${SCRIPT_DIR}/laea_twin_tools/laea_logs/aiottalk}"
 EXP_MANIFEST_PATH="${EXP_MANIFEST_PATH:-${LAEA_LOG_DIR}/run_manifest.csv}"
 LAEA_SYS_LOG_DIR="${LAEA_SYS_LOG_DIR:-/tmp/laea_aiottalk_logs}"
 ROUND_STATUS_FILE="${ROUND_STATUS_FILE:-${LAEA_LOG_DIR}/last_round_status.env}"
-ENABLE_RVIZ="${ENABLE_RVIZ:-1}"
+ENABLE_RVIZ="${ENABLE_RVIZ:-0}"
+ENABLE_GAZEBO_GUI="${ENABLE_GAZEBO_GUI:-0}"
+LAEA_HEADLESS_FLAG="${LAEA_HEADLESS_FLAG:-/tmp/laea_dashboard/force_headless}"
 ENABLE_DITTO_BRIDGE="${ENABLE_DITTO_BRIDGE:-1}"
 DITTO_ENABLE_SLAM="${DITTO_ENABLE_SLAM:-false}"
 ENABLE_AIOTTALK_RTP="${ENABLE_AIOTTALK_RTP:-1}"
@@ -63,7 +65,12 @@ ENABLE_MISSION_AWARE="${ENABLE_MISSION_AWARE:-0}"
 ATTACK_PROFILE="${ATTACK_PROFILE:-none}"
 ATTACK_SEED="${ATTACK_SEED:-42}"
 DETECTOR_NAME="${DETECTOR_NAME:-rule_mad}"
-SUPERVISOR_POLICY="${SUPERVISOR_POLICY:-hybrid}"
+SUPERVISOR_POLICY="${SUPERVISOR_POLICY:-none}"
+
+if [ -f "${LAEA_HEADLESS_FLAG}" ]; then
+  ENABLE_RVIZ=0
+  ENABLE_GAZEBO_GUI=0
+fi
 
 mkdir -p "${LAEA_LOG_DIR}" "${LAEA_SYS_LOG_DIR}"
 
@@ -354,6 +361,7 @@ fi
 # ========= 1) Core stack =========
 launch_bg "px4_gazebo" roslaunch px4_gazebo laea_gazebo_lidar.launch \
   world:="${EXP_WORLD_FILE}" \
+  gui:="${ENABLE_GAZEBO_GUI}" \
   init_x:="${EXP_SPAWN_X}" \
   init_y:="${EXP_SPAWN_Y}" \
   init_z:="${EXP_SPAWN_Z}" \
@@ -422,7 +430,7 @@ python3 "${SCRIPT_DIR}/laea_twin_tools/scripts/experiment_manager.py" \
   _sleep_between_runs_s:="${EXP_SLEEP_BETWEEN_RUNS}" \
   _fail_error_m:="${EXP_FAIL_ERROR_M}" \
   _fail_hold_s:="${EXP_FAIL_HOLD_S}" \
-  _rosout_topic:=/rosout_agg \
+  _rosout_topic:=/rosout \
   _finish_token:="${EXP_FINISH_TOKEN}" \
   _finish_node_name:="${EXP_FINISH_NODE_NAME}" \
   _output_dir:="${LAEA_LOG_DIR}" \
