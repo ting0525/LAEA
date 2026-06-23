@@ -225,6 +225,7 @@ include_directories(
 # catkin_add_nosetests(test)
 catkin_install_python(
   PROGRAMS
+    scripts/attack_terminal_monitor.py
     scripts/attack_scheduler.py
     scripts/dashboard_server.py
     scripts/mission_state_node.py

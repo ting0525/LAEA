@@ -25,34 +25,34 @@ profiles:
     source: gps
     mode: bias
     severity: low
-    ramp_s: 10.0
+    ramp_s: 2.0
     duration_s: 30.0
-    recovery_s: 10.0
-    vector: [3.0, 0.0, 0.0]    # m east; drifts odom/pose via EKF
+    recovery_s: 5.0
+    vector: [10.0, 0.0, 0.0]   # demo-scale position error; may reach FAIL_SLAM
   gps_bias_high:
     source: gps
     mode: bias
     severity: high
-    ramp_s: 10.0
-    duration_s: 30.0
-    recovery_s: 10.0
-    vector: [8.0, 0.0, 0.0]
+    ramp_s: 0.5
+    duration_s: 20.0
+    recovery_s: 5.0
+    vector: [30.0, 0.0, 0.0]   # extreme demo; expected to fail the mission quickly
   gps_velocity_bias_low:
     source: gps
     mode: velocity_bias
     severity: low
-    ramp_s: 5.0
+    ramp_s: 1.0
     duration_s: 30.0
-    recovery_s: 10.0
-    vector: [1.0, 0.0, 0.0]    # m/s; ~ gps_velocity_residual_degraded (0.8)
+    recovery_s: 5.0
+    vector: [3.0, 0.0, 0.0]    # demo-scale velocity error; above CRITICAL
   gps_velocity_bias_high:
     source: gps
     mode: velocity_bias
     severity: high
-    ramp_s: 5.0
-    duration_s: 30.0
-    recovery_s: 10.0
-    vector: [2.5, 0.0, 0.0]    # > gps_velocity_residual_critical (1.8)
+    ramp_s: 0.5
+    duration_s: 20.0
+    recovery_s: 5.0
+    vector: [8.0, 0.0, 0.0]    # extreme demo; expected to destabilize EKF quickly
 
   # ---- IMU (source-layer; magnitudes raised to clear yaw_rate_residual) ----
   imu_gyro_bias_low:
