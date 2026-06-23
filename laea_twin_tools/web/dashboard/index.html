@@ -47,21 +47,20 @@
         <label>Detector<input id="detectorName" value="rule_mad"></label>
         <label>Supervisor policy
           <select id="supervisorPolicy">
-            <option value="hybrid">hybrid</option>
             <option value="none">none</option>
+            <option value="hybrid">hybrid</option>
           </select>
         </label>
         <label>批次輪數<input id="totalRounds" type="number" min="1" max="1000" value="10"></label>
         <label>每輪間隔（秒）<input id="roundInterval" type="number" min="0" max="600" value="5"></label>
       </div>
-      <p id="worldDescription" class="muted">地圖選擇會同時切換 Gazebo world、起飛位置與探索邊界。</p>
       <div class="checks">
         <label><input id="enableRtp" type="checkbox" checked> AIoTtalk RTP</label>
-        <label><input id="enableRviz" type="checkbox" checked> RViz</label>
+        <label><input id="enableRviz" type="checkbox"> RViz</label>
         <label><input id="enableDitto" type="checkbox"> Ditto bridge</label>
         <label><input id="incrementSeed" type="checkbox" checked> 每輪 seed +1</label>
       </div>
-      <p class="muted">自動蒐集會完整重啟 PX4/Gazebo，每輪只保留 SUCCESS_FINISH 的 KPI CSV；失敗、Timeout、Abort、Hover 只留 manifest。建立 detector 訓練集時建議先把 Supervisor policy 設為 none，避免回饋改變資料分布。</p>
+      <p class="muted">批次蒐集只保留 SUCCESS_FINISH 的 KPI CSV。</p>
       <p id="actionMessage" class="message"></p>
     </section>
 
@@ -76,7 +75,6 @@
       <div id="capabilityGrid" class="capability-grid">
         <div class="capability-card"><strong>載入中</strong><span>正在取得平台狀態…</span></div>
       </div>
-      <p class="muted capability-note">READY 表示程式已完成；ONLINE 表示本次實驗的相關 ROS 節點正在執行。PARTIAL 功能會清楚標示目前尚未接通的部分。</p>
     </section>
 
     <section id="batchPanel" class="panel batch-panel">
@@ -135,10 +133,22 @@
         <span id="overallState" class="state-pill unknown">UNKNOWN</span>
       </div>
       <div class="domain-grid">
-        <div><span>Localization</span><strong id="localizationState">—</strong><small id="localizationScore">—</small></div>
-        <div><span>Perception</span><strong id="perceptionState">—</strong><small id="perceptionScore">—</small></div>
-        <div><span>Planner</span><strong id="plannerState">—</strong><small id="plannerScore">—</small></div>
-        <div><span>Flight safety</span><strong id="flightState">—</strong><small id="flightScore">—</small></div>
+        <div>
+          <span>Localization</span><strong id="localizationState">—</strong><small id="localizationScore">—</small>
+          <p>定位一致性：GPS、EKF、IMU 與氣壓高度是否互相吻合。</p>
+        </div>
+        <div>
+          <span>Perception</span><strong id="perceptionState">—</strong><small id="perceptionScore">—</small>
+          <p>環境感知品質：深度影像是否新鮮、有效且沒有凍結。</p>
+        </div>
+        <div>
+          <span>Planner</span><strong id="plannerState">—</strong><small id="plannerScore">—</small>
+          <p>路徑規劃狀態：指令是否持續更新、追蹤誤差與卡住時間。</p>
+        </div>
+        <div>
+          <span>Flight safety</span><strong id="flightState">—</strong><small id="flightScore">—</small>
+          <p>飛行動態安全：傾斜角與飛行速度是否超過安全門檻。</p>
+        </div>
       </div>
       <p id="missionSummary" class="summary">尚未收到 mission state。</p>
     </section>
@@ -158,14 +168,12 @@
         </div>
       </div>
       <canvas id="trendCanvas"></canvas>
-      <p class="muted">每秒取樣，顯示最近約 3 分鐘的四域 anomaly score；灰紅底為攻擊 active 區間，虛線為 degraded 參考線（score ≈ 1）。</p>
     </section>
 
     <section class="two-column">
       <article class="panel">
         <p class="eyebrow">Supervisor override</p>
         <h2>手動回饋指令</h2>
-        <p class="muted">Override 會保持到按下 Clear。Hover 會經 feedback_actuator 讓探索暫停（無人機懸停），清除後從現狀恢復；自動 HOVER 進行中時手動清除不會解除（fail-safe）。</p>
         <div class="override-grid">
           <button data-level="ALERT">Alert</button>
           <button data-level="SLOW_DOWN" class="warning">Slow Down</button>
@@ -193,31 +201,52 @@
           <div><span>Elapsed</span><strong id="attackElapsed">—</strong></div>
           <div><span>Detail</span><strong id="attackDetail">—</strong></div>
         </div>
-        <p class="muted">目前只有 GPS bias／velocity bias 已接上 Gazebo injector。IMU 與 Barometer 尚只有 profile，因此不會列入可觸發選項。</p>
       </article>
     </section>
 
-    <section class="panel">
+    <section id="attackEvidencePanel" class="panel">
       <div class="section-title">
         <div>
-          <p class="eyebrow">Attack verification</p>
-          <h2>攻擊診斷</h2>
+          <p class="eyebrow">Attack evidence</p>
+          <h2>GPS 攻擊實驗數據</h2>
         </div>
-        <span id="attackEffectPill" class="state-pill unknown">NO ATTACK</span>
+        <div class="actions">
+          <button id="evidenceModeButton">數據模式</button>
+          <span id="attackEffectPill" class="state-pill unknown">NO ATTACK</span>
+        </div>
+      </div>
+      <div class="evidence-meta">
+        <div><span>Run</span><strong id="evidenceRun">—</strong></div>
+        <div><span>World</span><strong id="evidenceWorld">—</strong></div>
+        <div><span>Injection layer</span><strong>GPS sensor → PX4 EKF2</strong></div>
+        <div><span>Command path</span><strong id="evidencePath">—</strong></div>
+        <div><span>Captured</span><strong id="evidenceCapturedAt">—</strong></div>
       </div>
       <div class="two-column">
         <div class="status-block">
-          <div><span>Command source / mode</span><strong id="diagCmd">—</strong></div>
-          <div><span>Command enabled</span><strong id="diagEnabled">—</strong></div>
-          <div><span>Command age</span><strong id="diagCmdAge">—</strong></div>
+          <div><span>Attack</span><strong id="diagCmd">—</strong></div>
+          <div><span>Magnitude</span><strong id="evidenceMagnitude">—</strong></div>
+          <div><span>Phase / elapsed</span><strong id="evidencePhase">—</strong></div>
         </div>
         <div class="status-block">
-          <div><span>Localization drift (EKF vs GT)</span><strong id="driftValue">—</strong></div>
+          <div><span>Baseline drift</span><strong id="evidenceBaseline">—</strong></div>
+          <div><span>Current drift</span><strong id="driftValue">—</strong></div>
+          <div><span>Peak drift</span><strong id="evidencePeak">—</strong></div>
+          <div><span>Peak increase</span><strong id="evidenceIncrease">—</strong></div>
+        </div>
+      </div>
+      <div class="two-column evidence-lower">
+        <div class="status-block">
           <div><span>Ground truth</span><strong id="gtValue">—</strong></div>
           <div><span>EKF position</span><strong id="ekfValue">—</strong></div>
         </div>
+        <div class="status-block">
+          <div><span>Localization state</span><strong id="evidenceLocalization">—</strong></div>
+          <div><span>Overall state</span><strong id="evidenceOverall">—</strong></div>
+          <div><span>Evidence result</span><strong id="evidenceResult">WAITING</strong></div>
+        </div>
       </div>
-      <p class="muted">Command 表示 Dashboard 已發布攻擊命令；目前尚未有 plugin ACK。Localization drift 上升才是攻擊已影響 EKF 定位的直接證據。</p>
+      <p id="evidenceSummary" class="summary">等待攻擊實驗資料。</p>
     </section>
 
     <section class="panel">

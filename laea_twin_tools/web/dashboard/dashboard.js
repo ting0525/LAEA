@@ -1,7 +1,6 @@
 const $ = (id) => document.getElementById(id);
 let profilesLoaded = false;
 let worldsLoaded = false;
-let worldCatalog = [];
 let lastProcessPid = null;
 
 function text(id, value, fallback = "—") {
@@ -39,6 +38,24 @@ function capabilityStyle(value) {
 
 function capabilityLabel(value) {
   return String(value || "unknown").replaceAll("_", " ").toUpperCase();
+}
+
+function formatAttackMagnitude(command) {
+  const vector = Array.isArray(command.vector) ? command.vector : [];
+  if (vector.length < 3) return "—";
+  const unit = command.mode === "velocity_bias" ? "m/s" : "m";
+  return `[${vector.map((value) => number(value, 2)).join(", ")}] ${unit}`;
+}
+
+function profileMagnitudeLabel(profile) {
+  const vector = Array.isArray(profile.vector) ? profile.vector : [];
+  const primary = Math.abs(Number(vector[0]) || 0);
+  if (primary > 0) {
+    const unit = profile.mode === "velocity_bias" ? "m/s" : "m";
+    return `${number(primary, 1)} ${unit}`;
+  }
+  const scalar = Math.abs(Number(profile.scalar) || 0);
+  return scalar > 0 ? number(scalar, 1) : "";
 }
 
 async function api(url, options = {}) {
@@ -92,11 +109,14 @@ async function startExperiment(collectionMode) {
 }
 
 async function stopExperiment() {
-  if (!confirm("停止目前實驗？這會送出 SIGINT 並清理背景程序。")) return;
+  if (!confirm("停止目前實驗並清理所有相關程序？")) return;
   try {
-    $("actionMessage").textContent = "正在停止實驗…";
-    await api("/api/experiment/stop", { method: "POST", body: "{}" });
-    $("actionMessage").textContent = "實驗已停止。";
+    $("actionMessage").textContent = "正在停止實驗並清理所有元件…";
+    const result = await api("/api/experiment/stop", { method: "POST", body: "{}" });
+    const report = result.process?.stop_report || {};
+    $("actionMessage").textContent = report.cleanup_complete
+      ? "實驗已停止並清理完成。"
+      : `停止未完全：PID ${(report.remaining_pids || []).join(", ") || "無"}；ROS node ${(report.remaining_ros_nodes || []).join(", ") || "無"}。`;
     await refreshState();
     await refreshLog();
   } catch (error) {
@@ -145,12 +165,22 @@ function drawTrends() {
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.clearRect(0, 0, w, h);
 
-  const pad = { l: 26, r: 8, t: 8, b: 8 };
+  const pad = { l: 8, r: 8, t: 8, b: 8 };
   const plotW = w - pad.l - pad.r;
   const plotH = h - pad.t - pad.b;
   const yMax = 3;
-  const xAt = (i) => pad.l + (i / (TREND_MAX - 1)) * plotW;
+  const visibleIntervals = Math.max(trend.length - 1, 1);
+  const xAt = (i) => pad.l + (i / visibleIntervals) * plotW;
   const yAt = (v) => pad.t + plotH - Math.min(Math.max(v, 0), yMax) / yMax * plotH;
+
+  if (trend.length === 0) {
+    ctx.fillStyle = "#8faca4";
+    ctx.font = "13px sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText("等待 Mission State 資料", w / 2, h / 2);
+    ctx.textAlign = "start";
+    return;
+  }
 
   ctx.fillStyle = "rgba(255, 107, 107, .16)";
   for (let i = 0; i < trend.length; i++) {
@@ -160,17 +190,6 @@ function drawTrends() {
       ctx.fillRect(x0, pad.t, Math.max(x1 - x0, 1.5), plotH);
     }
   }
-
-  ctx.strokeStyle = "rgba(143, 172, 164, .5)";
-  ctx.setLineDash([4, 4]);
-  ctx.beginPath();
-  ctx.moveTo(pad.l, yAt(1));
-  ctx.lineTo(pad.l + plotW, yAt(1));
-  ctx.stroke();
-  ctx.setLineDash([]);
-  ctx.fillStyle = "#8facA4";
-  ctx.font = "10px sans-serif";
-  [0, 1, 3].forEach((v) => ctx.fillText(String(v), 6, yAt(v) + 3));
 
   const series = [["loc", "#55c2d9"], ["perc", "#49d49d"], ["plan", "#f2c14e"], ["flight", "#ff6b6b"]];
   for (const [key, color] of series) {
@@ -183,6 +202,12 @@ function drawTrends() {
       i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
     }
     ctx.stroke();
+
+    const latestIndex = trend.length - 1;
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(xAt(latestIndex), yAt(trend[latestIndex][key]), 3, 0, Math.PI * 2);
+    ctx.fill();
   }
 }
 
@@ -242,18 +267,9 @@ function renderCapabilities(capabilities) {
   `).join("");
 }
 
-function updateWorldDescription() {
-  const selected = worldCatalog.find((item) => item.name === $("worldName").value);
-  if (!selected) return;
-  const availability = selected.available ? "" : ` 無法使用：${selected.error}`;
-  $("worldDescription").textContent =
-    `${selected.description || selected.label} Gazebo、起飛位置與探索邊界會一起切換。${availability}`;
-}
-
 function renderWorldCatalog(catalog) {
   if (worldsLoaded || !Array.isArray(catalog)) return;
   const selectedName = $("worldName").value || "indoor_01";
-  worldCatalog = catalog;
   $("worldName").innerHTML = catalog.map((item) => {
     const disabled = item.available ? "" : " disabled";
     const suffix = item.available ? "" : "（檔案不可用）";
@@ -263,7 +279,6 @@ function renderWorldCatalog(catalog) {
     $("worldName").value = selectedName;
   }
   worldsLoaded = true;
-  updateWorldDescription();
 }
 
 function renderState(data) {
@@ -296,11 +311,17 @@ function renderState(data) {
     ? isBatch
       ? "COLLECTING DATA"
       : "EXPERIMENT RUNNING"
-    : "IDLE";
-  setBadge($("processBadge"), processLabel, process.running ? "warning" : "neutral");
-  $("startButton").disabled = Boolean(process.running);
-  $("startBatchButton").disabled = Boolean(process.running);
-  $("stopButton").disabled = !process.running;
+    : process.cleanup_needed
+      ? "CLEANUP REQUIRED"
+      : "IDLE";
+  setBadge(
+    $("processBadge"),
+    processLabel,
+    process.running || process.cleanup_needed ? "warning" : "neutral",
+  );
+  $("startButton").disabled = Boolean(process.running || process.cleanup_needed);
+  $("startBatchButton").disabled = Boolean(process.running || process.cleanup_needed);
+  $("stopButton").disabled = !(process.running || process.cleanup_needed);
   const attackReady = Boolean(
     process.running
     && components.gazebo?.online
@@ -366,6 +387,7 @@ function renderState(data) {
   text("supervisorReason", supervisor.reason);
 
   const activeCmd = telemetry.active_command || {};
+  const evidence = telemetry.attack_evidence || {};
   const gt = telemetry.ground_truth || {};
   const drift = telemetry.localization_drift_m;
   const cmdEnabled = Boolean(activeCmd.enabled && activeCmd.source !== "none");
@@ -394,12 +416,34 @@ function renderState(data) {
 
   $("attackEffectPill").textContent = cmdEnabled ? `COMMAND ${capabilityLabel(activeCmd.phase)}` : "NO ATTACK";
   $("attackEffectPill").className = `state-pill ${attackEffectActive ? "critical" : cmdEnabled ? "degraded" : "normal"}`;
-  text("diagCmd", [activeCmd.source, activeCmd.mode, activeCmd.severity].filter(Boolean).join(" / "));
-  text("diagEnabled", activeCmd.enabled === undefined ? null : activeCmd.enabled ? "true" : "false");
-  text("diagCmdAge", ages.active_command !== undefined ? `${number(ages.active_command, 1)} s` : null);
+  const evidenceIdentity = evidence.command_start_s > 0 ? evidence : activeCmd;
+  const pathOnline = Boolean(components.gazebo?.online && components.attack_bridge?.online);
+  text("evidenceRun", process.pid ? `${isBatch ? "BATCH" : "SINGLE"} / PID ${process.pid}` : null);
+  text("evidenceWorld", process.config?.world_name);
+  text("evidencePath", pathOnline ? "ROS → Gazebo bridge ONLINE" : "OFFLINE");
+  text("evidenceCapturedAt", new Date().toLocaleString());
+  text("diagCmd", [evidenceIdentity.source, evidenceIdentity.mode, evidenceIdentity.severity].filter((value) => value && value !== "none").join(" / "));
+  text("evidenceMagnitude", formatAttackMagnitude(evidenceIdentity));
+  text("evidencePhase", `${capabilityLabel(evidence.phase || activeCmd.phase)} / ${number(activeCmd.elapsed_s, 1)} s`);
+  text("evidenceBaseline", Number.isFinite(evidence.baseline_drift_m) ? `${number(evidence.baseline_drift_m, 2)} m` : null);
   text("driftValue", Number.isFinite(drift) ? `${number(drift, 2)} m` : null);
+  text("evidencePeak", Number.isFinite(evidence.peak_drift_m) ? `${number(evidence.peak_drift_m, 2)} m` : null);
+  text("evidenceIncrease", Number.isFinite(evidence.drift_increase_m) ? `+${number(evidence.drift_increase_m, 2)} m` : null);
   text("gtValue", Number.isFinite(gt.x) ? `${number(gt.x)} / ${number(gt.y)} / ${number(gt.z)} m` : null);
   text("ekfValue", Number.isFinite(pose.x) ? `${number(pose.x)} / ${number(pose.y)} / ${number(pose.z)} m` : null);
+  text("evidenceLocalization", `${mission.localization || "UNKNOWN"} / score ${number(mission.localization_score, 3)}`);
+  text("evidenceOverall", mission.overall);
+  const evidenceResult = !process.running
+    ? "WAITING FOR RUN"
+    : !pathOnline
+      ? "INJECTION PATH OFFLINE"
+      : evidence.impact_observed
+        ? "DRIFT INCREASE OBSERVED"
+        : cmdEnabled
+          ? "MEASURING"
+          : "READY";
+  text("evidenceResult", evidenceResult);
+  text("evidenceSummary", mission.summary, "等待攻擊實驗資料。");
 
   renderRuns(data.recent_runs);
   renderCapabilities(data.capabilities);
@@ -417,7 +461,10 @@ function renderState(data) {
   if (!profilesLoaded && Array.isArray(data.profile_catalog)) {
     const option = (item) => {
       const disabled = item.live_supported ? "" : " disabled";
-      const suffix = item.live_supported ? "" : "（injector 尚未接通）";
+      const magnitude = profileMagnitudeLabel(item);
+      const suffix = item.live_supported
+        ? magnitude ? ` — ${magnitude}` : ""
+        : "（injector 尚未接通）";
       return `<option value="${escapeHtml(item.name)}"${disabled}>${escapeHtml(item.name)}${suffix}</option>`;
     };
     $("attackProfile").innerHTML = data.profile_catalog.map(option).join("");
@@ -451,7 +498,17 @@ $("startButton").addEventListener("click", () => startExperiment("single"));
 $("startBatchButton").addEventListener("click", () => startExperiment("batch"));
 $("stopButton").addEventListener("click", stopExperiment);
 $("refreshLog").addEventListener("click", refreshLog);
-$("worldName").addEventListener("change", updateWorldDescription);
+$("evidenceModeButton").addEventListener("click", () => {
+  const enabled = document.body.classList.toggle("evidence-mode");
+  $("evidenceModeButton").textContent = enabled ? "離開數據模式" : "數據模式";
+  if (enabled) {
+    $("attackEvidencePanel").scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+});
+if (new URLSearchParams(window.location.search).get("evidence") === "1") {
+  document.body.classList.add("evidence-mode");
+  $("evidenceModeButton").textContent = "離開數據模式";
+}
 $("triggerAttack").addEventListener("click", triggerAttack);
 $("stopAttack").addEventListener("click", stopAttack);
 document.querySelectorAll("[data-level]").forEach((button) => {

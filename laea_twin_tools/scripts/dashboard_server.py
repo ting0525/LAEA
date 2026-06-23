@@ -10,6 +10,7 @@ import subprocess
 import sys
 import threading
 import time
+import uuid
 from collections import deque
 from datetime import datetime, timezone
 from pathlib import Path
@@ -23,6 +24,7 @@ if os.path.isdir(USER_SITE):
     sys.path.insert(0, USER_SITE)
 
 import rosgraph
+import rosnode
 import rospy
 import yaml
 from flask import Flask, jsonify, request, send_from_directory
@@ -48,10 +50,14 @@ RUN_SCRIPT = REPO_DIR / "run_aiottalk_rtp.sh"
 BATCH_SCRIPT = REPO_DIR / "run_aiottalk_batches_restart.sh"
 PROFILE_CONFIG = PACKAGE_DIR / "config" / "attack_profiles.yaml"
 WORLD_CONFIG = PACKAGE_DIR / "config" / "world_profiles.yaml"
+CONTROL_DIR = Path("/tmp/laea_dashboard")
+PROCESS_STATE_PATH = CONTROL_DIR / "experiment_process.json"
+DASHBOARD_RUN_ID_ENV = "LAEA_DASHBOARD_RUN_ID"
 NAME_RE = re.compile(r"^[A-Za-z0-9_.-]+$")
 STABLE_RUNTIME_PROFILE = "scan_mapping_explore_test"
 STABLE_MAPPING_LAUNCH = "scan_mapping.launch"
 STABLE_EXPLORE_LAUNCH = "explore_test.launch"
+ATTACK_CAPABLE_PX4_SDF = "iris_d435_lidar_gps_attack"
 LIVE_ATTACK_SOURCES = {"gps"}
 COMPONENT_NODES = {
     "px4": "/mavros",
@@ -65,6 +71,80 @@ COMPONENT_NODES = {
     "supervisor": "/mission_supervisor",
     "feedback_actuator": "/feedback_actuator",
 }
+EXPERIMENT_EXECUTABLE_NAMES = {
+    "attack_gazebo_bridge",
+    "depthimage_to_laserscan",
+    "exploration_node",
+    "gazebo",
+    "geometric_controller_node",
+    "gzclient",
+    "gzserver",
+    "laserscan_to_pointcloud_assembler",
+    "mavros_node",
+    "octomap_server_node",
+    "px4",
+    "topic2tf",
+    "tf2topic_tf",
+    "waypoint_generator",
+}
+EXPERIMENT_SCRIPT_NAMES = {
+    "attack_scheduler.py",
+    "experiment_manager.py",
+    "feedback_actuator.py",
+    "laea_aiottalk_rtp.py",
+    "mission_state_node.py",
+    "slam_kpi_logger.py",
+    "supervisor_node.py",
+    "trajectory_msg_converter.py",
+}
+EXPERIMENT_LAUNCH_FILES = {
+    "controller.launch",
+    "explore_test.launch",
+    "laea_gazebo_lidar.launch",
+    "mission_aware_runtime.launch",
+    "rviz_alg.launch",
+    "scan_mapping.launch",
+}
+EXPERIMENT_ROS_NAME_ARGS = {
+    "__name:=base2depth_scan",
+    "__name:=depthscan2pointcloud",
+    "__name:=tf_base2camera",
+    "__name:=tf_base2laser",
+    "__name:=tf_map2world_link",
+    "__name:=world2odom",
+}
+EXPERIMENT_ROS_NODE_NAMES = {
+    "/attack_gazebo_bridge",
+    "/attack_scheduler",
+    "/base2depth_scan",
+    "/depthimage_to_laserscan",
+    "/depthscan2pointcloud",
+    "/experiment_manager",
+    "/exploration_node",
+    "/feedback_actuator",
+    "/gazebo",
+    "/gazebo_gui",
+    "/geometric_controller",
+    "/laea_aiottalk_rtp",
+    "/mavros",
+    "/mission_state_node",
+    "/mission_supervisor",
+    "/octomap_server",
+    "/rviz_map",
+    "/sitl_0",
+    "/slam_kpi_logger",
+    "/tf2topic_tf",
+    "/tf_base2camera",
+    "/tf_base2laser",
+    "/tf_map2world_link",
+    "/topic2tf",
+    "/traj_msg_converter",
+    "/waypoint_generator",
+    "/world2odom",
+}
+EXPERIMENT_ROS_NODE_PREFIXES = (
+    "/laserscan_to_pointcloud_assembler_",
+)
 
 
 def level_name(value):
@@ -99,6 +179,35 @@ def ros_nodes_online():
     return nodes
 
 
+def registered_experiment_ros_nodes():
+    return sorted(
+        node
+        for node in ros_nodes_online()
+        if node in EXPERIMENT_ROS_NODE_NAMES
+        or any(node.startswith(prefix) for prefix in EXPERIMENT_ROS_NODE_PREFIXES)
+    )
+
+
+def purge_experiment_ros_nodes():
+    nodes = registered_experiment_ros_nodes()
+    if not nodes:
+        return [], []
+    try:
+        master = rosgraph.Master("/laea_dashboard_cleanup")
+        rosnode.cleanup_master_blacklist(master, nodes)
+    except Exception as exc:
+        return [], [f"ROS cleanup failed: {exc}"]
+
+    remaining = registered_experiment_ros_nodes()
+    purged = sorted(set(nodes) - set(remaining))
+    errors = []
+    if remaining:
+        errors.append(
+            "ROS registrations remain after cleanup: " + ", ".join(remaining)
+        )
+    return purged, errors
+
+
 def profile_catalog():
     definitions = load_profile_defs()
     catalog = [
@@ -107,6 +216,8 @@ def profile_catalog():
             "source": "none",
             "mode": "none",
             "severity": "none",
+            "vector": [0.0, 0.0, 0.0],
+            "scalar": 0.0,
             "live_supported": True,
             "note": "clean baseline",
         }
@@ -121,6 +232,11 @@ def profile_catalog():
                 "source": source,
                 "mode": str(definition.get("mode", "none")),
                 "severity": str(definition.get("severity", "none")),
+                "ramp_s": float(definition.get("ramp_s", 0.0)),
+                "duration_s": float(definition.get("duration_s", 0.0)),
+                "recovery_s": float(definition.get("recovery_s", 0.0)),
+                "vector": list(definition.get("vector", [0.0, 0.0, 0.0])),
+                "scalar": float(definition.get("scalar", 0.0)),
                 "live_supported": live_supported,
                 "note": (
                     "source-layer injector connected"
@@ -323,25 +439,62 @@ def write_json_file(path, payload):
     os.replace(temp_path, path)
 
 
-def process_descendants(root_pid):
-    children = {}
+def process_table():
+    table = {}
     for entry in Path("/proc").iterdir():
         if not entry.name.isdigit():
             continue
+        pid = int(entry.name)
         try:
-            with open(entry / "status", "r") as source:
-                parent_pid = None
-                for line in source:
-                    if line.startswith("PPid:"):
-                        parent_pid = int(line.split()[1])
-                        break
-            if parent_pid is not None:
-                children.setdefault(parent_pid, set()).add(int(entry.name))
-        except (OSError, ValueError):
+            stat_text = (entry / "stat").read_text()
+            fields = stat_text[stat_text.rfind(")") + 2 :].split()
+            cmdline_bytes = (entry / "cmdline").read_bytes()
+            argv = [
+                value.decode(errors="replace")
+                for value in cmdline_bytes.split(b"\0")
+                if value
+            ]
+            cmdline = " ".join(argv)
+            table[pid] = {
+                "pid": pid,
+                "state": fields[0],
+                "ppid": int(fields[1]),
+                "pgid": int(fields[2]),
+                "sid": int(fields[3]),
+                "argv": argv,
+                "cmdline": cmdline,
+            }
+        except (OSError, ValueError, IndexError):
             continue
+    return table
+
+
+def process_environment(pid):
+    try:
+        entries = Path(f"/proc/{pid}/environ").read_bytes().split(b"\0")
+    except OSError:
+        return {}
+    environment = {}
+    for entry in entries:
+        if b"=" not in entry:
+            continue
+        key, value = entry.split(b"=", 1)
+        environment[key.decode(errors="replace")] = value.decode(errors="replace")
+    return environment
+
+
+def process_run_id(pid):
+    return process_environment(pid).get(DASHBOARD_RUN_ID_ENV, "")
+
+
+def descendant_pids(root_pids, table=None):
+    table = table or process_table()
+    children = {}
+    for pid, info in table.items():
+        children.setdefault(info["ppid"], set()).add(pid)
 
     descendants = set()
-    pending = [int(root_pid)]
+    pending = [int(pid) for pid in root_pids]
     while pending:
         parent = pending.pop()
         for child in children.get(parent, ()):
@@ -349,6 +502,63 @@ def process_descendants(root_pid):
                 descendants.add(child)
                 pending.append(child)
     return descendants
+
+
+def process_descendants(root_pid):
+    return descendant_pids({root_pid})
+
+
+def command_is_runner(command):
+    argv = command if isinstance(command, (list, tuple)) else [command]
+    return str(RUN_SCRIPT) in argv or str(BATCH_SCRIPT) in argv
+
+
+def process_is_experiment_component(info):
+    argv = list(info.get("argv") or [])
+    if not argv:
+        return False
+    basenames = {Path(value).name for value in argv if value}
+    if basenames & EXPERIMENT_EXECUTABLE_NAMES:
+        return True
+    if basenames & EXPERIMENT_SCRIPT_NAMES:
+        return True
+    if "roslaunch" in basenames and basenames & EXPERIMENT_LAUNCH_FILES:
+        return True
+    return bool(set(argv) & EXPERIMENT_ROS_NAME_ARGS)
+
+
+def discover_experiment_roots(table=None):
+    table = table or process_table()
+    candidates = {
+        pid for pid, info in table.items() if command_is_runner(info["argv"])
+    }
+    roots = set()
+    for pid in candidates:
+        parent = table.get(pid, {}).get("ppid", 0)
+        seen = set()
+        has_runner_ancestor = False
+        while parent > 1 and parent not in seen:
+            seen.add(parent)
+            if parent in candidates:
+                has_runner_ancestor = True
+                break
+            parent = table.get(parent, {}).get("ppid", 0)
+        if not has_runner_ancestor:
+            roots.add(pid)
+    return roots
+
+
+def experiment_component_pids(table=None, run_ids=None):
+    table = table or process_table()
+    run_ids = {value for value in (run_ids or set()) if value}
+    matched = set()
+    for pid, info in table.items():
+        if process_is_experiment_component(info):
+            matched.add(pid)
+            continue
+        if run_ids and process_run_id(pid) in run_ids:
+            matched.add(pid)
+    return matched
 
 
 def live_pids(pids):
@@ -391,6 +601,24 @@ def wait_for_processes(pids, timeout_s):
     return remaining
 
 
+def update_stopped_progress(
+    path, cleanup_complete, remaining_pids, remaining_ros_nodes
+):
+    payload = read_json_file(path)
+    if not payload:
+        return
+    payload.update(
+        {
+            "state": "STOPPED",
+            "stop_requested_at": datetime.now(timezone.utc).isoformat(),
+            "cleanup_complete": bool(cleanup_complete),
+            "remaining_pids": sorted(int(pid) for pid in remaining_pids),
+            "remaining_ros_nodes": sorted(remaining_ros_nodes),
+        }
+    )
+    write_json_file(path, payload)
+
+
 class ExperimentProcess:
     def __init__(self):
         self.lock = threading.Lock()
@@ -403,19 +631,99 @@ class ExperimentProcess:
         self.progress_path = ""
         self.config_path = ""
         self.config = {}
+        self.root_pid = None
+        self.run_id = ""
+        self.last_stop_report = {}
+        self._recover_control_state_locked()
+
+    def _recover_control_state_locked(self):
+        state = read_json_file(str(PROCESS_STATE_PATH))
+        pid = int(state.get("pid") or 0)
+        table = process_table()
+        if pid in table and (
+            process_run_id(pid) == state.get("run_id")
+            or command_is_runner(table[pid]["argv"])
+        ):
+            self.root_pid = pid
+            self.run_id = str(state.get("run_id", ""))
+            self.started_at = state.get("started_at")
+            self.log_path = str(state.get("log_path", ""))
+            self.dataset_dir = str(state.get("dataset_dir", self.dataset_dir))
+            self.progress_path = str(state.get("progress_path", ""))
+            self.config_path = str(state.get("config_path", ""))
+            self.config = dict(state.get("config") or {})
+            return
+
+        roots = discover_experiment_roots(table)
+        if roots:
+            self.root_pid = min(roots)
+            environment = process_environment(self.root_pid)
+            self.run_id = environment.get(DASHBOARD_RUN_ID_ENV, "")
+            self.dataset_dir = environment.get("LAEA_LOG_DIR", self.dataset_dir)
+            self.progress_path = environment.get(
+                "BATCH_PROGRESS_FILE",
+                str(Path(self.dataset_dir) / "batch_progress.json"),
+            )
+            argv = table[self.root_pid]["argv"]
+            self.config = {
+                "collection_mode": (
+                    "batch" if str(BATCH_SCRIPT) in argv else "single"
+                ),
+                "world_name": environment.get("EXP_WORLD_NAME", ""),
+                "scenario": environment.get("EXP_SCENARIO", ""),
+            }
+
+    def _active_roots_locked(self, table=None):
+        table = table or process_table()
+        roots = discover_experiment_roots(table)
+        if self.process is not None and self.process.poll() is None:
+            roots.add(self.process.pid)
+        if self.root_pid in table:
+            roots.add(self.root_pid)
+        if roots:
+            self.root_pid = min(roots)
+        return roots
+
+    def _write_control_state_locked(self):
+        if not self.root_pid:
+            return
+        CONTROL_DIR.mkdir(parents=True, exist_ok=True)
+        write_json_file(
+            str(PROCESS_STATE_PATH),
+            {
+                "pid": self.root_pid,
+                "pgid": os.getpgid(self.root_pid),
+                "run_id": self.run_id,
+                "started_at": self.started_at,
+                "log_path": self.log_path,
+                "dataset_dir": self.dataset_dir,
+                "progress_path": self.progress_path,
+                "config_path": self.config_path,
+                "config": self.config,
+            },
+        )
+
+    @staticmethod
+    def _clear_control_state():
+        try:
+            PROCESS_STATE_PATH.unlink()
+        except FileNotFoundError:
+            pass
 
     def _refresh_locked(self):
-        if self.process is None:
-            return
-        code = self.process.poll()
-        if code is not None and self.exit_code is None:
-            self.exit_code = code
-            self.ended_at = time.time()
+        if self.process is not None:
+            code = self.process.poll()
+            if code is not None and self.exit_code is None:
+                self.exit_code = code
+                self.ended_at = time.time()
+        if not self._active_roots_locked():
+            self.root_pid = None
+            self._clear_control_state()
 
     def start(self, config):
         with self.lock:
             self._refresh_locked()
-            if self.process is not None and self.process.poll() is None:
+            if self._active_roots_locked():
                 raise RuntimeError("An experiment is already running.")
 
             mode = config["collection_mode"]
@@ -444,8 +752,10 @@ class ExperimentProcess:
                     pass
 
             env = os.environ.copy()
+            self.run_id = uuid.uuid4().hex
             env.update(
                 {
+                    DASHBOARD_RUN_ID_ENV: self.run_id,
                     "EXP_NUM_RUNS": "1",
                     "EXP_SCENARIO": config["scenario"],
                     "EXP_WORLD_NAME": config["world_name"],
@@ -496,9 +806,15 @@ class ExperimentProcess:
                     "LAEA_LOG_DIR": str(dataset_dir),
                     "LAEA_SYS_LOG_DIR": str(system_log_dir / "components"),
                     "ENABLE_RVIZ": "1" if config["enable_rviz"] else "0",
+                    "ENABLE_GAZEBO_GUI": "0",
                     "ENABLE_DITTO_BRIDGE": "1" if config["enable_ditto"] else "0",
                     "ENABLE_AIOTTALK_RTP": "1" if config["enable_rtp"] else "0",
                     "ENABLE_MISSION_AWARE": "1",
+                    # The standard iris_d435_lidar model has no subscriber for
+                    # runtime attack commands. This drop-in variant behaves as
+                    # a normal GPS sensor while attacks are disabled and lets
+                    # the Dashboard activate source-layer GPS injection later.
+                    "LAEA_PX4_SDF": ATTACK_CAPABLE_PX4_SDF,
                     "LAEA_RUNTIME_PROFILE": STABLE_RUNTIME_PROFILE,
                     "MAPPING_LAUNCH": STABLE_MAPPING_LAUNCH,
                     "EXPLORE_LAUNCH": STABLE_EXPLORE_LAUNCH,
@@ -517,8 +833,12 @@ class ExperimentProcess:
                 }
             )
 
-            monitor.publish_override("NONE", "dashboard_start_reset")
-            rospy.sleep(0.1)
+            if not rospy.is_shutdown():
+                try:
+                    monitor.publish_override("NONE", "dashboard_start_reset")
+                except rospy.ROSException as exc:
+                    rospy.logwarn("Dashboard reset override failed: %s", exc)
+            time.sleep(0.1)
             write_json_file(
                 str(config_path),
                 {
@@ -535,7 +855,7 @@ class ExperimentProcess:
                     env=env,
                     stdout=log_handle,
                     stderr=subprocess.STDOUT,
-                    preexec_fn=os.setsid,
+                    start_new_session=True,
                 )
             finally:
                 log_handle.close()
@@ -548,48 +868,99 @@ class ExperimentProcess:
             self.progress_path = str(progress_path) if mode == "batch" else ""
             self.config_path = str(config_path)
             self.config = dict(config)
+            self.root_pid = self.process.pid
+            self.last_stop_report = {}
+            self._write_control_state_locked()
             return self.snapshot_locked()
 
     def stop(self):
         with self.lock:
             self._refresh_locked()
             process = self.process
-            if process is None or process.poll() is not None:
-                return self.snapshot_locked()
+            table = process_table()
+            roots = self._active_roots_locked(table)
+            run_ids = {self.run_id}
+            for root_pid in roots:
+                run_ids.add(process_run_id(root_pid))
+            target_pids = set(roots)
+            target_pids.update(descendant_pids(roots, table))
+            target_pids.update(experiment_component_pids(table, run_ids))
+            target_groups = {
+                table[pid]["pgid"]
+                for pid in roots
+                if pid in table and table[pid]["pgid"] == pid
+            }
 
-            target_pids = process_descendants(process.pid)
-            target_pids.add(process.pid)
-            target_groups = set()
-            for pid in target_pids:
-                try:
-                    target_groups.add(os.getpgid(pid))
-                except ProcessLookupError:
-                    pass
-
+        escalation = ["SIGINT"]
         signal_process_tree(target_pids, target_groups, signal.SIGINT)
         remaining = wait_for_processes(target_pids, 8.0)
+        remaining.update(
+            live_pids(experiment_component_pids(process_table(), run_ids))
+        )
         if remaining:
+            escalation.append("SIGTERM")
             signal_process_tree(remaining, target_groups, signal.SIGTERM)
             remaining = wait_for_processes(remaining, 4.0)
+            remaining.update(
+                live_pids(experiment_component_pids(process_table(), run_ids))
+            )
         if remaining:
+            escalation.append("SIGKILL")
             signal_process_tree(remaining, target_groups, signal.SIGKILL)
-            wait_for_processes(remaining, 2.0)
+            remaining = wait_for_processes(remaining, 2.0)
+            remaining.update(
+                live_pids(experiment_component_pids(process_table(), run_ids))
+            )
 
-        try:
-            process.wait(timeout=1.0)
-        except subprocess.TimeoutExpired:
-            pass
+        if process is not None:
+            try:
+                process.wait(timeout=1.0)
+            except subprocess.TimeoutExpired:
+                pass
+
+        # Processes can disappear without unregistering from the ROS master.
+        # Purge only known experiment nodes; keep dashboard and /rosout alive.
+        time.sleep(0.5)
+        purged_ros_nodes, ros_cleanup_errors = purge_experiment_ros_nodes()
+        remaining_ros_nodes = registered_experiment_ros_nodes()
+        cleanup_complete = (
+            not remaining and not remaining_ros_nodes and not ros_cleanup_errors
+        )
 
         with self.lock:
             self._refresh_locked()
-            return self.snapshot_locked()
+            self.ended_at = time.time()
+            self.root_pid = None
+            self._clear_control_state()
+            update_stopped_progress(
+                self.progress_path,
+                cleanup_complete=cleanup_complete,
+                remaining_pids=remaining,
+                remaining_ros_nodes=remaining_ros_nodes,
+            )
+            self.last_stop_report = {
+                "cleanup_complete": cleanup_complete,
+                "target_count": len(target_pids),
+                "remaining_pids": sorted(remaining),
+                "purged_ros_nodes": purged_ros_nodes,
+                "remaining_ros_nodes": remaining_ros_nodes,
+                "errors": ros_cleanup_errors,
+                "escalation": escalation,
+            }
+            snapshot = self.snapshot_locked()
+            snapshot["stop_report"] = dict(self.last_stop_report)
+            return snapshot
 
     def snapshot_locked(self):
         self._refresh_locked()
-        running = self.process is not None and self.process.poll() is None
+        table = process_table()
+        roots = self._active_roots_locked(table)
+        residual_pids = live_pids(experiment_component_pids(table))
+        residual_ros_nodes = registered_experiment_ros_nodes()
+        running = bool(roots)
         return {
             "running": running,
-            "pid": self.process.pid if self.process is not None else None,
+            "pid": min(roots) if roots else None,
             "started_at": self.started_at,
             "ended_at": self.ended_at,
             "exit_code": self.exit_code,
@@ -599,6 +970,12 @@ class ExperimentProcess:
             "collection_mode": self.config.get("collection_mode", "single"),
             "batch_progress": read_json_file(self.progress_path),
             "config": self.config,
+            "cleanup_needed": (
+                not running and bool(residual_pids or residual_ros_nodes)
+            ),
+            "residual_process_count": len(residual_pids) if not running else 0,
+            "residual_ros_nodes": residual_ros_nodes if not running else [],
+            "last_stop_report": self.last_stop_report,
         }
 
     def snapshot(self):
@@ -621,6 +998,18 @@ class RosMonitor:
             "supervisor": {},
             "ground_truth": {},
             "active_command": {},
+        }
+        self.attack_evidence = {
+            "command_start_s": 0.0,
+            "source": "none",
+            "mode": "none",
+            "severity": "none",
+            "baseline_drift_m": None,
+            "current_drift_m": None,
+            "peak_drift_m": None,
+            "drift_increase_m": None,
+            "impact_observed": False,
+            "stopped": False,
         }
         self.model_name = rospy.get_param("~ground_truth_model", "iris_0")
 
@@ -785,16 +1174,46 @@ class RosMonitor:
 
     def _active_command_cb(self, msg):
         with self.lock:
+            command_start_s = msg.scheduled_start.to_sec()
             self.state["active_command"] = {
                 "source": msg.source,
                 "mode": msg.mode,
                 "severity": msg.severity,
                 "enabled": bool(msg.enabled),
-                "scheduled_start_s": msg.scheduled_start.to_sec(),
+                "scheduled_start_s": command_start_s,
                 "ramp_s": msg.ramp.to_sec(),
                 "duration_s": msg.duration.to_sec(),
                 "recovery_s": msg.recovery.to_sec(),
+                "vector": [
+                    msg.vector_value.x,
+                    msg.vector_value.y,
+                    msg.vector_value.z,
+                ],
+                "scalar": msg.scalar_value,
+                "seed": int(msg.seed),
             }
+            if msg.enabled and msg.source != "none":
+                if self.attack_evidence["command_start_s"] != command_start_s:
+                    self.attack_evidence = {
+                        "command_start_s": command_start_s,
+                        "source": msg.source,
+                        "mode": msg.mode,
+                        "severity": msg.severity,
+                        "vector": [
+                            msg.vector_value.x,
+                            msg.vector_value.y,
+                            msg.vector_value.z,
+                        ],
+                        "scalar": msg.scalar_value,
+                        "baseline_drift_m": None,
+                        "current_drift_m": None,
+                        "peak_drift_m": None,
+                        "drift_increase_m": None,
+                        "impact_observed": False,
+                        "stopped": False,
+                    }
+            elif self.attack_evidence["command_start_s"] > 0.0:
+                self.attack_evidence["stopped"] = True
             self._touch("active_command")
 
     def publish_override(self, level, reason):
@@ -909,6 +1328,27 @@ class RosMonitor:
         command["phase"] = command_phase
         command["elapsed_s"] = max(command_age, 0.0) if command_start > 0.0 else 0.0
         result["active_command"] = command
+
+        drift = result["localization_drift_m"]
+        with self.lock:
+            evidence = self.attack_evidence
+            if evidence["command_start_s"] > 0.0 and drift is not None:
+                if evidence["baseline_drift_m"] is None:
+                    evidence["baseline_drift_m"] = drift
+                    evidence["peak_drift_m"] = drift
+                evidence["current_drift_m"] = drift
+                evidence["peak_drift_m"] = max(evidence["peak_drift_m"], drift)
+                evidence["drift_increase_m"] = max(
+                    evidence["peak_drift_m"] - evidence["baseline_drift_m"],
+                    0.0,
+                )
+                # This is an evidence aid, not plugin ACK. A 0.5 m increase over
+                # the pre-command baseline is large enough to be visible in a
+                # presentation while preserving the raw values for inspection.
+                evidence["impact_observed"] = evidence["drift_increase_m"] >= 0.5
+            evidence["phase"] = command_phase
+            evidence["effect_active"] = command_effect_active
+            result["attack_evidence"] = json.loads(json.dumps(evidence))
         return result
 
 
@@ -981,11 +1421,11 @@ def normalize_start_config(payload, profiles):
         "attack_seed": seed,
         "max_duration_s": max_duration,
         "detector_name": clean_name("detector_name", "rule_mad"),
-        "supervisor_policy": clean_name("supervisor_policy", "hybrid"),
+        "supervisor_policy": clean_name("supervisor_policy", "none"),
         "total_rounds": total_rounds,
         "sleep_between_rounds_s": sleep_between_rounds_s,
         "increment_seed": increment_seed,
-        "enable_rviz": bool(payload.get("enable_rviz", True)),
+        "enable_rviz": bool(payload.get("enable_rviz", False)),
         "enable_ditto": bool(payload.get("enable_ditto", False)),
         "enable_rtp": bool(payload.get("enable_rtp", True)),
     }
@@ -1011,7 +1451,9 @@ def ros_master_online():
         return False
 
 
-rospy.init_node("laea_dashboard", anonymous=False, disable_signals=True)
+# An anonymous ROS node name prevents a newly launched dashboard from shutting
+# down another Flask process that is still exiting with the same node name.
+rospy.init_node("laea_dashboard", anonymous=True, disable_signals=True)
 monitor = RosMonitor()
 experiment = ExperimentProcess()
 profiles = load_profiles()
@@ -1066,7 +1508,7 @@ def api_experiment_start():
     try:
         config = normalize_start_config(request.get_json(silent=True), profiles)
         return jsonify({"ok": True, "process": experiment.start(config)})
-    except (ValueError, RuntimeError, OSError) as exc:
+    except (ValueError, RuntimeError, OSError, rospy.ROSException) as exc:
         return jsonify({"ok": False, "error": str(exc)}), 400
 
 
@@ -1124,5 +1566,5 @@ def api_attack_stop():
 
 if __name__ == "__main__":
     host = os.environ.get("LAEA_DASHBOARD_HOST", "127.0.0.1")
-    port = int(os.environ.get("LAEA_DASHBOARD_PORT", "8088"))
+    port = int(os.environ.get("LAEA_DASHBOARD_PORT", "12346"))
     app.run(host=host, port=port, threaded=True, use_reloader=False)

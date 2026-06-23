@@ -130,6 +130,13 @@ button.warning { border-color: var(--yellow); color: var(--yellow); }
 .domain-grid > div { border: 1px solid var(--line); border-radius: 12px; padding: 14px; }
 .domain-grid span, .domain-grid small { display: block; color: var(--muted); }
 .domain-grid strong { display: block; margin: 8px 0 3px; font-size: 18px; }
+.domain-grid p {
+  min-height: 36px;
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
 .summary { margin: 14px 0 0; padding: 12px; border-left: 3px solid var(--cyan); background: #091713; }
 
 .two-column { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
@@ -237,6 +244,33 @@ button.warning { border-color: var(--yellow); color: var(--yellow); }
 .batch-stats span { color: var(--muted); font-size: 12px; }
 .batch-stats strong { margin-top: 5px; font-size: 18px; }
 
+.evidence-meta {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(140px, 1fr));
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.evidence-meta > div {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: rgba(5, 17, 14, .55);
+  padding: 11px;
+}
+
+.evidence-meta span, .evidence-meta strong { display: block; }
+.evidence-meta span { color: var(--muted); font-size: 11px; text-transform: uppercase; }
+.evidence-meta strong { margin-top: 4px; }
+.evidence-lower { margin-top: 16px; }
+
+body.evidence-mode main > section { display: none; }
+body.evidence-mode #attackEvidencePanel { display: block; }
+body.evidence-mode header, body.evidence-mode main { width: min(1180px, calc(100% - 40px)); }
+body.evidence-mode #attackEvidencePanel {
+  border-color: var(--cyan);
+  box-shadow: 0 0 0 1px rgba(85, 194, 217, .22), 0 24px 80px rgba(0, 0, 0, .35);
+}
+
 .table-wrap { overflow-x: auto; }
 table { width: 100%; border-collapse: collapse; }
 th, td { border-bottom: 1px solid var(--line); padding: 11px 10px; text-align: left; white-space: nowrap; }
@@ -255,12 +289,12 @@ pre {
 }
 
 @media (max-width: 1000px) {
-  .form-grid, .telemetry-grid, .capability-grid { grid-template-columns: repeat(2, 1fr); }
+  .form-grid, .telemetry-grid, .capability-grid, .evidence-meta { grid-template-columns: repeat(2, 1fr); }
   .batch-stats { grid-template-columns: repeat(3, 1fr); }
 }
 
 @media (max-width: 680px) {
   header, main { width: min(100% - 22px, 1440px); }
   header, .section-title { align-items: stretch; flex-direction: column; }
-  .form-grid, .telemetry-grid, .domain-grid, .two-column, .batch-stats, .capability-grid { grid-template-columns: 1fr; }
+  .form-grid, .telemetry-grid, .domain-grid, .two-column, .batch-stats, .capability-grid, .evidence-meta { grid-template-columns: 1fr; }
 }
