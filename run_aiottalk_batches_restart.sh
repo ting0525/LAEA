@@ -100,28 +100,10 @@ cleanup_round() {
     return
   fi
 
-  # Keep roscore/rosmaster and the dashboard node alive. Only experiment
-  # components are restarted between rounds.
-  pkill -f roslaunch || true
-  pkill -f gzserver || true
-  pkill -f gzclient || true
-  pkill -f px4 || true
-  pkill -f mavros || true
-  pkill -f laea_aiottalk_rtp.py || true
-  pkill -f experiment_manager.py || true
-  pkill -f slam_kpi_logger.py || true
-  pkill -f attack_scheduler.py || true
-  pkill -f mission_state_node.py || true
-  pkill -f supervisor_node.py || true
-  pkill -f exploration_node || true
-  pkill -f waypoint_generator || true
-  pkill -f octomap_server_node || true
-  pkill -f laserscan_to_pointcloud_assembler || true
-  pkill -f depthimage_to_laserscan || true
-  pkill -f topic2tf || true
-  pkill -f tf2topic_tf || true
-  pkill -f trajectory_msg_converter.py || true
-  pkill -f geometric_controller_node || true
+  # The per-round runner owns its roslaunch children and cleans them through
+  # its EXIT trap. Global pkill can kill roscore/rosout and break completion
+  # detection in later rounds.
+  sleep 1
 }
 
 on_interrupt() {

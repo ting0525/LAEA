@@ -128,12 +128,123 @@ launch_bg() {
   BG_PIDS+=("$!")
 }
 
-cleanup() {
-  for pid in "${BG_PIDS[@]:-}"; do
-    kill "${pid}" >/dev/null 2>&1 || true
+# Print every descendant PID (recursively) of the given roots by walking /proc
+# PPid links. Used to capture the gazebo/PX4/node tree BEFORE roslaunch exits,
+# because gzserver/gzclient and PX4 SITL reparent to init on shutdown and would
+# otherwise become unreachable orphans.
+descendants_of() {
+  python3 - "$@" <<'PY'
+import os, sys
+roots = [int(a) for a in sys.argv[1:] if a.isdigit()]
+children = {}
+for entry in os.listdir('/proc'):
+    if not entry.isdigit():
+        continue
+    try:
+        with open(f'/proc/{entry}/status') as fh:
+            ppid = next(int(l.split()[1]) for l in fh if l.startswith('PPid:'))
+    except Exception:
+        continue
+    children.setdefault(ppid, []).append(int(entry))
+seen, stack = set(), list(roots)
+while stack:
+    for child in children.get(stack.pop(), []):
+        if child not in seen:
+            seen.add(child)
+            stack.append(child)
+print(' '.join(str(p) for p in sorted(seen)))
+PY
+}
+
+kill_pidset() {
+  local sig="$1"; shift
+  local p
+  for p in "$@"; do
+    case "$p" in ''|*[!0-9]*) continue;; esac
+    [ "$p" -gt 1 ] && kill "-${sig}" "$p" >/dev/null 2>&1 || true
   done
 }
+
+any_alive() {
+  local p
+  for p in "$@"; do
+    case "$p" in ''|*[!0-9]*) continue;; esac
+    kill -0 "$p" >/dev/null 2>&1 && return 0
+  done
+  return 1
+}
+
+cleanup() {
+  trap - EXIT INT TERM
+
+  # Snapshot the full process tree under every launched job up front: killing
+  # only the recorded roslaunch PIDs (the old behaviour) leaves gazebo and PX4
+  # SITL running, which then pile up across batch rounds until the host jams.
+  local -a targets=("${BG_PIDS[@]:-}")
+  collect_descendants() {
+    [ "${#BG_PIDS[@]}" -gt 0 ] || return 0
+    local kids
+    kids="$(descendants_of "${BG_PIDS[@]}" 2>/dev/null)"
+    # shellcheck disable=SC2206
+    [ -n "${kids}" ] && targets+=(${kids})
+  }
+
+  collect_descendants
+  kill_pidset INT "${targets[@]}"
+  for _ in $(seq 1 25); do any_alive "${targets[@]}" || break; sleep 0.2; done
+  collect_descendants   # catch helpers spawned during the SIGINT grace period
+  kill_pidset TERM "${targets[@]}"
+  sleep 1
+  kill_pidset KILL "${targets[@]}"
+
+  for pid in "${BG_PIDS[@]:-}"; do wait "${pid}" >/dev/null 2>&1 || true; done
+
+  # Backstop for experiment processes that orphaned BEFORE the snapshot (a crash
+  # mid-run, or a node that detached from roslaunch). On this host orphans
+  # reparent to `systemd --user`, not init, so a ppid check is unreliable; we
+  # instead sweep the LAEA-specific binaries by name. This is safe under the
+  # single-experiment model and deliberately excludes roscore / rosout /
+  # roslaunch / the dashboard so next-round completion detection keeps working.
+  # slam_kpi_logger is included because experiment_manager starts it in its own
+  # session (setsid), so it is not part of any launch_bg descendant tree.
+  pkill -KILL -f 'gzserver|gzclient|px4_sitl_default/bin/px4|octomap_server_node|exploration_node|mavros_node|geometric_controller|slam_kpi_logger' >/dev/null 2>&1 || true
+
+  # Killed nodes leave stale registrations on the (shared, persistent) master —
+  # gazebo/gzclient in particular never unregister. Purge them by name so the
+  # next round starts from a clean master. Targeted by an explicit experiment
+  # node list, so the live dashboard and rosout are never touched.
+  python3 - >/dev/null 2>&1 <<'PY' || true
+import sys, site
+# rosnode pulls in rostopic -> yaml; make sure the dirs where PyYAML lives are on
+# the path (ROS environments sometimes shadow it), mirroring the dashboard.
+for _p in (site.getusersitepackages(), "/usr/lib/python3/dist-packages"):
+    if _p and _p not in sys.path:
+        sys.path.insert(0, _p)
+EXP = {
+    "/gazebo", "/gazebo_gui", "/mavros", "/exploration_node", "/octomap_server",
+    "/geometric_controller", "/attack_gazebo_bridge", "/attack_scheduler",
+    "/mission_state_node", "/mission_supervisor", "/feedback_actuator",
+    "/laea_aiottalk_rtp", "/slam_kpi_logger", "/waypoint_generator", "/topic2tf",
+    "/tf2topic_tf", "/world2odom", "/tf_base2camera", "/tf_base2laser",
+    "/tf_map2world_link", "/base2depth_scan", "/depthscan2pointcloud",
+    "/depthimage_to_laserscan", "/traj_msg_converter", "/rviz_map", "/sitl_0",
+}
+try:
+    import rosgraph, rosnode
+    master = rosgraph.Master("/laea_runner_cleanup")
+    registered = set()
+    for group in master.getSystemState():
+        for _resource, nodes in group:
+            registered.update(nodes)
+    victims = [n for n in registered if n in EXP]
+    if victims:
+        rosnode.cleanup_master_blacklist(master, victims)
+except Exception:
+    pass
+PY
+}
 trap cleanup EXIT
+trap 'cleanup; exit 130' INT TERM
 
 count_kept_logs() {
   find "${LAEA_LOG_DIR}" -maxdepth 1 -type f -name "kpi_log_run_*.csv" | wc -l

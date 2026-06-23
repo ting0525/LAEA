@@ -2,6 +2,15 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+mkdir -p /tmp/laea_dashboard
+
+# Keep one dashboard controller per ROS master. Multiple dashboard processes
+# can disagree about experiment ownership and make stop/cleanup unreliable.
+exec 9>/tmp/laea_dashboard/run_dashboard.lock
+if ! flock -n 9; then
+  echo "[laea_dashboard] another dashboard instance is already running." >&2
+  exit 1
+fi
 
 if [ -f /opt/ros/noetic/setup.bash ]; then
   # shellcheck disable=SC1091
@@ -15,23 +24,17 @@ fi
 USER_SITE="$(python3 -m site --user-site)"
 export PYTHONPATH="${USER_SITE}:${PYTHONPATH:-}:/usr/lib/python3/dist-packages"
 
-ROSCORE_PID=""
 if ! rosparam list >/dev/null 2>&1; then
-  mkdir -p /tmp/laea_dashboard
-  roscore >/tmp/laea_dashboard/roscore.log 2>&1 &
-  ROSCORE_PID="$!"
+  # Keep the ROS master independent from the Dashboard process. Experiments
+  # and the Dashboard must stay on the same master across UI restarts;
+  # otherwise rospy subscribers remain attached to a dead master and all
+  # telemetry/trend data silently stops.
+  setsid roscore </dev/null >/tmp/laea_dashboard/roscore.log 2>&1 &
   for _ in $(seq 1 30); do
     rosparam list >/dev/null 2>&1 && break
     sleep 0.5
   done
 fi
 
-cleanup() {
-  if [ -n "${ROSCORE_PID}" ]; then
-    kill "${ROSCORE_PID}" >/dev/null 2>&1 || true
-  fi
-}
-trap cleanup EXIT
-
-echo "[laea_dashboard] http://${LAEA_DASHBOARD_HOST:-127.0.0.1}:${LAEA_DASHBOARD_PORT:-8088}"
+echo "[laea_dashboard] http://${LAEA_DASHBOARD_HOST:-127.0.0.1}:${LAEA_DASHBOARD_PORT:-12346}"
 python3 "${SCRIPT_DIR}/laea_twin_tools/scripts/dashboard_server.py"
