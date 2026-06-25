@@ -2,11 +2,13 @@
 # -*- coding: utf-8 -*-
 
 import csv
+import json
 import os
 import math
 import signal
 import subprocess
 import threading
+import time
 import rospy
 
 from geometry_msgs.msg import PoseStamped
@@ -71,6 +73,176 @@ def append_manifest_row(path, row):
         writer.writerow({field: row.get(field, "") for field in MANIFEST_FIELDS})
         target.flush()
         os.fsync(target.fileno())
+
+
+def _finite_float(value):
+    try:
+        parsed = float(value)
+    except (TypeError, ValueError):
+        return None
+    if not math.isfinite(parsed):
+        return None
+    return parsed
+
+
+def _numeric_summary(values):
+    clean = [value for value in values if value is not None and math.isfinite(value)]
+    if not clean:
+        return {}
+    ordered = sorted(clean)
+    p95_index = min(len(ordered) - 1, int(0.95 * (len(ordered) - 1)))
+    return {
+        "count": len(clean),
+        "min": min(clean),
+        "mean": sum(clean) / len(clean),
+        "p95": ordered[p95_index],
+        "max": max(clean),
+        "last": clean[-1],
+    }
+
+
+def summarize_kpi_csv_for_debug(path, tail_window_s=5.0):
+    """Build a small diagnostic summary before failed-run CSV deletion."""
+    if not path or not os.path.isfile(path):
+        return {"available": False, "reason": "missing_csv", "path": path}
+
+    rows = []
+    with open(path, "r", newline="") as source:
+        reader = csv.DictReader(source)
+        for row in reader:
+            rows.append(row)
+
+    if not rows:
+        return {"available": False, "reason": "empty_csv", "path": path}
+
+    times = [_finite_float(row.get("t")) for row in rows]
+    valid_times = [value for value in times if value is not None]
+    t_first = valid_times[0] if valid_times else None
+    t_last = valid_times[-1] if valid_times else None
+    tail_start = (
+        t_last - float(tail_window_s)
+        if t_last is not None and tail_window_s > 0.0
+        else None
+    )
+    tail_rows = [
+        row
+        for row in rows
+        if tail_start is None
+        or (
+            _finite_float(row.get("t")) is not None
+            and _finite_float(row.get("t")) >= tail_start
+        )
+    ]
+
+    def values(source_rows, field):
+        return [_finite_float(row.get(field)) for row in source_rows]
+
+    def speed_values(source_rows):
+        speeds = []
+        for row in source_rows:
+            vx = _finite_float(row.get("vel_x"))
+            vy = _finite_float(row.get("vel_y"))
+            vz = _finite_float(row.get("vel_z"))
+            if vx is not None and vy is not None and vz is not None:
+                speeds.append(math.sqrt(vx * vx + vy * vy + vz * vz))
+        return speeds
+
+    def stale_ratio(source_rows):
+        parsed = []
+        for row in source_rows:
+            value = _finite_float(row.get("rtp_depth_stale"))
+            if value is not None:
+                parsed.append(1 if value >= 0.5 else 0)
+        return sum(parsed) / len(parsed) if parsed else None
+
+    def mission_outcome_counts(source_rows):
+        counts = {}
+        for row in source_rows:
+            value = row.get("mission_outcome", "")
+            counts[value] = counts.get(value, 0) + 1
+        return counts
+
+    def latest_sample(row):
+        vx = _finite_float(row.get("vel_x"))
+        vy = _finite_float(row.get("vel_y"))
+        vz = _finite_float(row.get("vel_z"))
+        speed = None
+        if vx is not None and vy is not None and vz is not None:
+            speed = math.sqrt(vx * vx + vy * vy + vz * vz)
+        return {
+            "t": _finite_float(row.get("t")),
+            "e_pos": _finite_float(row.get("e_pos")),
+            "gt": {
+                "x": _finite_float(row.get("px_gt")),
+                "y": _finite_float(row.get("py_gt")),
+                "z": _finite_float(row.get("pz_gt")),
+            },
+            "est": {
+                "x": _finite_float(row.get("pos_x")),
+                "y": _finite_float(row.get("pos_y")),
+                "z": _finite_float(row.get("pos_z")),
+            },
+            "speed_mps": speed,
+            "gps_sat": _finite_float(row.get("gps_sat")),
+            "gps_fix": _finite_float(row.get("gps_fix")),
+            "gps_position_covariance": _finite_float(
+                row.get("gps_position_covariance")
+            ),
+            "depth_age_ms": _finite_float(row.get("depth_age_ms")),
+            "depth_valid_ratio": _finite_float(row.get("depth_valid_ratio")),
+            "rtp_depth_stale": _finite_float(row.get("rtp_depth_stale")),
+            "rtp_depth_repeat_score": _finite_float(
+                row.get("rtp_depth_repeat_score")
+            ),
+            "mission_outcome": row.get("mission_outcome", ""),
+        }
+
+    def field_block(source_rows):
+        return {
+            "e_pos": _numeric_summary(values(source_rows, "e_pos")),
+            "speed_mps": _numeric_summary(speed_values(source_rows)),
+            "gps_sat": _numeric_summary(values(source_rows, "gps_sat")),
+            "gps_position_covariance": _numeric_summary(
+                values(source_rows, "gps_position_covariance")
+            ),
+            "odom_pose_covariance_summary": _numeric_summary(
+                values(source_rows, "odom_pose_covariance_summary")
+            ),
+            "odom_twist_covariance_summary": _numeric_summary(
+                values(source_rows, "odom_twist_covariance_summary")
+            ),
+            "depth_age_ms": _numeric_summary(values(source_rows, "depth_age_ms")),
+            "depth_valid_ratio": _numeric_summary(
+                values(source_rows, "depth_valid_ratio")
+            ),
+            "depth_mean_m": _numeric_summary(values(source_rows, "depth_mean_m")),
+            "depth_near_ratio_1m": _numeric_summary(
+                values(source_rows, "depth_near_ratio_1m")
+            ),
+            "rtp_depth_repeat_score": _numeric_summary(
+                values(source_rows, "rtp_depth_repeat_score")
+            ),
+            "depth_stale_ratio": stale_ratio(source_rows),
+        }
+
+    return {
+        "available": True,
+        "path": path,
+        "row_count": len(rows),
+        "tail_row_count": len(tail_rows),
+        "tail_window_s": tail_window_s,
+        "t_first": t_first,
+        "t_last": t_last,
+        "log_duration_s": (
+            max(t_last - t_first, 0.0)
+            if t_first is not None and t_last is not None
+            else None
+        ),
+        "mission_outcome_counts": mission_outcome_counts(rows),
+        "all": field_block(rows),
+        "tail": field_block(tail_rows),
+        "last_sample": latest_sample(rows[-1]),
+    }
 
 
 class ExperimentManager:
@@ -175,6 +347,20 @@ class ExperimentManager:
                 "~manifest_path", os.path.join(self.output_dir, "run_manifest.csv")
             )
         )
+        self.debug_on_non_success = self._as_bool(
+            rospy.get_param("~debug_on_non_success", True)
+        )
+        self.debug_dir = str(
+            rospy.get_param("~debug_dir", os.path.join(self.output_dir, "debug"))
+        )
+        self.debug_outcomes = set(
+            item.strip()
+            for item in str(rospy.get_param("~debug_outcomes", "")).split(",")
+            if item.strip()
+        )
+        self.debug_tail_window_s = float(
+            rospy.get_param("~debug_tail_window_s", 5.0)
+        )
 
         # Mission-aware terminal handling. A Hover published before the mission
         # trigger is ignored so a stale latched command cannot terminate a run.
@@ -204,6 +390,8 @@ class ExperimentManager:
         # ----------------------------
         self.gt_xyz = None
         self.est_xyz = None
+        self.gt_time = None
+        self.est_time = None
         self._travel_distance_m = 0.0
         self._last_gt_for_distance = None
         self._last_gt_distance_time = None
@@ -288,6 +476,7 @@ class ExperimentManager:
         current_time = rospy.Time.now()
         with self._state_lock:
             self.gt_xyz = current
+            self.gt_time = current_time
             if self._mission_trigger_time is not None:
                 sample_due = (
                     self._last_gt_distance_time is None
@@ -308,7 +497,9 @@ class ExperimentManager:
 
     def _est_cb(self, msg: PoseStamped):
         p = msg.pose.position
-        self.est_xyz = (p.x, p.y, p.z)
+        with self._state_lock:
+            self.est_xyz = (p.x, p.y, p.z)
+            self.est_time = rospy.Time.now()
 
     def _supervisor_command_cb(self, msg: SupervisorCommand):
         if not self.terminate_on_hover or msg.level != SupervisorCommand.HOVER:
@@ -362,12 +553,159 @@ class ExperimentManager:
     # Helpers
     # ----------------------------
     def _compute_e_pos(self):
-        if self.gt_xyz is None or self.est_xyz is None:
+        with self._state_lock:
+            gt_xyz = self.gt_xyz
+            est_xyz = self.est_xyz
+        if gt_xyz is None or est_xyz is None:
             return None
-        dx = self.gt_xyz[0] - self.est_xyz[0]
-        dy = self.gt_xyz[1] - self.est_xyz[1]
-        dz = self.gt_xyz[2] - self.est_xyz[2]
+        dx = gt_xyz[0] - est_xyz[0]
+        dy = gt_xyz[1] - est_xyz[1]
+        dz = gt_xyz[2] - est_xyz[2]
         return math.sqrt(dx * dx + dy * dy + dz * dz)
+
+    @staticmethod
+    def _stamp_to_float(stamp):
+        return stamp.to_sec() if stamp is not None else None
+
+    def _run_debug_snapshot(self, outcome, ended_at):
+        now = rospy.Time.now()
+        with self._state_lock:
+            gt_xyz = self.gt_xyz
+            est_xyz = self.est_xyz
+            gt_time = self.gt_time
+            est_time = self.est_time
+            trigger_time = self._mission_trigger_time
+            fail_start_time = self._fail_start_time
+            hover_seen = self._hover_seen
+            hover_time = self._hover_time
+            hover_reason_bits = self._hover_reason_bits
+            hover_hard_latched = self._hover_hard_latched
+            hover_reason = self._hover_reason
+            travel_distance_m = self._travel_distance_m
+            attack_info = dict(self._attack_info)
+
+        e_pos = None
+        if gt_xyz is not None and est_xyz is not None:
+            dx = gt_xyz[0] - est_xyz[0]
+            dy = gt_xyz[1] - est_xyz[1]
+            dz = gt_xyz[2] - est_xyz[2]
+            e_pos = math.sqrt(dx * dx + dy * dy + dz * dz)
+
+        started_at = trigger_time or self._run_start_time
+        return {
+            "outcome": outcome,
+            "created_wall_time_s": time.time(),
+            "ros_now_s": now.to_sec(),
+            "run_start_s": self._stamp_to_float(self._run_start_time),
+            "mission_trigger_s": self._stamp_to_float(trigger_time),
+            "ended_at_s": self._stamp_to_float(ended_at),
+            "duration_s": (
+                max((ended_at - started_at).to_sec(), 0.0)
+                if started_at is not None and ended_at is not None
+                else None
+            ),
+            "thresholds": {
+                "fail_error_m": self.fail_error_m,
+                "fail_hold_s": self.fail_hold_s,
+                "success_min_duration_s": self.success_min_duration_s,
+                "success_min_distance_m": self.success_min_distance_m,
+            },
+            "localization": {
+                "e_pos_m": e_pos,
+                "gt_xyz": gt_xyz,
+                "est_xyz": est_xyz,
+                "gt_time_s": self._stamp_to_float(gt_time),
+                "est_time_s": self._stamp_to_float(est_time),
+                "gt_age_s": (now - gt_time).to_sec() if gt_time is not None else None,
+                "est_age_s": (
+                    (now - est_time).to_sec() if est_time is not None else None
+                ),
+                "fail_started_s": self._stamp_to_float(fail_start_time),
+                "fail_held_s": (
+                    max((now - fail_start_time).to_sec(), 0.0)
+                    if fail_start_time is not None
+                    else None
+                ),
+            },
+            "mission": {
+                "travel_distance_m": travel_distance_m,
+                "finish_seen": self._finish_seen,
+                "finish_time_s": self._stamp_to_float(self._finish_time),
+                "early_finish_first_s": self._stamp_to_float(
+                    self._early_finish_first_time
+                ),
+                "early_finish_last_s": self._stamp_to_float(
+                    self._early_finish_last_time
+                ),
+            },
+            "hover": {
+                "seen": hover_seen,
+                "time_s": self._stamp_to_float(hover_time),
+                "reason_bits": hover_reason_bits,
+                "hard_latched": hover_hard_latched,
+                "reason": hover_reason,
+            },
+            "attack": attack_info,
+        }
+
+    def _debug_diagnosis(self, snapshot, kpi_summary):
+        diagnosis = []
+        outcome = snapshot.get("outcome", "")
+        localization = snapshot.get("localization", {})
+        mission = snapshot.get("mission", {})
+        thresholds = snapshot.get("thresholds", {})
+
+        e_pos = localization.get("e_pos_m")
+        fail_error_m = thresholds.get("fail_error_m")
+        if outcome == "FAIL_SLAM" and e_pos is not None and fail_error_m is not None:
+            diagnosis.append(
+                "localization_error_exceeded: e_pos %.3fm > threshold %.3fm"
+                % (e_pos, fail_error_m)
+            )
+
+        fail_held_s = localization.get("fail_held_s")
+        fail_hold_s = thresholds.get("fail_hold_s")
+        if fail_held_s is not None and fail_hold_s is not None:
+            diagnosis.append(
+                "localization_error_hold: held %.3fs / required %.3fs"
+                % (fail_held_s, fail_hold_s)
+            )
+
+        for key in ("gt_age_s", "est_age_s"):
+            value = localization.get(key)
+            if value is not None and value > 1.0:
+                diagnosis.append("%s_high: %.3fs" % (key, value))
+
+        if outcome == "TIMEOUT_NO_FINISH":
+            diagnosis.append(
+                "timeout_without_finish: travel_distance %.3fm, finish_seen=%s"
+                % (
+                    mission.get("travel_distance_m") or 0.0,
+                    mission.get("finish_seen"),
+                )
+            )
+
+        if kpi_summary.get("available"):
+            tail = kpi_summary.get("tail", {})
+            depth_stale_ratio = tail.get("depth_stale_ratio")
+            if depth_stale_ratio is not None and depth_stale_ratio > 0.5:
+                diagnosis.append(
+                    "depth_stream_stale_tail: %.1f%% stale"
+                    % (depth_stale_ratio * 100.0)
+                )
+
+            tail_e_pos = tail.get("e_pos", {})
+            if tail_e_pos.get("max") is not None and fail_error_m is not None:
+                if tail_e_pos["max"] > fail_error_m:
+                    diagnosis.append(
+                        "tail_e_pos_max_high: %.3fm" % tail_e_pos["max"]
+                    )
+        else:
+            diagnosis.append("kpi_csv_unavailable: %s" % kpi_summary.get("reason", ""))
+
+        if not diagnosis:
+            diagnosis.append("no_single_clear_cause_in_summary")
+        return diagnosis
 
     def _wait_ready(self, timeout_s=60.0):
         """最小 readiness gate：確保 GT/EST 都有資料"""
@@ -523,6 +861,63 @@ class ExperimentManager:
             rospy.loginfo(f"[RUN] annotated mission_outcome={outcome}: {path}")
         except Exception as error:
             rospy.logerr(f"[RUN] failed to annotate mission_outcome for {path}: {error}")
+
+    def _write_failure_debug(self, run_id, outcome, ended_at):
+        if not self.debug_on_non_success or outcome == "SUCCESS_FINISH":
+            return ""
+        if self.debug_outcomes and outcome not in self.debug_outcomes:
+            return ""
+
+        os.makedirs(self.debug_dir, exist_ok=True)
+        log_path = self._current_log_path()
+        snapshot = self._run_debug_snapshot(outcome, ended_at)
+        kpi_summary = summarize_kpi_csv_for_debug(
+            log_path, tail_window_s=self.debug_tail_window_s
+        )
+        diagnosis = self._debug_diagnosis(snapshot, kpi_summary)
+        payload = {
+            "debug_version": 1,
+            "run_id": run_id,
+            "scenario": self.scenario,
+            "transport_mode": self.transport_mode,
+            "world_name": self.world_name,
+            "log_path": log_path,
+            "log_exists_before_delete": bool(log_path and os.path.isfile(log_path)),
+            "snapshot": snapshot,
+            "kpi_csv_summary": kpi_summary,
+            "diagnosis": diagnosis,
+        }
+
+        json_path = os.path.join(self.debug_dir, f"{run_id}_{outcome}.json")
+        temp_path = json_path + ".tmp"
+        with open(temp_path, "w") as target:
+            json.dump(payload, target, indent=2, sort_keys=True)
+            target.write("\n")
+            target.flush()
+            os.fsync(target.fileno())
+        os.replace(temp_path, json_path)
+
+        latest_path = os.path.join(self.debug_dir, "latest_failure_debug.json")
+        latest_temp = latest_path + ".tmp"
+        with open(latest_temp, "w") as target:
+            json.dump(payload, target, indent=2, sort_keys=True)
+            target.write("\n")
+            target.flush()
+            os.fsync(target.fileno())
+        os.replace(latest_temp, latest_path)
+
+        row_count = kpi_summary.get("row_count") if kpi_summary.get("available") else 0
+        e_pos = snapshot.get("localization", {}).get("e_pos_m")
+        rospy.logwarn(
+            "[RUN %s] debug summary outcome=%s rows=%s e_pos=%s path=%s cause=%s",
+            run_id,
+            outcome,
+            row_count,
+            "%.3f" % e_pos if e_pos is not None else "NA",
+            json_path,
+            " | ".join(diagnosis[:3]),
+        )
+        return json_path
 
     # ----------------------------
     # Run lifecycle
@@ -743,6 +1138,11 @@ class ExperimentManager:
             self._annotate_current_log(outcome)
         except Exception as exc:
             rospy.logwarn(f"[RUN {run_id}] annotation failed: {exc}")
+
+        try:
+            self._write_failure_debug(run_id, outcome, ended_at)
+        except Exception as exc:
+            rospy.logwarn(f"[RUN {run_id}] failed to write debug summary: {exc}")
 
         # Dataset governance: only SUCCESS_FINISH keeps the high-frequency CSV.
         log_deleted = False

@@ -22,6 +22,9 @@ EXP_FAIL_HOLD_S="${EXP_FAIL_HOLD_S:-1.0}"
 EXP_FINISH_TOKEN="${EXP_FINISH_TOKEN:-finish exploration.}"
 EXP_FINISH_NODE_NAME="${EXP_FINISH_NODE_NAME:-}"
 EXP_DELETE_ON_NON_SUCCESS="${EXP_DELETE_ON_NON_SUCCESS:-true}"
+EXP_DEBUG_FAILURES="${EXP_DEBUG_FAILURES:-true}"
+EXP_DEBUG_OUTCOMES="${EXP_DEBUG_OUTCOMES:-}"
+EXP_DEBUG_TAIL_WINDOW_S="${EXP_DEBUG_TAIL_WINDOW_S:-5.0}"
 EXP_SCENARIO="${EXP_SCENARIO:-normal}"
 EXP_TRANSPORT_MODE="${EXP_TRANSPORT_MODE:-aiottalk_rtp}"
 EXP_WORLD_NAME="${EXP_WORLD_NAME:-indoor_01}"
@@ -338,6 +341,7 @@ echo "[run_aiottalk_rtp] profile  : ${LAEA_RUNTIME_PROFILE}"
 echo "[run_aiottalk_rtp] world    : ${EXP_WORLD_NAME} (${EXP_WORLD_FILE})"
 echo "[run_aiottalk_rtp] bounds   : x=[${EXP_BOX_X_MIN},${EXP_BOX_X_MAX}] y=[${EXP_BOX_Y_MIN},${EXP_BOX_Y_MAX}] z=[${EXP_BOX_Z_MIN},${EXP_BOX_Z_MAX}]"
 echo "[run_aiottalk_rtp] finish   : min_time=${EXP_MIN_FINISH_TIME_S}s min_dist=${EXP_MIN_FINISH_DISTANCE_M}m"
+echo "[run_aiottalk_rtp] debug    : failures=${EXP_DEBUG_FAILURES} outcomes=${EXP_DEBUG_OUTCOMES:-all-non-success} tail=${EXP_DEBUG_TAIL_WINDOW_S}s"
 echo "[run_aiottalk_rtp] mapping  : ${MAPPING_LAUNCH} ${MAPPING_LAUNCH_ARGS}"
 echo "[run_aiottalk_rtp] explore  : ${EXPLORE_LAUNCH} ${EXPLORE_LAUNCH_ARGS}"
 echo "[run_aiottalk_rtp] RTP bridge enabled: ${ENABLE_AIOTTALK_RTP}"
@@ -458,6 +462,9 @@ python3 "${SCRIPT_DIR}/laea_twin_tools/scripts/experiment_manager.py" \
   _depth_topic:="${EXP_DEPTH_TOPIC}" \
   _use_roslaunch_logger:=false \
   _delete_on_non_success:="${EXP_DELETE_ON_NON_SUCCESS}" \
+  _debug_on_non_success:="${EXP_DEBUG_FAILURES}" \
+  _debug_outcomes:="${EXP_DEBUG_OUTCOMES}" \
+  _debug_tail_window_s:="${EXP_DEBUG_TAIL_WINDOW_S}" \
   _terminate_on_hover:="${EXP_TERMINATE_ON_HOVER}" \
   _supervisor_command_topic:="${EXP_SUPERVISOR_COMMAND_TOPIC}" \
   _manifest_path:="${EXP_MANIFEST_PATH}"
