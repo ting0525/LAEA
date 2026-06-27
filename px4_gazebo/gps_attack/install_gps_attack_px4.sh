@@ -16,8 +16,15 @@ PLUGIN_SRC="${SITL_DIR}/src/gazebo_gps_attack_plugin.cpp"
 
 install -m 0644 "${SCRIPT_DIR}/gazebo_gps_attack_plugin.cpp" "${PLUGIN_SRC}"
 
-# Shared, dependency-free attack headers consumed by the plugin (the plugin
-# compiles inside ${SITL_DIR}/src so the headers must sit next to it).
+# IMU and barometer source-attack plugins share the same command plane and
+# attack_common headers; they live next to the GPS one in ${SITL_DIR}/src.
+install -m 0644 "${SCRIPT_DIR}/../imu_attack/gazebo_imu_attack_plugin.cpp" \
+  "${SITL_DIR}/src/gazebo_imu_attack_plugin.cpp"
+install -m 0644 "${SCRIPT_DIR}/../baro_attack/gazebo_barometer_attack_plugin.cpp" \
+  "${SITL_DIR}/src/gazebo_barometer_attack_plugin.cpp"
+
+# Shared, dependency-free attack headers consumed by the plugins (they compile
+# inside ${SITL_DIR}/src so the headers must sit next to them).
 ATTACK_COMMON_DIR="${SCRIPT_DIR}/../attack_common"
 install -m 0644 "${ATTACK_COMMON_DIR}/attack_window.h" "${SITL_DIR}/src/attack_window.h"
 install -m 0644 "${ATTACK_COMMON_DIR}/attack_command_json.h" "${SITL_DIR}/src/attack_command_json.h"
@@ -29,6 +36,22 @@ fi
 
 if ! grep -q "^  gazebo_gps_attack_plugin$" "${CMAKE_FILE}"; then
   sed -i "/^  gazebo_gps_plugin$/a\\  gazebo_gps_attack_plugin" "${CMAKE_FILE}"
+fi
+
+# IMU attack plugin: build + install entry, mirroring the GPS pattern.
+if ! grep -q "add_library(gazebo_imu_attack_plugin" "${CMAKE_FILE}"; then
+  sed -i "/add_library(gazebo_imu_plugin SHARED src\\/gazebo_imu_plugin.cpp)/a add_library(gazebo_imu_attack_plugin SHARED src/gazebo_imu_attack_plugin.cpp)" "${CMAKE_FILE}"
+fi
+if ! grep -q "^  gazebo_imu_attack_plugin$" "${CMAKE_FILE}"; then
+  sed -i "/^  gazebo_imu_plugin$/a\\  gazebo_imu_attack_plugin" "${CMAKE_FILE}"
+fi
+
+# Barometer attack plugin: build + install entry.
+if ! grep -q "add_library(gazebo_barometer_attack_plugin" "${CMAKE_FILE}"; then
+  sed -i "/add_library(gazebo_barometer_plugin SHARED src\\/gazebo_barometer_plugin.cpp)/a add_library(gazebo_barometer_attack_plugin SHARED src/gazebo_barometer_attack_plugin.cpp)" "${CMAKE_FILE}"
+fi
+if ! grep -q "^  gazebo_barometer_attack_plugin$" "${CMAKE_FILE}"; then
+  sed -i "/^  gazebo_barometer_plugin$/a\\  gazebo_barometer_attack_plugin" "${CMAKE_FILE}"
 fi
 
 GPS_ATTACK_MODEL_DIR="${SITL_DIR}/models/gps_attack"
@@ -46,6 +69,8 @@ mkdir -p "${IRIS_ATTACK_DIR}"
 sed \
   -e "s/<model name='iris'>/<model name='iris_gps_attack'>/" \
   -e 's#<uri>model://gps</uri>#<uri>model://gps_attack</uri>#' \
+  -e 's#libgazebo_imu_plugin.so#libgazebo_imu_attack_plugin.so#' \
+  -e 's#libgazebo_barometer_plugin.so#libgazebo_barometer_attack_plugin.so#' \
   "${IRIS_SRC}" > "${IRIS_ATTACK_DIR}/iris_gps_attack.sdf"
 cat > "${IRIS_ATTACK_DIR}/model.config" <<'MODEL_CONFIG'
 <?xml version="1.0"?>

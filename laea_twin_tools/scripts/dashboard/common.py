@@ -27,7 +27,7 @@ STABLE_MAPPING_LAUNCH = "scan_mapping.launch"
 STABLE_EXPLORE_LAUNCH = "explore_test.launch"
 BASELINE_PX4_SDF = "iris_d435_lidar"
 ATTACK_CAPABLE_PX4_SDF = "iris_d435_lidar_gps_attack"
-LIVE_ATTACK_SOURCES = {"gps"}
+LIVE_ATTACK_SOURCES = {"gps", "imu", "barometer"}
 DASHBOARD_ROS_NODE_PREFIX = "/laea_dashboard_"
 COMPONENT_NODES = {
     "px4": "/mavros",
