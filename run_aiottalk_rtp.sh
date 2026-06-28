@@ -80,6 +80,14 @@ if [ "${ATTACK_PROFILE}" = "none" ]; then
 else
   ENABLE_ATTACK_PLANE="${ENABLE_ATTACK_PLANE:-true}"
 fi
+# Auto-fire scheduler runs ONLY when a profile is selected. A manual-attack run
+# (dashboard sets ENABLE_ATTACK_PLANE=true but keeps ATTACK_PROFILE=none) gets
+# the bridge without the scheduler, so nothing fights the live trigger.
+if [ "${ATTACK_PROFILE}" = "none" ]; then
+  ENABLE_ATTACK_SCHEDULER="${ENABLE_ATTACK_SCHEDULER:-false}"
+else
+  ENABLE_ATTACK_SCHEDULER="${ENABLE_ATTACK_SCHEDULER:-true}"
+fi
 
 if [ -f "${LAEA_HEADLESS_FLAG}" ]; then
   ENABLE_RVIZ=0
@@ -416,6 +424,7 @@ if [ "${ENABLE_MISSION_AWARE}" = "1" ]; then
     attack_profile:="${ATTACK_PROFILE}" \
     attack_seed:="${ATTACK_SEED}" \
     enable_attack:="${ENABLE_ATTACK_PLANE}" \
+    enable_scheduler:="${ENABLE_ATTACK_SCHEDULER}" \
     detector_name:="${DETECTOR_NAME}" \
     supervisor_policy:="${SUPERVISOR_POLICY}" \
     depth_topic:="${EXP_DEPTH_TOPIC}"

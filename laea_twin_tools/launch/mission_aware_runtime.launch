@@ -4,13 +4,18 @@
   <arg name="detector_name" default="rule_mad"/>
   <arg name="supervisor_policy" default="none"/>
   <arg name="depth_topic" default="/rtp/depth/image_raw"/>
-  <!-- Only wire the source-layer attack command plane for attack runs. Baseline
-       / normal data collection must NOT launch the scheduler or the Gazebo
-       bridge, so the clean stock-GPS model is never shadowed by injection
-       infrastructure. The supervisory framework below stays on either way. -->
+  <!-- Source-layer attack command plane, gated in two parts so baseline runs
+       stay clean AND manual-only attack runs are possible:
+       - enable_attack    : the Gazebo bridge (relays commands to the plugins).
+         On for any attack-capable run (auto-fire OR dashboard manual trigger).
+       - enable_scheduler : the auto-fire scheduler. On ONLY when an attack
+         profile is selected. A manual-attack run keeps this OFF so the
+         scheduler never republishes and fights the dashboard's live command.
+       The supervisory framework below stays on either way. -->
   <arg name="enable_attack" default="false"/>
+  <arg name="enable_scheduler" default="false"/>
 
-  <node if="$(arg enable_attack)" pkg="laea_twin_tools" type="attack_scheduler.py" name="attack_scheduler" output="screen">
+  <node if="$(arg enable_scheduler)" pkg="laea_twin_tools" type="attack_scheduler.py" name="attack_scheduler" output="screen">
     <rosparam command="load" file="$(find laea_twin_tools)/config/attack_profiles.yaml"/>
     <param name="profile" value="$(arg attack_profile)"/>
     <param name="seed" value="$(arg attack_seed)"/>

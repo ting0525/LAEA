@@ -127,7 +127,12 @@ class ExperimentProcess:
                 raise RuntimeError("An experiment is already running.")
 
             config = dict(config)
-            attack_capable_model = config["attack_profile"] != "none"
+            # Manual-attack mode loads the attack model + bridge with no profile,
+            # so the dashboard live trigger is the sole attacker (no scheduler).
+            attack_capable_model = (
+                config["attack_profile"] != "none"
+                or bool(config.get("manual_attack", False))
+            )
             px4_sdf = (
                 ATTACK_CAPABLE_PX4_SDF
                 if attack_capable_model
