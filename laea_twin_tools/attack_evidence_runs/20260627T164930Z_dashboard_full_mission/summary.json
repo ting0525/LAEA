@@ -1,0 +1,88 @@
+{
+  "created_at": "2026-06-27T17:05:46.944083+00:00",
+  "evidence_root": "/home/tim/laea/src/LAEA/laea_twin_tools/attack_evidence_runs/20260627T164930Z_dashboard_full_mission",
+  "post_all_process_check": "/home/tim/laea/src/LAEA/laea_twin_tools/attack_evidence_runs/20260627T164930Z_dashboard_full_mission/post_all_process_check.txt",
+  "profiles": [
+    {
+      "attack": "30 m east GPS position bias",
+      "attack_actual_onset_s": "158.407",
+      "csv_state": "deleted",
+      "debug_path": "/home/tim/laea/src/LAEA/laea_twin_tools/attack_evidence_runs/20260627T164930Z_dashboard_full_mission/gps_bias_high_run_001_FAIL_SLAM.json",
+      "diagnosis": [
+        "localization_error_exceeded: e_pos 27.607m > threshold 10.000m",
+        "localization_error_hold: held 1.814s / required 1.000s",
+        "tail_e_pos_max_high: 30.319m"
+      ],
+      "duration_s": "173.953000",
+      "impact_observed": true,
+      "manifest_path": "/home/tim/laea/src/LAEA/laea_twin_tools/attack_evidence_runs/20260627T164930Z_dashboard_full_mission/gps_bias_high_run_manifest.csv",
+      "max_active_metric_value": 30.139,
+      "max_metric_value": 30.139,
+      "metric_key": "gps_pos_res",
+      "metric_label": "GPS position residual",
+      "metric_unit": "m",
+      "outcome": "FAIL_SLAM",
+      "plot": "/home/tim/laea/src/LAEA/laea_twin_tools/attack_evidence_runs/20260627T164930Z_dashboard_full_mission/gps_bias_high_trend.png",
+      "profile": "gps_bias_high",
+      "samples_path": "/home/tim/laea/src/LAEA/laea_twin_tools/attack_evidence_runs/20260627T164930Z_dashboard_full_mission/gps_bias_high_samples.jsonl",
+      "screenshots": [
+        "/home/tim/laea/src/LAEA/laea_twin_tools/attack_evidence_runs/20260627T164930Z_dashboard_full_mission/gps_bias_high_active.png",
+        "/home/tim/laea/src/LAEA/laea_twin_tools/attack_evidence_runs/20260627T164930Z_dashboard_full_mission/gps_bias_high_final.png"
+      ]
+    },
+    {
+      "attack": "0.8 rad/s IMU gyro Z bias",
+      "attack_actual_onset_s": "158.37",
+      "csv_state": "deleted",
+      "debug_path": "/home/tim/laea/src/LAEA/laea_twin_tools/attack_evidence_runs/20260627T164930Z_dashboard_full_mission/imu_gyro_bias_high_run_001_FAIL_SLAM.json",
+      "diagnosis": [
+        "localization_error_exceeded: e_pos 37.992m > threshold 10.000m",
+        "localization_error_hold: held 1.805s / required 1.000s",
+        "tail_e_pos_max_high: 23.873m"
+      ],
+      "duration_s": "168.852000",
+      "impact_observed": true,
+      "manifest_path": "/home/tim/laea/src/LAEA/laea_twin_tools/attack_evidence_runs/20260627T164930Z_dashboard_full_mission/imu_gyro_bias_high_run_manifest.csv",
+      "max_active_metric_value": 0.914,
+      "max_metric_value": 0.914,
+      "metric_key": "yaw_rate_res",
+      "metric_label": "Yaw-rate residual",
+      "metric_unit": "rad/s",
+      "outcome": "FAIL_SLAM",
+      "plot": "/home/tim/laea/src/LAEA/laea_twin_tools/attack_evidence_runs/20260627T164930Z_dashboard_full_mission/imu_gyro_bias_high_trend.png",
+      "profile": "imu_gyro_bias_high",
+      "samples_path": "/home/tim/laea/src/LAEA/laea_twin_tools/attack_evidence_runs/20260627T164930Z_dashboard_full_mission/imu_gyro_bias_high_samples.jsonl",
+      "screenshots": [
+        "/home/tim/laea/src/LAEA/laea_twin_tools/attack_evidence_runs/20260627T164930Z_dashboard_full_mission/imu_gyro_bias_high_active.png",
+        "/home/tim/laea/src/LAEA/laea_twin_tools/attack_evidence_runs/20260627T164930Z_dashboard_full_mission/imu_gyro_bias_high_impact.png",
+        "/home/tim/laea/src/LAEA/laea_twin_tools/attack_evidence_runs/20260627T164930Z_dashboard_full_mission/imu_gyro_bias_high_final.png"
+      ]
+    },
+    {
+      "attack": "3.0 m barometer altitude-equivalent drift",
+      "attack_actual_onset_s": "158.448",
+      "csv_state": "deleted",
+      "debug_path": "/home/tim/laea/src/LAEA/laea_twin_tools/attack_evidence_runs/20260627T164930Z_dashboard_full_mission/barometer_drift_high_run_001_FAIL_PREMATURE_FINISH.json",
+      "diagnosis": [
+        "no_single_clear_cause_in_summary"
+      ],
+      "duration_s": "237.752000",
+      "impact_observed": true,
+      "manifest_path": "/home/tim/laea/src/LAEA/laea_twin_tools/attack_evidence_runs/20260627T164930Z_dashboard_full_mission/barometer_drift_high_run_manifest.csv",
+      "max_active_metric_value": 0.758,
+      "max_metric_value": 0.81,
+      "metric_key": "baro_res",
+      "metric_label": "Barometer altitude residual",
+      "metric_unit": "m",
+      "outcome": "FAIL_PREMATURE_FINISH",
+      "plot": "/home/tim/laea/src/LAEA/laea_twin_tools/attack_evidence_runs/20260627T164930Z_dashboard_full_mission/barometer_drift_high_trend.png",
+      "profile": "barometer_drift_high",
+      "samples_path": "/home/tim/laea/src/LAEA/laea_twin_tools/attack_evidence_runs/20260627T164930Z_dashboard_full_mission/barometer_drift_high_samples.jsonl",
+      "screenshots": [
+        "/home/tim/laea/src/LAEA/laea_twin_tools/attack_evidence_runs/20260627T164930Z_dashboard_full_mission/barometer_drift_high_active.png",
+        "/home/tim/laea/src/LAEA/laea_twin_tools/attack_evidence_runs/20260627T164930Z_dashboard_full_mission/barometer_drift_high_impact_verified.png",
+        "/home/tim/laea/src/LAEA/laea_twin_tools/attack_evidence_runs/20260627T164930Z_dashboard_full_mission/barometer_drift_high_final.png"
+      ]
+    }
+  ]
+}

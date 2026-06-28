@@ -1,0 +1,100 @@
+[  0%] Built target tf2topic_tf
+[  0%] Built target tf_generate_messages_nodejs
+[  0%] Built target tf2topic_tf2
+[100%] Built target topic2tf
+[100%] Built target std_msgs_generate_messages_nodejs
+[100%] Built target std_msgs_generate_messages_py
+[100%] Built target roscpp_generate_messages_cpp
+[100%] Built target rosgraph_msgs_generate_messages_nodejs
+[100%] Built target roscpp_generate_messages_eus
+[100%] Built target roscpp_generate_messages_py
+[100%] Built target std_msgs_generate_messages_eus
+[100%] Built target std_msgs_generate_messages_lisp
+[100%] Built target rosgraph_msgs_generate_messages_cpp
+[100%] Built target roscpp_generate_messages_nodejs
+[100%] Built target std_msgs_generate_messages_cpp
+[100%] Built target rosgraph_msgs_generate_messages_lisp
+[100%] Built target rosgraph_msgs_generate_messages_eus
+[100%] Built target roscpp_generate_messages_lisp
+[100%] Built target rosgraph_msgs_generate_messages_py
+[100%] Built target geometry_msgs_generate_messages_eus
+[100%] Built target sensor_msgs_generate_messages_nodejs
+[100%] Built target sensor_msgs_generate_messages_cpp
+[100%] Built target geometry_msgs_generate_messages_lisp
+[100%] Built target geometry_msgs_generate_messages_py
+[100%] Built target sensor_msgs_generate_messages_lisp
+[100%] Built target sensor_msgs_generate_messages_py
+[100%] Built target geometry_msgs_generate_messages_cpp
+[100%] Built target geometry_msgs_generate_messages_nodejs
+[100%] Built target actionlib_msgs_generate_messages_eus
+[100%] Built target actionlib_msgs_generate_messages_cpp
+[100%] Built target actionlib_msgs_generate_messages_py
+[100%] Built target actionlib_msgs_generate_messages_nodejs
+[100%] Built target sensor_msgs_generate_messages_eus
+[100%] Built target actionlib_msgs_generate_messages_lisp
+[100%] Built target mavros_msgs_generate_messages_lisp
+[100%] Built target uuid_msgs_generate_messages_py
+[100%] Built target geographic_msgs_generate_messages_nodejs
+[100%] Built target uuid_msgs_generate_messages_nodejs
+[100%] Built target geographic_msgs_generate_messages_cpp
+[100%] Built target mavros_msgs_generate_messages_eus
+[100%] Built target mavros_msgs_generate_messages_cpp
+[100%] Built target mavros_msgs_generate_messages_nodejs
+[100%] Built target mavros_msgs_generate_messages_py
+[100%] Built target uuid_msgs_generate_messages_eus
+[100%] Built target geographic_msgs_generate_messages_eus
+[100%] Built target geographic_msgs_generate_messages_py
+[100%] Built target geographic_msgs_generate_messages_lisp
+[100%] Built target uuid_msgs_generate_messages_cpp
+[100%] Built target uuid_msgs_generate_messages_lisp
+[100%] Built target tf2_msgs_generate_messages_py
+[100%] Built target tf2_msgs_generate_messages_lisp
+[100%] Built target tf2_msgs_generate_messages_cpp
+[100%] Built target tf2_msgs_generate_messages_eus
+[100%] Built target actionlib_generate_messages_cpp
+[100%] Built target tf2_msgs_generate_messages_nodejs
+[100%] Built target actionlib_generate_messages_eus
+[100%] Built target actionlib_generate_messages_lisp
+[100%] Built target actionlib_generate_messages_nodejs
+[100%] Built target actionlib_generate_messages_py
+[100%] Built target tf_generate_messages_cpp
+[100%] Built target tf_generate_messages_lisp
+[100%] Built target tf_generate_messages_eus
+[100%] Built target tf_generate_messages_py
+[100%] Built target attack_gazebo_bridge
+[  0%] Built target std_msgs_generate_messages_lisp
+[  0%] Built target geometry_msgs_generate_messages_lisp
+[  0%] Built target std_msgs_generate_messages_nodejs
+[  0%] Built target std_msgs_generate_messages_py
+[  0%] Built target geometry_msgs_generate_messages_py
+[  0%] Built target geometry_msgs_generate_messages_nodejs
+[  0%] Built target std_msgs_generate_messages_cpp
+[  0%] Built target geometry_msgs_generate_messages_cpp
+[  0%] Built target std_msgs_generate_messages_eus
+[  0%] Built target geometry_msgs_generate_messages_eus
+[  0%] Built target _laea_twin_tools_generate_messages_check_deps_AttackStatus
+[  0%] Built target _laea_twin_tools_generate_messages_check_deps_SupervisorEvent
+[  0%] Built target _laea_twin_tools_generate_messages_check_deps_PlannerTelemetry
+[  0%] Built target _laea_twin_tools_generate_messages_check_deps_MissionState
+[  0%] Built target _laea_twin_tools_generate_messages_check_deps_SupervisorCommand
+[  0%] Built target _laea_twin_tools_generate_messages_check_deps_AttackCommand
+[ 50%] Built target laea_twin_tools_generate_messages_lisp
+[ 50%] Built target laea_twin_tools_generate_messages_py
+[ 50%] Built target laea_twin_tools_generate_messages_nodejs
+[ 50%] Built target laea_twin_tools_generate_messages_cpp
+[100%] Built target laea_twin_tools_generate_messages_eus
+[100%] Built target laea_twin_tools_generate_messages
+Base path: /home/tim/laea
+Source space: /home/tim/laea/src
+Build space: /home/tim/laea/build
+Devel space: /home/tim/laea/devel
+Install space: /home/tim/laea/install
+####
+#### Running command: "make cmake_check_build_system" in "/home/tim/laea/build"
+####
+####
+#### Running command: "make -j16 -l16" in "/home/tim/laea/build/LAEA/px4_gazebo"
+####
+####
+#### Running command: "make -j16 -l16" in "/home/tim/laea/build/LAEA/laea_twin_tools"
+####

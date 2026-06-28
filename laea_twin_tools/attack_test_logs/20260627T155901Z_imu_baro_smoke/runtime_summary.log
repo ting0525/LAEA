@@ -1,0 +1,8 @@
+clock_ready=1
+publish_rc=0
+launch_pid=3042826
+bridge_pid=3043569
+1:published gps bias {"duration_s": 10000.0, "enabled": true, "mode": "bias", "ramp_s": 0.0, "recovery_s": 0.0, "run_id": "runtime_smoke", "scalar": 0.0, "scheduled_start": 1.0, "seed": 0, "severity": "high", "source": "gps", "vector": [30.0, 0.0, 0.0]}
+2:published imu gyro_bias {"duration_s": 10000.0, "enabled": true, "mode": "gyro_bias", "ramp_s": 0.0, "recovery_s": 0.0, "run_id": "runtime_smoke", "scalar": 0.0, "scheduled_start": 1.0, "seed": 0, "severity": "high", "source": "imu", "vector": [0.0, 0.0, 0.8]}
+3:published barometer drift {"duration_s": 10000.0, "enabled": true, "mode": "drift", "ramp_s": 0.0, "recovery_s": 0.0, "run_id": "runtime_smoke", "scalar": 3.0, "scheduled_start": 1.0, "seed": 0, "severity": "high", "source": "barometer", "vector": [0.0, 0.0, 0.0]}
+4:published stop

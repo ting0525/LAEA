@@ -1,0 +1,10 @@
+    PID    PPID    PGID STAT %CPU %MEM COMMAND         COMMAND
+  34331   34220   34331 Ssl   0.3  0.2 rosmaster       /usr/bin/python3 /opt/ros/noetic/bin/rosmaster --core -p 11311 -w 3 __log:=/home/tim/.ros/log/73653820-70a2-11f1-bbc7-69c505eaf9c1/master.log
+  34360   34220   34360 Ssl   0.1  0.0 rosout          /opt/ros/noetic/lib/rosout/rosout __name:=rosout __log:=/home/tim/.ros/log/73653820-70a2-11f1-bbc7-69c505eaf9c1/rosout-1.log
+3143972    3131 3143972 Ss    0.0  0.0 bash            bash ./run_dashboard.sh
+3144057 3143972 3143972 Sl    5.8  0.3 python3         /usr/bin/python3 /home/tim/laea/src/LAEA/laea_twin_tools/scripts/dashboard_server.py
+/laea_dashboard_3144057_1782579582141
+/rosout
+Netid State  Recv-Q Send-Q               Local Address:Port   Peer Address:Port Process                                                                         
+tcp   LISTEN 0      128                        0.0.0.0:11311       0.0.0.0:*     users:(("rosmaster",pid=34331,fd=4))                                           
+tcp   LISTEN 0      128                      127.0.0.1:12346       0.0.0.0:*     users:(("python3",pid=3144057,fd=33))                                          

@@ -1,0 +1,22 @@
+[2026-06-27T16:56:36.431349+00:00] monitor imu_gyro_bias_high
+[2026-06-27T16:56:36.494757+00:00] imu_gyro_bias_high: t=0s running=True phase=scheduled active=False impact=False overall=NORMAL metric=0.204
+[2026-06-27T16:57:06.924405+00:00] imu_gyro_bias_high: t=30s running=True phase=ramp active=True impact=False overall=DEGRADED metric=0.277
+[2026-06-27T16:57:07.572591+00:00] imu_gyro_bias_high active screenshot path=/home/tim/laea/src/LAEA/laea_twin_tools/attack_evidence_runs/20260627T164930Z_dashboard_full_mission/imu_gyro_bias_high_active.png error=None
+[2026-06-27T16:57:13.362562+00:00] imu_gyro_bias_high impact screenshot path=/home/tim/laea/src/LAEA/laea_twin_tools/attack_evidence_runs/20260627T164930Z_dashboard_full_mission/imu_gyro_bias_high_impact.png error=None
+[2026-06-27T16:57:31.299252+00:00] done imu_gyro_bias_high: outcome=FAIL_SLAM max_metric=0.914 impact=True
+[2026-06-27T16:57:31.456634+00:00] monitor barometer_drift_high
+[2026-06-27T16:57:31.478519+00:00] barometer_drift_high: t=0s running=True phase=inactive active=False impact=True overall=CRITICAL metric=0.374
+[2026-06-27T16:57:31.979631+00:00] barometer_drift_high impact screenshot path=/home/tim/laea/src/LAEA/laea_twin_tools/attack_evidence_runs/20260627T164930Z_dashboard_full_mission/barometer_drift_high_impact.png error=None
+[2026-06-27T16:58:02.373625+00:00] barometer_drift_high: t=31s running=True phase=inactive active=False impact=False overall=CRITICAL metric=0.002
+[2026-06-27T16:58:32.720834+00:00] barometer_drift_high: t=61s running=True phase=scheduled active=False impact=False overall=NORMAL metric=0.197
+[2026-06-27T16:59:03.103962+00:00] barometer_drift_high: t=92s running=True phase=scheduled active=False impact=False overall=NORMAL metric=0.026
+[2026-06-27T16:59:33.408930+00:00] barometer_drift_high: t=122s running=True phase=scheduled active=False impact=False overall=NORMAL metric=0.022
+[2026-06-27T17:00:03.757282+00:00] barometer_drift_high: t=152s running=True phase=scheduled active=False impact=False overall=NORMAL metric=0.156
+[2026-06-27T17:00:34.084849+00:00] barometer_drift_high: t=183s running=True phase=scheduled active=False impact=False overall=NORMAL metric=0.122
+[2026-06-27T17:01:00.036638+00:00] barometer_drift_high active screenshot path=/home/tim/laea/src/LAEA/laea_twin_tools/attack_evidence_runs/20260627T164930Z_dashboard_full_mission/barometer_drift_high_active.png error=None
+[2026-06-27T17:01:05.095134+00:00] barometer_drift_high: t=214s running=True phase=ramp active=True impact=False overall=NORMAL metric=0.549
+[2026-06-27T17:01:35.448540+00:00] barometer_drift_high: t=244s running=True phase=complete active=False impact=False overall=DEGRADED metric=0.313
+[2026-06-27T17:02:05.791411+00:00] barometer_drift_high: t=274s running=True phase=complete active=False impact=True overall=NORMAL metric=0.051
+[2026-06-27T17:02:36.126214+00:00] barometer_drift_high: t=305s running=False phase=complete active=False impact=True overall=NORMAL metric=0.079
+[2026-06-27T17:02:38.790950+00:00] done barometer_drift_high: outcome=FAIL_PREMATURE_FINISH max_metric=0.81 impact=True
+[2026-06-27T17:02:38.791221+00:00] RESUME_DONE

@@ -1,0 +1,486 @@
+{
+  "components": {
+    "attack_bridge": {
+      "node": "/attack_gazebo_bridge",
+      "online": false
+    },
+    "attack_scheduler": {
+      "node": "/attack_scheduler",
+      "online": false
+    },
+    "feedback_actuator": {
+      "node": "/feedback_actuator",
+      "online": false
+    },
+    "gazebo": {
+      "node": "/gazebo",
+      "online": false
+    },
+    "mapping": {
+      "node": "/octomap_server",
+      "online": false
+    },
+    "mission_state": {
+      "node": "/mission_state_node",
+      "online": false
+    },
+    "planner": {
+      "node": "/exploration_node",
+      "online": false
+    },
+    "px4": {
+      "node": "/mavros",
+      "online": false
+    },
+    "rtp": {
+      "node": "/laea_aiottalk_rtp",
+      "online": false
+    },
+    "supervisor": {
+      "node": "/mission_supervisor",
+      "online": false
+    }
+  },
+  "process": {
+    "batch_progress": {},
+    "cleanup_needed": false,
+    "collection_mode": "single",
+    "config": {
+      "attack_capable_model": true,
+      "attack_profile": "imu_gyro_bias_high",
+      "attack_seed": 42,
+      "collection_mode": "single",
+      "dataset_name": "attack_evidence_imu_gyro_bias_high_20260627T165337Z",
+      "detector_name": "rule_mad",
+      "enable_ditto": false,
+      "enable_rtp": true,
+      "enable_rviz": false,
+      "increment_seed": false,
+      "manual_attack": false,
+      "max_duration_s": 900.0,
+      "px4_sdf": "iris_d435_lidar_gps_attack",
+      "runtime_profile": "scan_mapping_explore_test",
+      "scenario": "attack_evidence",
+      "sleep_between_rounds_s": 5.0,
+      "supervisor_policy": "none",
+      "total_rounds": 1,
+      "world_name": "indoor_01",
+      "world_profile": {
+        "description": "Stable baseline map used by the current dashboard workflow.",
+        "label": "Indoor 01",
+        "name": "indoor_01",
+        "planner": {
+          "box_x_max": 23.0,
+          "box_x_min": -23.0,
+          "box_y_max": 11.0,
+          "box_y_min": -11.0,
+          "box_z_max": 2.3,
+          "box_z_min": -0.1,
+          "map_size_x": 80.0,
+          "map_size_y": 80.0,
+          "map_size_z": 3.0,
+          "min_finish_distance_m": 200.0,
+          "min_finish_time_s": 300.0
+        },
+        "spawn": {
+          "pitch": 0.0,
+          "roll": 0.0,
+          "x": 0.0,
+          "y": 0.0,
+          "yaw": 0.0,
+          "z": 1.0
+        },
+        "world_file": "/home/tim/PX4-Autopilot/Tools/sitl_gazebo/worlds/indoor_01.world"
+      }
+    },
+    "config_path": "/home/tim/laea/src/LAEA/laea_twin_tools/laea_logs/attack_evidence_imu_gyro_bias_high_20260627T165337Z/collection_20260627T165337Z.json",
+    "dataset_dir": "/home/tim/laea/src/LAEA/laea_twin_tools/laea_logs/attack_evidence_imu_gyro_bias_high_20260627T165337Z",
+    "ended_at": null,
+    "exit_code": null,
+    "last_stop_report": {},
+    "log_path": "/tmp/laea_dashboard/20260627T165337Z/experiment.log",
+    "pid": null,
+    "residual_process_count": 0,
+    "residual_ros_nodes": [],
+    "running": false,
+    "started_at": 1782579217.289662
+  },
+  "profile_catalog": [
+    {
+      "live_supported": true,
+      "mode": "none",
+      "name": "none",
+      "note": "clean baseline",
+      "scalar": 0.0,
+      "severity": "none",
+      "source": "none",
+      "vector": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "duration_s": 20.0,
+      "live_supported": true,
+      "mode": "drift",
+      "name": "barometer_drift_high",
+      "note": "barometer source-layer injector connected",
+      "ramp_s": 15.0,
+      "recovery_s": 15.0,
+      "scalar": 3.0,
+      "severity": "high",
+      "source": "barometer",
+      "vector": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "duration_s": 20.0,
+      "live_supported": true,
+      "mode": "drift",
+      "name": "barometer_drift_low",
+      "note": "barometer source-layer injector connected",
+      "ramp_s": 15.0,
+      "recovery_s": 15.0,
+      "scalar": 1.2,
+      "severity": "low",
+      "source": "barometer",
+      "vector": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "duration_s": 20.0,
+      "live_supported": true,
+      "mode": "bias",
+      "name": "gps_bias_high",
+      "note": "gps source-layer injector connected",
+      "ramp_s": 0.5,
+      "recovery_s": 5.0,
+      "scalar": 0.0,
+      "severity": "high",
+      "source": "gps",
+      "vector": [
+        30.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "duration_s": 30.0,
+      "live_supported": true,
+      "mode": "bias",
+      "name": "gps_bias_low",
+      "note": "gps source-layer injector connected",
+      "ramp_s": 2.0,
+      "recovery_s": 5.0,
+      "scalar": 0.0,
+      "severity": "low",
+      "source": "gps",
+      "vector": [
+        10.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "duration_s": 20.0,
+      "live_supported": true,
+      "mode": "velocity_bias",
+      "name": "gps_velocity_bias_high",
+      "note": "gps source-layer injector connected",
+      "ramp_s": 0.5,
+      "recovery_s": 5.0,
+      "scalar": 0.0,
+      "severity": "high",
+      "source": "gps",
+      "vector": [
+        8.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "duration_s": 30.0,
+      "live_supported": true,
+      "mode": "velocity_bias",
+      "name": "gps_velocity_bias_low",
+      "note": "gps source-layer injector connected",
+      "ramp_s": 1.0,
+      "recovery_s": 5.0,
+      "scalar": 0.0,
+      "severity": "low",
+      "source": "gps",
+      "vector": [
+        3.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "duration_s": 30.0,
+      "live_supported": true,
+      "mode": "gyro_bias",
+      "name": "imu_gyro_bias_high",
+      "note": "imu source-layer injector connected",
+      "ramp_s": 5.0,
+      "recovery_s": 5.0,
+      "scalar": 0.0,
+      "severity": "high",
+      "source": "imu",
+      "vector": [
+        0.0,
+        0.0,
+        0.8
+      ]
+    },
+    {
+      "duration_s": 30.0,
+      "live_supported": true,
+      "mode": "gyro_bias",
+      "name": "imu_gyro_bias_low",
+      "note": "imu source-layer injector connected",
+      "ramp_s": 5.0,
+      "recovery_s": 5.0,
+      "scalar": 0.0,
+      "severity": "low",
+      "source": "imu",
+      "vector": [
+        0.0,
+        0.0,
+        0.3
+      ]
+    }
+  ],
+  "profiles": [
+    "none",
+    "barometer_drift_high",
+    "barometer_drift_low",
+    "gps_bias_high",
+    "gps_bias_low",
+    "gps_velocity_bias_high",
+    "gps_velocity_bias_low",
+    "imu_gyro_bias_high",
+    "imu_gyro_bias_low"
+  ],
+  "recent_runs": [
+    {
+      "attack_actual_onset_s": "158.37",
+      "attack_mode": "gyro_bias",
+      "attack_scheduled_onset_s": "158.365608",
+      "attack_seed": "42",
+      "attack_severity": "high",
+      "attack_source": "imu",
+      "delete_reason": "FAIL_SLAM",
+      "duration_s": "168.852000",
+      "ended_at_s": "438.178000",
+      "hover_hard_latched": "",
+      "hover_reason": "",
+      "hover_reason_bits": "",
+      "log_deleted": "true",
+      "log_retained": "false",
+      "manifest_version": "1",
+      "outcome": "FAIL_SLAM",
+      "run_id": "run_001",
+      "scenario": "attack_evidence",
+      "started_at_s": "269.326000",
+      "transport_mode": "aiottalk_rtp",
+      "world_name": "indoor_01"
+    }
+  ],
+  "ros_master_online": true,
+  "server_time": 1782579450.5439744,
+  "telemetry": {
+    "active_command": {
+      "duration_s": 30.0,
+      "effect_active": true,
+      "elapsed_s": 14.19539209300001,
+      "enabled": true,
+      "mode": "gyro_bias",
+      "phase": "active",
+      "ramp_s": 5.0,
+      "recovery_s": 5.0,
+      "scalar": 0.0,
+      "scheduled_start_s": 427.691607907,
+      "seed": 42,
+      "severity": "high",
+      "source": "imu",
+      "vector": [
+        0.0,
+        0.0,
+        0.8
+      ]
+    },
+    "ages_s": {
+      "active_command": 193.079,
+      "attack": 10.446,
+      "depth": 10.409,
+      "ground_truth": 10.34,
+      "mavros": 10.874,
+      "mission": 10.441,
+      "pose": 10.384,
+      "satellites": 10.591,
+      "supervisor": 10.427,
+      "velocity": 10.384
+    },
+    "altitude_drift_m": 1.765282169197257,
+    "attack": {
+      "active": true,
+      "actual_onset_s": 427.696,
+      "armed": true,
+      "detail": "active",
+      "elapsed_s": 14.104392092,
+      "mode": "gyro_bias",
+      "run_id": "",
+      "severity": "high",
+      "source": "imu"
+    },
+    "attack_evidence": {
+      "baseline_drift_m": 0.039,
+      "command_start_s": 427.691607907,
+      "current_drift_m": 0.374,
+      "current_metric": 0.374,
+      "drift_increase_m": 0.875,
+      "effect_active": true,
+      "impact_observed": true,
+      "metric_key": "yaw_rate_res",
+      "metric_label": "Yaw-rate residual",
+      "metric_unit": "rad/s",
+      "mode": "gyro_bias",
+      "peak_drift_m": 0.914,
+      "phase": "active",
+      "scalar": 0.0,
+      "severity": "high",
+      "source": "imu",
+      "stopped": false,
+      "vector": [
+        0.0,
+        0.0,
+        0.8
+      ]
+    },
+    "attack_metric_label": "Yaw-rate residual",
+    "attack_metric_unit": "rad/s",
+    "attack_metric_value": 0.374,
+    "depth": {
+      "encoding": "metadata",
+      "height": 480,
+      "width": 640
+    },
+    "ground_truth": {
+      "x": -21.47430347366587,
+      "y": 7.821355611947707,
+      "z": 0.11003686508959094
+    },
+    "localization_drift_m": 65.90660718220046,
+    "mavros": {
+      "armed": true,
+      "connected": true,
+      "guided": false,
+      "mode": "OFFBOARD",
+      "system_status": 4
+    },
+    "mission": {
+      "anomaly_score": 0.0,
+      "detector_name": "rule_mad",
+      "flight_safety": "CRITICAL",
+      "flight_safety_score": 8.323085534439207,
+      "hard_safety_latched": true,
+      "localization": "CRITICAL",
+      "localization_score": 32.97861153857059,
+      "overall": "CRITICAL",
+      "perception": "NORMAL",
+      "perception_score": 0.652,
+      "planner": "NORMAL",
+      "planner_score": 0.0,
+      "reason_bits": 9,
+      "recommended_feedback": "SLOW_DOWN",
+      "summary": "gps_pos_res=65.957 gps_vel_res=15.856 yaw_rate_res=0.374 baro_res=0.758 depth_age_ms=163.0 valid=0.923 repeat=0.078"
+    },
+    "pose": {
+      "x": 41.58876419067383,
+      "y": -11.328849792480469,
+      "z": -1.655245304107666
+    },
+    "satellites": 10,
+    "supervisor": {
+      "hard_latched": false,
+      "hold_position": false,
+      "level": "NONE",
+      "reason": "gps_pos_res=65.957 gps_vel_res=15.856 yaw_rate_res=0.374 baro_res=0.758 depth_age_ms=163.0 valid=0.923 repeat=0.078",
+      "reason_bits": 9,
+      "speed_scale": 1.0
+    },
+    "velocity": {
+      "speed": 17.077478045723005,
+      "x": 5.598435401916504,
+      "y": 15.157691955566406,
+      "z": -5.526495456695557
+    }
+  },
+  "world_catalog": [
+    {
+      "available": true,
+      "description": "Stable baseline map used by the current dashboard workflow.",
+      "error": "",
+      "label": "Indoor 01",
+      "name": "indoor_01",
+      "planner": {
+        "box_x_max": 23.0,
+        "box_x_min": -23.0,
+        "box_y_max": 11.0,
+        "box_y_min": -11.0,
+        "box_z_max": 2.3,
+        "box_z_min": -0.1,
+        "map_size_x": 80.0,
+        "map_size_y": 80.0,
+        "map_size_z": 3.0,
+        "min_finish_distance_m": 200.0,
+        "min_finish_time_s": 300.0
+      },
+      "spawn": {
+        "pitch": 0.0,
+        "roll": 0.0,
+        "x": 0.0,
+        "y": 0.0,
+        "yaw": 0.0,
+        "z": 1.0
+      },
+      "world_file": "/home/tim/PX4-Autopilot/Tools/sitl_gazebo/worlds/indoor_01.world"
+    },
+    {
+      "available": true,
+      "description": "Larger indoor layout with its own exploration boundary.",
+      "error": "",
+      "label": "Indoor 02",
+      "name": "indoor_02",
+      "planner": {
+        "box_x_max": 18.0,
+        "box_x_min": -18.0,
+        "box_y_max": 16.0,
+        "box_y_min": -14.0,
+        "box_z_max": 2.5,
+        "box_z_min": -0.1,
+        "map_size_x": 80.0,
+        "map_size_y": 80.0,
+        "map_size_z": 3.0,
+        "min_finish_distance_m": 200.0,
+        "min_finish_time_s": 300.0
+      },
+      "spawn": {
+        "pitch": 0.0,
+        "roll": 0.0,
+        "x": 0.0,
+        "y": 0.0,
+        "yaw": 0.0,
+        "z": 1.0
+      },
+      "world_file": "/home/tim/PX4-Autopilot/Tools/sitl_gazebo/worlds/indoor_02.world"
+    }
+  ]
+}

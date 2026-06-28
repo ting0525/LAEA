@@ -1,0 +1,122 @@
+[
+  {
+    "attack_log_excerpt": "/home/tim/laea/src/LAEA/laea_twin_tools/attack_evidence_runs/20260627T164930Z_dashboard_full_mission/imu_gyro_bias_high_attack_log_excerpt.txt",
+    "copied_artifacts": [
+      "/home/tim/laea/src/LAEA/laea_twin_tools/attack_evidence_runs/20260627T164930Z_dashboard_full_mission/imu_gyro_bias_high_latest_failure_debug.json",
+      "/home/tim/laea/src/LAEA/laea_twin_tools/attack_evidence_runs/20260627T164930Z_dashboard_full_mission/imu_gyro_bias_high_run_001_FAIL_SLAM.json",
+      "/home/tim/laea/src/LAEA/laea_twin_tools/attack_evidence_runs/20260627T164930Z_dashboard_full_mission/imu_gyro_bias_high_run_manifest.csv",
+      "/home/tim/laea/src/LAEA/laea_twin_tools/attack_evidence_runs/20260627T164930Z_dashboard_full_mission/imu_gyro_bias_high_collection_20260627T165337Z.json"
+    ],
+    "dashboard_log_tail": "/home/tim/laea/src/LAEA/laea_twin_tools/attack_evidence_runs/20260627T164930Z_dashboard_full_mission/imu_gyro_bias_high_dashboard_log_tail.txt",
+    "dataset_dir": "/home/tim/laea/src/LAEA/laea_twin_tools/laea_logs/attack_evidence_imu_gyro_bias_high_20260627T165337Z",
+    "final_state_path": "/home/tim/laea/src/LAEA/laea_twin_tools/attack_evidence_runs/20260627T164930Z_dashboard_full_mission/imu_gyro_bias_high_final_state.json",
+    "impact_observed": true,
+    "manifest_latest_row": {
+      "attack_actual_onset_s": "158.37",
+      "attack_mode": "gyro_bias",
+      "attack_scheduled_onset_s": "158.365608",
+      "attack_seed": "42",
+      "attack_severity": "high",
+      "attack_source": "imu",
+      "delete_reason": "FAIL_SLAM",
+      "duration_s": "168.852000",
+      "ended_at_s": "438.178000",
+      "hover_hard_latched": "",
+      "hover_reason": "",
+      "hover_reason_bits": "",
+      "log_deleted": "true",
+      "log_retained": "false",
+      "manifest_version": "1",
+      "outcome": "FAIL_SLAM",
+      "run_id": "run_001",
+      "scenario": "attack_evidence",
+      "started_at_s": "269.326000",
+      "transport_mode": "aiottalk_rtp",
+      "world_name": "indoor_01"
+    },
+    "manifest_path": "/home/tim/laea/src/LAEA/laea_twin_tools/laea_logs/attack_evidence_imu_gyro_bias_high_20260627T165337Z/run_manifest.csv",
+    "max_attack_metric_value": 0.914,
+    "plot_error": null,
+    "plot_path": "/home/tim/laea/src/LAEA/laea_twin_tools/attack_evidence_runs/20260627T164930Z_dashboard_full_mission/imu_gyro_bias_high_trend.png",
+    "profile": "imu_gyro_bias_high",
+    "sample_count": 12,
+    "samples_path": "/home/tim/laea/src/LAEA/laea_twin_tools/attack_evidence_runs/20260627T164930Z_dashboard_full_mission/imu_gyro_bias_high_samples.jsonl",
+    "screenshots": [
+      {
+        "error": null,
+        "path": "/home/tim/laea/src/LAEA/laea_twin_tools/attack_evidence_runs/20260627T164930Z_dashboard_full_mission/imu_gyro_bias_high_active.png",
+        "stage": "active"
+      },
+      {
+        "error": null,
+        "path": "/home/tim/laea/src/LAEA/laea_twin_tools/attack_evidence_runs/20260627T164930Z_dashboard_full_mission/imu_gyro_bias_high_impact.png",
+        "stage": "impact"
+      },
+      {
+        "error": null,
+        "path": "/home/tim/laea/src/LAEA/laea_twin_tools/attack_evidence_runs/20260627T164930Z_dashboard_full_mission/imu_gyro_bias_high_final.png",
+        "stage": "final"
+      }
+    ]
+  },
+  {
+    "attack_log_excerpt": "/home/tim/laea/src/LAEA/laea_twin_tools/attack_evidence_runs/20260627T164930Z_dashboard_full_mission/barometer_drift_high_attack_log_excerpt.txt",
+    "copied_artifacts": [
+      "/home/tim/laea/src/LAEA/laea_twin_tools/attack_evidence_runs/20260627T164930Z_dashboard_full_mission/barometer_drift_high_latest_failure_debug.json",
+      "/home/tim/laea/src/LAEA/laea_twin_tools/attack_evidence_runs/20260627T164930Z_dashboard_full_mission/barometer_drift_high_run_001_FAIL_PREMATURE_FINISH.json",
+      "/home/tim/laea/src/LAEA/laea_twin_tools/attack_evidence_runs/20260627T164930Z_dashboard_full_mission/barometer_drift_high_run_manifest.csv",
+      "/home/tim/laea/src/LAEA/laea_twin_tools/attack_evidence_runs/20260627T164930Z_dashboard_full_mission/barometer_drift_high_collection_20260627T165731Z.json"
+    ],
+    "dashboard_log_tail": "/home/tim/laea/src/LAEA/laea_twin_tools/attack_evidence_runs/20260627T164930Z_dashboard_full_mission/barometer_drift_high_dashboard_log_tail.txt",
+    "dataset_dir": "/home/tim/laea/src/LAEA/laea_twin_tools/laea_logs/attack_evidence_barometer_drift_high_20260627T165731Z",
+    "final_state_path": "/home/tim/laea/src/LAEA/laea_twin_tools/attack_evidence_runs/20260627T164930Z_dashboard_full_mission/barometer_drift_high_final_state.json",
+    "impact_observed": true,
+    "manifest_latest_row": {
+      "attack_actual_onset_s": "158.448",
+      "attack_mode": "drift",
+      "attack_scheduled_onset_s": "158.366608",
+      "attack_seed": "42",
+      "attack_severity": "high",
+      "attack_source": "barometer",
+      "delete_reason": "FAIL_PREMATURE_FINISH",
+      "duration_s": "237.752000",
+      "ended_at_s": "507.017000",
+      "hover_hard_latched": "",
+      "hover_reason": "",
+      "hover_reason_bits": "",
+      "log_deleted": "true",
+      "log_retained": "false",
+      "manifest_version": "1",
+      "outcome": "FAIL_PREMATURE_FINISH",
+      "run_id": "run_001",
+      "scenario": "attack_evidence",
+      "started_at_s": "269.265000",
+      "transport_mode": "aiottalk_rtp",
+      "world_name": "indoor_01"
+    },
+    "manifest_path": "/home/tim/laea/src/LAEA/laea_twin_tools/laea_logs/attack_evidence_barometer_drift_high_20260627T165731Z/run_manifest.csv",
+    "max_attack_metric_value": 0.81,
+    "plot_error": null,
+    "plot_path": "/home/tim/laea/src/LAEA/laea_twin_tools/attack_evidence_runs/20260627T164930Z_dashboard_full_mission/barometer_drift_high_trend.png",
+    "profile": "barometer_drift_high",
+    "sample_count": 61,
+    "samples_path": "/home/tim/laea/src/LAEA/laea_twin_tools/attack_evidence_runs/20260627T164930Z_dashboard_full_mission/barometer_drift_high_samples.jsonl",
+    "screenshots": [
+      {
+        "error": null,
+        "path": "/home/tim/laea/src/LAEA/laea_twin_tools/attack_evidence_runs/20260627T164930Z_dashboard_full_mission/barometer_drift_high_impact.png",
+        "stage": "impact"
+      },
+      {
+        "error": null,
+        "path": "/home/tim/laea/src/LAEA/laea_twin_tools/attack_evidence_runs/20260627T164930Z_dashboard_full_mission/barometer_drift_high_active.png",
+        "stage": "active"
+      },
+      {
+        "error": null,
+        "path": "/home/tim/laea/src/LAEA/laea_twin_tools/attack_evidence_runs/20260627T164930Z_dashboard_full_mission/barometer_drift_high_final.png",
+        "stage": "final"
+      }
+    ]
+  }
+]

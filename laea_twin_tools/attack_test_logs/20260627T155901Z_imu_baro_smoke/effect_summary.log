@@ -1,0 +1,68 @@
+python_rc=0
+{
+    "baro_attack": {
+        "gps_alt_mean": 535.2743956771146,
+        "gps_count": 100,
+        "gps_lat_mean": 47.397741951000036,
+        "gps_lon_mean": 8.545593935999994,
+        "imu_count": 100,
+        "imu_wz_mean": -0.19800376020371913,
+        "imu_wz_std": 0.0884711802697629,
+        "label": "barometer_drift_high",
+        "pressure_count": 100,
+        "pressure_mean": 95571.612578125,
+        "pressure_std": 0.4732841838696618,
+        "sample_count": 100
+    },
+    "baseline": {
+        "gps_alt_mean": 535.2743956598764,
+        "gps_count": 100,
+        "gps_lat_mean": 47.397741941000014,
+        "gps_lon_mean": 8.545593944999993,
+        "imu_count": 100,
+        "imu_wz_mean": -9.815133496886116e-05,
+        "imu_wz_std": 0.0030035738144160323,
+        "label": "baseline",
+        "pressure_count": 100,
+        "pressure_mean": 95606.071484375,
+        "pressure_std": 0.5516038571162705,
+        "sample_count": 100
+    },
+    "deltas": {
+        "baro_pressure_delta_pa": -34.458906250001746,
+        "gps_delta_m": {
+            "east_m": 30.120515746609982,
+            "north_m": -0.0014471586413721735,
+            "up_m": -0.00031758175668983313
+        },
+        "imu_wz_delta_rad_s": 0.6064350623576319
+    },
+    "gps_attack": {
+        "gps_alt_mean": 535.2740780781197,
+        "gps_count": 100,
+        "gps_lat_mean": 47.39774192799997,
+        "gps_lon_mean": 8.545993671999998,
+        "imu_count": 100,
+        "imu_wz_mean": -0.029479002598673105,
+        "imu_wz_std": 0.006624216914551581,
+        "label": "gps_bias_high",
+        "pressure_count": 100,
+        "pressure_mean": 95605.970625,
+        "pressure_std": 0.5571294399783815,
+        "sample_count": 100
+    },
+    "imu_attack": {
+        "gps_alt_mean": 535.2741356651134,
+        "gps_count": 100,
+        "gps_lat_mean": 47.397741976000034,
+        "gps_lon_mean": 8.545593952999994,
+        "imu_count": 100,
+        "imu_wz_mean": 0.6063369110226631,
+        "imu_wz_std": 0.11544573889958243,
+        "label": "imu_gyro_bias_high",
+        "pressure_count": 100,
+        "pressure_mean": 95605.99546875,
+        "pressure_std": 0.49922691699109883,
+        "sample_count": 100
+    }
+}

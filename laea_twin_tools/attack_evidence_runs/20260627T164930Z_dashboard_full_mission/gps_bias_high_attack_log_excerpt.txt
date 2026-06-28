@@ -1,0 +1,14 @@
+[run_aiottalk_rtp] kpi dir  : /home/tim/laea/src/LAEA/laea_twin_tools/laea_logs/attack_evidence_gps_bias_high_20260627T164930Z
+[run_aiottalk_rtp] debug    : failures=true outcomes=all-non-success tail=5.0s
+[run_aiottalk_rtp] mission-aware: 1, attack=gps_bias_high, attack_plane=true, seed=42
+[run_aiottalk_rtp] waiting for topic /mavros/imu/data (timeout 60s)
+[run_aiottalk_rtp] waiting for topic /mavros/global_position/raw/gps_vel (timeout 60s)
+success: True
+[ERROR] [1782579193.699467, 443.513000]: [RUN run_001] FAIL_SLAM e_pos=30.24m held=1.00s
+[WARN] [1782579194.644368, 444.431000]: [RUN run_001] debug summary outcome=FAIL_SLAM rows=3489 e_pos=27.607 path=/home/tim/laea/src/LAEA/laea_twin_tools/laea_logs/attack_evidence_gps_bias_high_20260627T164930Z/debug/run_001_FAIL_SLAM.json cause=localization_error_exceeded: e_pos 27.607m > threshold 10.000m | localization_error_hold: held 1.814s / required 1.000s | tail_e_pos_max_high: 30.319m
+[WARN] [1782579194.645941, 444.432000]: [DELETE] (FAIL_SLAM) removed log: /home/tim/laea/src/LAEA/laea_twin_tools/laea_logs/attack_evidence_gps_bias_high_20260627T164930Z/kpi_log_run_001.csv
+[INFO] [1782579006.694135, 268.439000]: [experiment_manager] num_runs=1, output_dir=/home/tim/laea/src/LAEA/laea_twin_tools/laea_logs/attack_evidence_gps_bias_high_20260627T164930Z, scenario=attack_evidence, transport=aiottalk_rtp, world=indoor_01
+[INFO] [1782579007.842761, 269.561000]: [RUN run_001] current_log_path=/home/tim/laea/src/LAEA/laea_twin_tools/laea_logs/attack_evidence_gps_bias_high_20260627T164930Z/kpi_log_run_001.csv
+[INFO] [1782579194.537020, 444.325000]: [RUN] annotated mission_outcome=FAIL_SLAM: /home/tim/laea/src/LAEA/laea_twin_tools/laea_logs/attack_evidence_gps_bias_high_20260627T164930Z/kpi_log_run_001.csv
+[INFO] [1782579194.647958, 444.435000]: [RUN run_001] appended outcome=FAIL_SLAM to manifest: /home/tim/laea/src/LAEA/laea_twin_tools/laea_logs/attack_evidence_gps_bias_high_20260627T164930Z/run_manifest.csv
+[run_aiottalk_rtp] done. result=FAIL kept_delta=0 success_delta=0 rc=0

@@ -1,0 +1,44 @@
+[run_aiottalk_rtp] log dir  : /tmp/laea_dashboard/20260627T164930Z/components
+[run_aiottalk_rtp] kpi dir  : /home/tim/laea/src/LAEA/laea_twin_tools/laea_logs/attack_evidence_gps_bias_high_20260627T164930Z
+[run_aiottalk_rtp] profile  : scan_mapping_explore_test
+[run_aiottalk_rtp] world    : indoor_01 (/home/tim/PX4-Autopilot/Tools/sitl_gazebo/worlds/indoor_01.world)
+[run_aiottalk_rtp] bounds   : x=[-23.0,23.0] y=[-11.0,11.0] z=[-0.1,2.3]
+[run_aiottalk_rtp] finish   : min_time=300.0s min_dist=200.0m
+[run_aiottalk_rtp] debug    : failures=true outcomes=all-non-success tail=5.0s
+[run_aiottalk_rtp] mapping  : scan_mapping.launch 
+[run_aiottalk_rtp] explore  : explore_test.launch 
+[run_aiottalk_rtp] RTP bridge enabled: 1
+[run_aiottalk_rtp] mission-aware: 1, attack=gps_bias_high, attack_plane=true, seed=42
+[run_aiottalk_rtp] launch px4_gazebo → /tmp/laea_dashboard/20260627T164930Z/components/px4_gazebo.log
+[run_aiottalk_rtp] launch controller → /tmp/laea_dashboard/20260627T164930Z/components/controller.log
+[run_aiottalk_rtp] waiting for topic /mavros/state (timeout 60s)
+[run_aiottalk_rtp] waiting for topic /mavros/local_position/pose (timeout 60s)
+[run_aiottalk_rtp] waiting for topic /mavros/local_position/odom (timeout 60s)
+[run_aiottalk_rtp] waiting for topic /mavros/local_position/velocity_local (timeout 60s)
+[run_aiottalk_rtp] waiting for topic /mavros/imu/data (timeout 60s)
+[run_aiottalk_rtp] waiting for topic /mavros/global_position/raw/fix (timeout 60s)
+[run_aiottalk_rtp] waiting for topic /mavros/global_position/raw/gps_vel (timeout 60s)
+[run_aiottalk_rtp] waiting for topic /mavros/global_position/raw/satellites (timeout 60s)
+[run_aiottalk_rtp] launch aiottalk_rtp → /tmp/laea_dashboard/20260627T164930Z/components/aiottalk_rtp.log
+[run_aiottalk_rtp] waiting for topic /rtp/depth/image_raw (timeout 90s)
+[run_aiottalk_rtp] launch mission_aware → /tmp/laea_dashboard/20260627T164930Z/components/mission_aware.log
+[run_aiottalk_rtp] launch mapping → /tmp/laea_dashboard/20260627T164930Z/components/mapping.log
+[run_aiottalk_rtp] launch explore → /tmp/laea_dashboard/20260627T164930Z/components/explore.log
+[run_aiottalk_rtp] waiting for service /mavros/set_mode (timeout 60s)
+[run_aiottalk_rtp] waiting for service /mavros/cmd/arming (timeout 60s)
+[run_aiottalk_rtp] set OFFBOARD attempt 1/5
+mode_sent: True
+[run_aiottalk_rtp] arm attempt 1/5
+success: True
+result: 0
+[ERROR] [1782579193.699467, 443.513000]: [RUN run_001] FAIL_SLAM e_pos=30.24m held=1.00s
+[WARN] [1782579194.644368, 444.431000]: [RUN run_001] debug summary outcome=FAIL_SLAM rows=3489 e_pos=27.607 path=/home/tim/laea/src/LAEA/laea_twin_tools/laea_logs/attack_evidence_gps_bias_high_20260627T164930Z/debug/run_001_FAIL_SLAM.json cause=localization_error_exceeded: e_pos 27.607m > threshold 10.000m | localization_error_hold: held 1.814s / required 1.000s | tail_e_pos_max_high: 30.319m
+[WARN] [1782579194.645941, 444.432000]: [DELETE] (FAIL_SLAM) removed log: /home/tim/laea/src/LAEA/laea_twin_tools/laea_logs/attack_evidence_gps_bias_high_20260627T164930Z/kpi_log_run_001.csv
+[INFO] [1782579006.694135, 268.439000]: [experiment_manager] num_runs=1, output_dir=/home/tim/laea/src/LAEA/laea_twin_tools/laea_logs/attack_evidence_gps_bias_high_20260627T164930Z, scenario=attack_evidence, transport=aiottalk_rtp, world=indoor_01
+[INFO] [1782579006.797222, 268.544000]: ========== RUN run_001 ==========
+[INFO] [1782579006.808127, 268.553000]: [RUN run_001] start logger (python): python3 /home/tim/laea/src/LAEA/laea_twin_tools/scripts/slam_kpi_logger.py
+[INFO] [1782579007.842761, 269.561000]: [RUN run_001] current_log_path=/home/tim/laea/src/LAEA/laea_twin_tools/laea_logs/attack_evidence_gps_bias_high_20260627T164930Z/kpi_log_run_001.csv
+[INFO] [1782579194.537020, 444.325000]: [RUN] annotated mission_outcome=FAIL_SLAM: /home/tim/laea/src/LAEA/laea_twin_tools/laea_logs/attack_evidence_gps_bias_high_20260627T164930Z/kpi_log_run_001.csv
+[INFO] [1782579194.647958, 444.435000]: [RUN run_001] appended outcome=FAIL_SLAM to manifest: /home/tim/laea/src/LAEA/laea_twin_tools/laea_logs/attack_evidence_gps_bias_high_20260627T164930Z/run_manifest.csv
+[INFO] [1782579197.088049, 446.436000]: [experiment_manager] All runs completed.
+[run_aiottalk_rtp] done. result=FAIL kept_delta=0 success_delta=0 rc=0
