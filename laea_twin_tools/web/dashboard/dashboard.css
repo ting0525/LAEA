@@ -147,60 +147,6 @@ button.warning { border-color: var(--yellow); color: var(--yellow); }
 
 .message { min-height: 24px; margin: 12px 0 0; color: var(--yellow); }
 
-.capability-grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(180px, 1fr));
-  gap: 10px;
-}
-
-.capability-card {
-  display: grid;
-  align-content: start;
-  gap: 9px;
-  min-height: 128px;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  background: rgba(5, 17, 14, .55);
-  padding: 14px;
-}
-
-.capability-title {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 8px;
-}
-
-.capability-card > span {
-  color: var(--muted);
-  font-size: 12px;
-}
-
-.capability-card small {
-  align-self: end;
-  font-weight: 800;
-  letter-spacing: .06em;
-}
-
-.capability-card small.normal { color: var(--green); }
-.capability-card small.degraded { color: var(--yellow); }
-.capability-card small.unknown { color: var(--muted); }
-
-.mini-pill {
-  flex: 0 0 auto;
-  border: 1px solid currentColor;
-  border-radius: 999px;
-  padding: 3px 7px;
-  font-size: 9px;
-  font-weight: 900;
-  letter-spacing: .06em;
-}
-
-.mini-pill.normal { color: var(--green); }
-.mini-pill.degraded { color: var(--yellow); }
-.mini-pill.unknown { color: var(--muted); }
-.capability-note { margin: 13px 0 0; }
-
 .legend { display: flex; gap: 14px; flex-wrap: wrap; align-items: center; }
 .lg { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: var(--muted); }
 .lg::before { content: ""; width: 14px; height: 3px; border-radius: 2px; background: currentColor; }
@@ -208,8 +154,71 @@ button.warning { border-color: var(--yellow); color: var(--yellow); }
 .lg-perc { color: var(--green); }
 .lg-plan { color: var(--yellow); }
 .lg-flight { color: var(--red); }
+.lg-sensor { color: var(--cyan); }
+.lg-support { color: var(--green); }
+.lg-warn { color: var(--yellow); }
+.lg-crit { color: var(--red); }
 .lg-atk::before { width: 12px; height: 12px; border-radius: 3px; background: rgba(255, 107, 107, .2); border: 1px solid var(--red); }
 #trendCanvas { width: 100%; height: 220px; display: block; margin-top: 8px; border: 1px solid var(--line); border-radius: 10px; background: #06100d; }
+
+.sensor-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 12px;
+}
+
+.sensor-card {
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  background: rgba(5, 17, 14, .55);
+  padding: 14px;
+}
+
+.sensor-card-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  min-height: 58px;
+}
+
+.sensor-card h3 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.sensor-card p {
+  margin: 2px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.sensor-card-title strong {
+  color: var(--cyan);
+  font-size: 18px;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.sensor-card canvas {
+  width: 100%;
+  height: 190px;
+  display: block;
+  margin-top: 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #06100d;
+}
+
+.sensor-stats {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 12px;
+}
 
 .progress-track {
   height: 12px;
@@ -264,7 +273,8 @@ button.warning { border-color: var(--yellow); color: var(--yellow); }
 .evidence-lower { margin-top: 16px; }
 
 body.evidence-mode main > section { display: none; }
-body.evidence-mode #attackEvidencePanel { display: block; }
+body.evidence-mode #attackEvidencePanel,
+body.evidence-mode #sensorImpactPanel { display: block; }
 body.evidence-mode header, body.evidence-mode main { width: min(1180px, calc(100% - 40px)); }
 body.evidence-mode #attackEvidencePanel {
   border-color: var(--cyan);
@@ -289,12 +299,12 @@ pre {
 }
 
 @media (max-width: 1000px) {
-  .form-grid, .telemetry-grid, .capability-grid, .evidence-meta { grid-template-columns: repeat(2, 1fr); }
+  .form-grid, .telemetry-grid, .evidence-meta, .sensor-grid { grid-template-columns: repeat(2, 1fr); }
   .batch-stats { grid-template-columns: repeat(3, 1fr); }
 }
 
 @media (max-width: 680px) {
   header, main { width: min(100% - 22px, 1440px); }
   header, .section-title { align-items: stretch; flex-direction: column; }
-  .form-grid, .telemetry-grid, .domain-grid, .two-column, .batch-stats, .capability-grid, .evidence-meta { grid-template-columns: 1fr; }
+  .form-grid, .telemetry-grid, .domain-grid, .two-column, .batch-stats, .evidence-meta, .sensor-grid { grid-template-columns: 1fr; }
 }

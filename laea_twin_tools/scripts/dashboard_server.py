@@ -114,7 +114,6 @@ def api_state():
             "profile_catalog": profile_catalog(),
             "world_catalog": world_catalog(),
             "components": components,
-            "capabilities": runtime_capabilities(process, components),
             "server_time": time.time(),
         }
     )
@@ -167,8 +166,9 @@ def api_attack_trigger():
                 {
                     "ok": False,
                     "error": (
-                        "This normal run uses the stock GPS model. "
-                        "Start an attack-profile experiment to enable injection."
+                        "This normal run uses the stock sensor model. "
+                        "Start an attack-profile or manual-attack experiment "
+                        "to enable source-layer GPS / IMU / barometer injection."
                     ),
                 }
             ),

@@ -1,4 +1,4 @@
-"""Attack/world/capability catalogs and experiment start-config validation."""
+"""Attack/world catalogs and experiment start-config validation."""
 
 import csv
 import os
@@ -41,7 +41,7 @@ def profile_catalog():
                 "scalar": float(definition.get("scalar", 0.0)),
                 "live_supported": live_supported,
                 "note": (
-                    "source-layer injector connected"
+                    f"{source} source-layer injector connected"
                     if live_supported
                     else "profile only; injector not connected"
                 ),
@@ -143,82 +143,6 @@ def world_catalog():
     return catalog
 
 
-def runtime_capabilities(process, components):
-    running = bool(process.get("running"))
-
-    def online(*keys):
-        return all(components.get(key, {}).get("online", False) for key in keys)
-
-    return [
-        {
-            "key": "experiment_control",
-            "name": "單次實驗控制",
-            "maturity": "ready",
-            "runtime": "active" if running else "idle",
-            "detail": STABLE_RUNTIME_PROFILE,
-        },
-        {
-            "key": "batch_collection",
-            "name": "自動訓練資料蒐集",
-            "maturity": "ready",
-            "runtime": (
-                "active"
-                if running and process.get("collection_mode") == "batch"
-                else "idle"
-            ),
-            "detail": "restart each round; retain SUCCESS_FINISH only",
-        },
-        {
-            "key": "gps_attack",
-            "name": "GPS source-layer attack",
-            "maturity": "ready",
-            "runtime": (
-                "online" if online("gazebo", "attack_bridge") else "offline"
-            ),
-            "detail": "position bias and velocity bias",
-        },
-        {
-            "key": "mission_state",
-            "name": "Mission State 評估",
-            "maturity": "ready",
-            "runtime": "online" if online("mission_state") else "offline",
-            "detail": "localization / perception / planner / flight safety",
-        },
-        {
-            "key": "supervisor",
-            "name": "Supervisor Alert",
-            "maturity": "ready",
-            "runtime": "online" if online("supervisor") else "offline",
-            "detail": "Alert and policy escalation",
-        },
-        {
-            "key": "hover",
-            "name": "HOVER feedback",
-            "maturity": "ready",
-            "runtime": (
-                "online"
-                if online("supervisor", "feedback_actuator", "planner")
-                else "offline"
-            ),
-            "detail": "planner pause; experiment ends as SAFETY_HOVER",
-        },
-        {
-            "key": "slow_down",
-            "name": "SLOW_DOWN feedback",
-            "maturity": "partial",
-            "runtime": "command_only",
-            "detail": "speed_scale is published; planner speed actuator pending",
-        },
-        {
-            "key": "imu_baro_attack",
-            "name": "IMU / Barometer attack",
-            "maturity": "partial",
-            "runtime": "profile_only",
-            "detail": "profiles exist; Gazebo injectors pending",
-        },
-    ]
-
-
 def load_profiles():
     try:
         with open(PROFILE_CONFIG, "r") as source:
@@ -285,6 +209,7 @@ def normalize_start_config(payload, profiles):
         "world_name": world_name,
         "world_profile": world_profile,
         "attack_profile": profile,
+        "manual_attack": bool(payload.get("manual_attack", False)),
         "attack_seed": seed,
         "max_duration_s": max_duration,
         "detector_name": clean_name("detector_name", "rule_mad"),

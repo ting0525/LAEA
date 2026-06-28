@@ -1,6 +1,7 @@
 """ROS telemetry monitor + live attack / supervisor command publishers."""
 
 import json
+import re
 import threading
 import time
 
@@ -37,18 +38,7 @@ class RosMonitor:
             "ground_truth": {},
             "active_command": {},
         }
-        self.attack_evidence = {
-            "command_start_s": 0.0,
-            "source": "none",
-            "mode": "none",
-            "severity": "none",
-            "baseline_drift_m": None,
-            "current_drift_m": None,
-            "peak_drift_m": None,
-            "drift_increase_m": None,
-            "impact_observed": False,
-            "stopped": False,
-        }
+        self.attack_evidence = self._new_attack_evidence()
         self.model_name = rospy.get_param("~ground_truth_model", "iris_0")
 
         self.override_pub = rospy.Publisher(
@@ -108,6 +98,26 @@ class RosMonitor:
         rospy.Subscriber(
             "/laea/attack/command", AttackCommand, self._active_command_cb, queue_size=10
         )
+
+    @staticmethod
+    def _new_attack_evidence(**updates):
+        evidence = {
+            "command_start_s": 0.0,
+            "source": "none",
+            "mode": "none",
+            "severity": "none",
+            "metric_key": "localization_drift_m",
+            "metric_label": "Localization drift",
+            "metric_unit": "m",
+            "baseline_drift_m": None,
+            "current_drift_m": None,
+            "peak_drift_m": None,
+            "drift_increase_m": None,
+            "impact_observed": False,
+            "stopped": False,
+        }
+        evidence.update(updates)
+        return evidence
 
     def _touch(self, name):
         self.received[name] = time.time()
@@ -235,27 +245,69 @@ class RosMonitor:
             }
             if msg.enabled and msg.source != "none":
                 if self.attack_evidence["command_start_s"] != command_start_s:
-                    self.attack_evidence = {
-                        "command_start_s": command_start_s,
-                        "source": msg.source,
-                        "mode": msg.mode,
-                        "severity": msg.severity,
-                        "vector": [
+                    self.attack_evidence = self._new_attack_evidence(
+                        command_start_s=command_start_s,
+                        source=msg.source,
+                        mode=msg.mode,
+                        severity=msg.severity,
+                        vector=[
                             msg.vector_value.x,
                             msg.vector_value.y,
                             msg.vector_value.z,
                         ],
-                        "scalar": msg.scalar_value,
-                        "baseline_drift_m": None,
-                        "current_drift_m": None,
-                        "peak_drift_m": None,
-                        "drift_increase_m": None,
-                        "impact_observed": False,
-                        "stopped": False,
-                    }
-            elif self.attack_evidence["command_start_s"] > 0.0:
-                self.attack_evidence["stopped"] = True
+                        scalar=msg.scalar_value,
+                        metric_key=self._attack_metric_key(msg.source),
+                        metric_label=self._attack_metric_label(msg.source),
+                        metric_unit=self._attack_metric_unit(msg.source),
+                        baseline_drift_m=None,
+                        current_drift_m=None,
+                        peak_drift_m=None,
+                        drift_increase_m=None,
+                        impact_observed=False,
+                        stopped=False,
+                    )
+            elif not msg.enabled:
+                self.attack_evidence = self._new_attack_evidence(stopped=True)
             self._touch("active_command")
+
+    @staticmethod
+    def _summary_value(summary, key):
+        match = re.search(rf"(?:^|\s){re.escape(key)}=(-?\d+(?:\.\d+)?)", summary or "")
+        return float(match.group(1)) if match else None
+
+    @staticmethod
+    def _summary_values(summary):
+        values = {}
+        for key, value in re.findall(r"([A-Za-z0-9_]+)=(-?\d+(?:\.\d+)?)", summary or ""):
+            try:
+                values[key] = float(value)
+            except ValueError:
+                continue
+        return values
+
+    @staticmethod
+    def _attack_metric_key(source):
+        return {
+            "gps": "gps_pos_res",
+            "imu": "yaw_rate_res",
+            "barometer": "baro_res",
+        }.get(str(source), "localization_drift_m")
+
+    @staticmethod
+    def _attack_metric_label(source):
+        return {
+            "gps": "GPS position residual",
+            "imu": "Yaw-rate residual",
+            "barometer": "Barometer altitude residual",
+        }.get(str(source), "Localization drift")
+
+    @staticmethod
+    def _attack_metric_unit(source):
+        return {
+            "gps": "m",
+            "imu": "rad/s",
+            "barometer": "m",
+        }.get(str(source), "m")
 
     def publish_override(self, level, reason):
         levels = {
@@ -341,6 +393,13 @@ class RosMonitor:
             ) ** 0.5
         else:
             result["localization_drift_m"] = None
+        # Vertical (altitude) divergence of the EKF estimate from Gazebo ground
+        # truth — the sustained, ground-truth effect of a barometer attack (and
+        # the part horizontal drift misses).
+        if "z" in pose and "z" in gt:
+            result["altitude_drift_m"] = abs(pose["z"] - gt["z"])
+        else:
+            result["altitude_drift_m"] = None
 
         command = result.get("active_command") or {}
         command_start = float(command.get("scheduled_start_s") or 0.0)
@@ -370,26 +429,60 @@ class RosMonitor:
         command["elapsed_s"] = max(command_age, 0.0) if command_start > 0.0 else 0.0
         result["active_command"] = command
 
-        drift = result["localization_drift_m"]
+        mission_summary = result.get("mission", {}).get("summary", "")
+        mission_metrics = self._summary_values(mission_summary)
+        result["sensor_metrics"] = {
+            "gps": {
+                "gps_pos_res": mission_metrics.get("gps_pos_res"),
+                "gps_vel_res": mission_metrics.get("gps_vel_res"),
+                "localization_drift_m": result.get("localization_drift_m"),
+                "satellites": result.get("satellites"),
+            },
+            "imu": {
+                "yaw_rate_res": mission_metrics.get("yaw_rate_res"),
+            },
+            "barometer": {
+                "baro_res": mission_metrics.get("baro_res"),
+                "altitude_drift_m": result.get("altitude_drift_m"),
+            },
+            "depth": {
+                "depth_age_ms": mission_metrics.get("depth_age_ms"),
+                "valid_ratio": mission_metrics.get("valid"),
+                "repeat_score": mission_metrics.get("repeat"),
+            },
+        }
         with self.lock:
             evidence = self.attack_evidence
-            if evidence["command_start_s"] > 0.0 and drift is not None:
+            source = evidence.get("source", "none")
+            metric_key = self._attack_metric_key(source)
+            if metric_key == "localization_drift_m":
+                metric_value = result.get("localization_drift_m")
+            else:
+                metric_value = self._summary_value(mission_summary, metric_key)
+            if metric_value is None and source == "barometer":
+                metric_value = result.get("altitude_drift_m")
+            evidence["metric_key"] = metric_key
+            evidence["metric_label"] = self._attack_metric_label(source)
+            evidence["metric_unit"] = self._attack_metric_unit(source)
+            evidence["current_metric"] = metric_value
+            result["attack_metric_value"] = metric_value
+            result["attack_metric_label"] = evidence["metric_label"]
+            result["attack_metric_unit"] = evidence["metric_unit"]
+            if evidence["command_start_s"] > 0.0 and metric_value is not None:
                 if evidence["baseline_drift_m"] is None:
-                    evidence["baseline_drift_m"] = drift
-                    evidence["peak_drift_m"] = drift
-                evidence["current_drift_m"] = drift
-                evidence["peak_drift_m"] = max(evidence["peak_drift_m"], drift)
+                    evidence["baseline_drift_m"] = metric_value
+                    evidence["peak_drift_m"] = metric_value
+                evidence["current_drift_m"] = metric_value
+                evidence["peak_drift_m"] = max(evidence["peak_drift_m"], metric_value)
                 evidence["drift_increase_m"] = max(
                     evidence["peak_drift_m"] - evidence["baseline_drift_m"],
                     0.0,
                 )
-                # This is an evidence aid, not plugin ACK. A 0.5 m increase over
-                # the pre-command baseline is large enough to be visible in a
-                # presentation while preserving the raw values for inspection.
+                # This is an evidence aid, not plugin ACK. The raw metric and unit
+                # are preserved, while the threshold is intentionally presentation-
+                # scale for high attack profiles.
                 evidence["impact_observed"] = evidence["drift_increase_m"] >= 0.5
             evidence["phase"] = command_phase
             evidence["effect_active"] = command_effect_active
             result["attack_evidence"] = json.loads(json.dumps(evidence))
         return result
-
-

@@ -59,22 +59,10 @@
         <label><input id="enableRviz" type="checkbox"> RViz</label>
         <label><input id="enableDitto" type="checkbox"> Ditto bridge</label>
         <label><input id="incrementSeed" type="checkbox" checked> 每輪 seed +1</label>
+        <label><input id="manualAttack" type="checkbox"> 手動攻擊模式（載入攻擊管線、不自動觸發）</label>
       </div>
       <p class="muted">批次蒐集只保留 SUCCESS_FINISH 的 KPI CSV。</p>
       <p id="actionMessage" class="message"></p>
-    </section>
-
-    <section class="panel">
-      <div class="section-title">
-        <div>
-          <p class="eyebrow">Platform readiness</p>
-          <h2>目前功能與執行狀態</h2>
-        </div>
-        <span id="runtimeProfile" class="state-pill unknown">PROFILE UNKNOWN</span>
-      </div>
-      <div id="capabilityGrid" class="capability-grid">
-        <div class="capability-card"><strong>載入中</strong><span>正在取得平台狀態…</span></div>
-      </div>
     </section>
 
     <section id="batchPanel" class="panel batch-panel">
@@ -170,6 +158,66 @@
       <canvas id="trendCanvas"></canvas>
     </section>
 
+    <section id="sensorImpactPanel" class="panel">
+      <div class="section-title">
+        <div>
+          <p class="eyebrow">Sensor impact timeline</p>
+          <h2>感測器攻擊影響線圖</h2>
+        </div>
+        <div class="legend">
+          <span class="lg lg-sensor">Sensor residual</span>
+          <span class="lg lg-support">Reference</span>
+          <span class="lg lg-atk">Attack</span>
+          <span class="lg lg-warn">Degraded</span>
+          <span class="lg lg-crit">Critical</span>
+        </div>
+      </div>
+      <div class="sensor-grid">
+        <article class="sensor-card">
+          <div class="sensor-card-title">
+            <div>
+              <h3>GPS</h3>
+              <p>Position / velocity residual</p>
+            </div>
+            <strong id="gpsSensorNow">—</strong>
+          </div>
+          <canvas id="gpsSensorCanvas"></canvas>
+          <div class="sensor-stats">
+            <span id="gpsSensorPeak">peak —</span>
+            <span id="gpsSensorRef">vel —</span>
+          </div>
+        </article>
+        <article class="sensor-card">
+          <div class="sensor-card-title">
+            <div>
+              <h3>IMU</h3>
+              <p>Yaw-rate residual</p>
+            </div>
+            <strong id="imuSensorNow">—</strong>
+          </div>
+          <canvas id="imuSensorCanvas"></canvas>
+          <div class="sensor-stats">
+            <span id="imuSensorPeak">peak —</span>
+            <span id="imuSensorRef">gyro z bias —</span>
+          </div>
+        </article>
+        <article class="sensor-card">
+          <div class="sensor-card-title">
+            <div>
+              <h3>Barometer</h3>
+              <p>Altitude residual</p>
+            </div>
+            <strong id="baroSensorNow">—</strong>
+          </div>
+          <canvas id="baroSensorCanvas"></canvas>
+          <div class="sensor-stats">
+            <span id="baroSensorPeak">peak —</span>
+            <span id="baroSensorRef">alt drift —</span>
+          </div>
+        </article>
+      </div>
+    </section>
+
     <section class="two-column">
       <article class="panel">
         <p class="eyebrow">Supervisor override</p>
@@ -208,7 +256,7 @@
       <div class="section-title">
         <div>
           <p class="eyebrow">Attack evidence</p>
-          <h2>GPS 攻擊實驗數據</h2>
+          <h2>攻擊實驗數據</h2>
         </div>
         <div class="actions">
           <button id="evidenceModeButton">數據模式</button>
@@ -218,7 +266,7 @@
       <div class="evidence-meta">
         <div><span>Run</span><strong id="evidenceRun">—</strong></div>
         <div><span>World</span><strong id="evidenceWorld">—</strong></div>
-        <div><span>Injection layer</span><strong>GPS sensor → PX4 EKF2</strong></div>
+        <div><span>Injection layer</span><strong>Source injector → PX4 estimator</strong></div>
         <div><span>Command path</span><strong id="evidencePath">—</strong></div>
         <div><span>Captured</span><strong id="evidenceCapturedAt">—</strong></div>
       </div>
@@ -229,9 +277,10 @@
           <div><span>Phase / elapsed</span><strong id="evidencePhase">—</strong></div>
         </div>
         <div class="status-block">
-          <div><span>Baseline drift</span><strong id="evidenceBaseline">—</strong></div>
-          <div><span>Current drift</span><strong id="driftValue">—</strong></div>
-          <div><span>Peak drift</span><strong id="evidencePeak">—</strong></div>
+          <div><span>Evidence metric</span><strong id="evidenceMetricLabel">—</strong></div>
+          <div><span>Baseline metric</span><strong id="evidenceBaseline">—</strong></div>
+          <div><span>Current metric</span><strong id="driftValue">—</strong></div>
+          <div><span>Peak metric</span><strong id="evidencePeak">—</strong></div>
           <div><span>Peak increase</span><strong id="evidenceIncrease">—</strong></div>
         </div>
       </div>

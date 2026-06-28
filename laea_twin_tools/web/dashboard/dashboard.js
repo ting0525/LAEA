@@ -30,24 +30,35 @@ function stateClass(value) {
   return (value || "unknown").toLowerCase();
 }
 
-function capabilityStyle(value) {
-  if (["ready", "online", "active"].includes(value)) return "normal";
-  if (["partial", "command_only", "profile_only"].includes(value)) return "degraded";
-  return "unknown";
-}
-
 function capabilityLabel(value) {
   return String(value || "unknown").replaceAll("_", " ").toUpperCase();
 }
 
 function formatAttackMagnitude(command) {
+  const source = String(command.source || "");
   const vector = Array.isArray(command.vector) ? command.vector : [];
+  if (source === "barometer") {
+    return `${number(command.scalar, 2)} m altitude offset`;
+  }
+  if (source === "imu") {
+    if (vector.length < 3) return "—";
+    return `[${vector.map((value) => number(value, 2)).join(", ")}] rad/s`;
+  }
   if (vector.length < 3) return "—";
   const unit = command.mode === "velocity_bias" ? "m/s" : "m";
   return `[${vector.map((value) => number(value, 2)).join(", ")}] ${unit}`;
 }
 
 function profileMagnitudeLabel(profile) {
+  if (profile.source === "barometer") {
+    const scalar = Math.abs(Number(profile.scalar) || 0);
+    return scalar > 0 ? `${number(scalar, 1)} m` : "";
+  }
+  if (profile.source === "imu") {
+    const vector = Array.isArray(profile.vector) ? profile.vector : [];
+    const yawRate = Math.abs(Number(vector[2]) || 0);
+    return yawRate > 0 ? `${number(yawRate, 2)} rad/s` : "";
+  }
   const vector = Array.isArray(profile.vector) ? profile.vector : [];
   const primary = Math.abs(Number(vector[0]) || 0);
   if (primary > 0) {
@@ -75,6 +86,7 @@ function readConfig(collectionMode) {
     scenario: $("scenario").value.trim(),
     world_name: $("worldName").value,
     attack_profile: $("attackProfile").value,
+    manual_attack: $("manualAttack").checked,
     attack_seed: Number($("attackSeed").value),
     max_duration_s: Number($("maxDuration").value),
     detector_name: $("detectorName").value.trim(),
@@ -139,6 +151,51 @@ async function sendOverride(level) {
 
 const TREND_MAX = 180;
 const trend = [];
+const SENSOR_MAX = 240;
+const sensorTrend = [];
+
+const SENSOR_CHARTS = {
+  gps: {
+    canvas: "gpsSensorCanvas",
+    now: "gpsSensorNow",
+    peak: "gpsSensorPeak",
+    ref: "gpsSensorRef",
+    unit: "m",
+    supportUnit: "m",
+    primaryLabel: "gps_pos_res",
+    supportLabel: "localization drift",
+    degraded: 2.0,
+    critical: 5.0,
+  },
+  imu: {
+    canvas: "imuSensorCanvas",
+    now: "imuSensorNow",
+    peak: "imuSensorPeak",
+    ref: "imuSensorRef",
+    unit: "rad/s",
+    supportUnit: "rad/s",
+    primaryLabel: "yaw_rate_res",
+    supportLabel: "commanded gyro z",
+    degraded: 0.25,
+    critical: 0.70,
+  },
+  barometer: {
+    canvas: "baroSensorCanvas",
+    now: "baroSensorNow",
+    peak: "baroSensorPeak",
+    ref: "baroSensorRef",
+    unit: "m",
+    supportUnit: "m",
+    primaryLabel: "baro_res",
+    supportLabel: "altitude drift",
+    degraded: 0.8,
+    critical: 2.0,
+  },
+};
+
+function finite(value) {
+  return Number.isFinite(Number(value));
+}
 
 function pushTrend(mission, attackActive) {
   trend.push({
@@ -149,6 +206,33 @@ function pushTrend(mission, attackActive) {
     attack: Boolean(attackActive),
   });
   while (trend.length > TREND_MAX) trend.shift();
+}
+
+function pushSensorTrend(metrics, activeCmd, attackActive) {
+  const gps = metrics.gps || {};
+  const imu = metrics.imu || {};
+  const barometer = metrics.barometer || {};
+  const vector = Array.isArray(activeCmd.vector) ? activeCmd.vector : [];
+  const commandSource = activeCmd.enabled ? activeCmd.source : "none";
+
+  sensorTrend.push({
+    attack: Boolean(attackActive),
+    gps: {
+      primary: finite(gps.gps_pos_res) ? Number(gps.gps_pos_res) : null,
+      support: finite(gps.localization_drift_m) ? Number(gps.localization_drift_m) : null,
+      aux: finite(gps.gps_vel_res) ? Number(gps.gps_vel_res) : null,
+    },
+    imu: {
+      primary: finite(imu.yaw_rate_res) ? Number(imu.yaw_rate_res) : null,
+      support: commandSource === "imu" && finite(vector[2]) ? Math.abs(Number(vector[2])) : null,
+    },
+    barometer: {
+      primary: finite(barometer.baro_res) ? Number(barometer.baro_res) : null,
+      support: finite(barometer.altitude_drift_m) ? Number(barometer.altitude_drift_m) : null,
+      aux: commandSource === "barometer" && finite(activeCmd.scalar) ? Number(activeCmd.scalar) : null,
+    },
+  });
+  while (sensorTrend.length > SENSOR_MAX) sensorTrend.shift();
 }
 
 function drawTrends() {
@@ -211,6 +295,138 @@ function drawTrends() {
   }
 }
 
+function drawLine(ctx, samples, valueFor, xAt, yAt, color, dashed = false) {
+  ctx.strokeStyle = color;
+  ctx.lineWidth = dashed ? 1.3 : 2.0;
+  ctx.setLineDash(dashed ? [5, 5] : []);
+  ctx.beginPath();
+  let hasPoint = false;
+  for (let i = 0; i < samples.length; i++) {
+    const value = valueFor(samples[i]);
+    if (!finite(value)) continue;
+    const x = xAt(i);
+    const y = yAt(Number(value));
+    if (!hasPoint) {
+      ctx.moveTo(x, y);
+      hasPoint = true;
+    } else {
+      ctx.lineTo(x, y);
+    }
+  }
+  if (hasPoint) ctx.stroke();
+  ctx.setLineDash([]);
+}
+
+function drawThreshold(ctx, value, label, color, x, width, yAt) {
+  if (!finite(value)) return;
+  const y = yAt(Number(value));
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1;
+  ctx.setLineDash([4, 4]);
+  ctx.beginPath();
+  ctx.moveTo(x, y);
+  ctx.lineTo(x + width, y);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = color;
+  ctx.font = "10px sans-serif";
+  ctx.fillText(label, x + width - 58, y - 4);
+}
+
+function drawSensorChart(key, config) {
+  const canvas = $(config.canvas);
+  if (!canvas) return;
+  const ctx = canvas.getContext("2d");
+  const dpr = window.devicePixelRatio || 1;
+  const w = canvas.clientWidth || 360;
+  const h = canvas.clientHeight || 190;
+  if (canvas.width !== Math.round(w * dpr) || canvas.height !== Math.round(h * dpr)) {
+    canvas.width = Math.round(w * dpr);
+    canvas.height = Math.round(h * dpr);
+  }
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, w, h);
+
+  const samples = sensorTrend;
+  const latest = [...samples].reverse().find((sample) => finite(sample[key]?.primary));
+  const values = samples.flatMap((sample) => [sample[key]?.primary, sample[key]?.support])
+    .filter((value) => finite(value))
+    .map(Number);
+  const peak = values.length ? Math.max(...values) : null;
+  text(config.now, latest ? `${number(latest[key].primary, config.unit === "rad/s" ? 3 : 2)} ${config.unit}` : null);
+  text(config.peak, peak !== null ? `peak ${number(peak, config.unit === "rad/s" ? 3 : 2)} ${config.unit}` : "peak —");
+
+  const supportLatest = [...samples].reverse().find((sample) => finite(sample[key]?.support));
+  const auxLatest = [...samples].reverse().find((sample) => finite(sample[key]?.aux));
+  const supportText = supportLatest
+    ? `${config.supportLabel} ${number(supportLatest[key].support, config.supportUnit === "rad/s" ? 3 : 2)} ${config.supportUnit}`
+    : auxLatest
+      ? `command ${number(auxLatest[key].aux, 2)} ${config.unit}`
+      : "reference —";
+  text(config.ref, supportText);
+
+  const pad = { l: 38, r: 10, t: 12, b: 22 };
+  const plotW = w - pad.l - pad.r;
+  const plotH = h - pad.t - pad.b;
+  const yMax = Math.max(config.critical * 1.2, peak !== null ? peak * 1.15 : 0, config.degraded * 1.6, 1.0e-6);
+  const visibleIntervals = Math.max(samples.length - 1, 1);
+  const xAt = (i) => pad.l + (i / visibleIntervals) * plotW;
+  const yAt = (v) => pad.t + plotH - Math.min(Math.max(v, 0), yMax) / yMax * plotH;
+
+  ctx.fillStyle = "rgba(255, 107, 107, .13)";
+  for (let i = 0; i < samples.length; i++) {
+    if (samples[i].attack) {
+      const x0 = xAt(i);
+      const x1 = xAt(Math.min(i + 1, SENSOR_MAX - 1));
+      ctx.fillRect(x0, pad.t, Math.max(x1 - x0, 1.5), plotH);
+    }
+  }
+
+  ctx.strokeStyle = "rgba(143, 172, 164, .22)";
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= 3; i++) {
+    const y = pad.t + (plotH / 3) * i;
+    ctx.beginPath();
+    ctx.moveTo(pad.l, y);
+    ctx.lineTo(pad.l + plotW, y);
+    ctx.stroke();
+  }
+  ctx.fillStyle = "#8faca4";
+  ctx.font = "10px sans-serif";
+  ctx.textAlign = "right";
+  ctx.fillText(number(yMax, config.unit === "rad/s" ? 2 : 1), pad.l - 5, pad.t + 4);
+  ctx.fillText("0", pad.l - 5, pad.t + plotH);
+  ctx.textAlign = "start";
+
+  if (samples.length === 0 || values.length === 0) {
+    ctx.fillStyle = "#8faca4";
+    ctx.font = "13px sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText("等待感測器資料", w / 2, h / 2);
+    ctx.textAlign = "start";
+    return;
+  }
+
+  drawThreshold(ctx, config.degraded, "DEG", "#f2c14e", pad.l, plotW, yAt);
+  drawThreshold(ctx, config.critical, "CRIT", "#ff6b6b", pad.l, plotW, yAt);
+  drawLine(ctx, samples, (sample) => sample[key]?.support, xAt, yAt, "#49d49d", true);
+  drawLine(ctx, samples, (sample) => sample[key]?.primary, xAt, yAt, "#55c2d9", false);
+
+  if (latest) {
+    const latestIndex = samples.lastIndexOf(latest);
+    ctx.fillStyle = "#55c2d9";
+    ctx.beginPath();
+    ctx.arc(xAt(latestIndex), yAt(latest[key].primary), 3.5, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+function drawSensorCharts() {
+  for (const [key, config] of Object.entries(SENSOR_CHARTS)) {
+    drawSensorChart(key, config);
+  }
+}
+
 async function triggerAttack() {
   const profile = $("liveAttackProfile").value;
   if (!profile) return;
@@ -247,24 +463,6 @@ function renderRuns(rows) {
       <td>${escapeHtml([row.attack_source, row.attack_mode, row.attack_severity].filter(Boolean).join(" / ") || "none")}</td>
       <td>${row.log_retained === "true" ? "kept" : row.log_deleted === "true" ? "deleted" : "none"}</td>
     </tr>`).join("");
-}
-
-function renderCapabilities(capabilities) {
-  const grid = $("capabilityGrid");
-  if (!Array.isArray(capabilities) || capabilities.length === 0) {
-    grid.innerHTML = '<div class="capability-card"><strong>無狀態資料</strong><span>後端尚未回報功能狀態。</span></div>';
-    return;
-  }
-  grid.innerHTML = capabilities.map((item) => `
-    <article class="capability-card">
-      <div class="capability-title">
-        <strong>${escapeHtml(item.name)}</strong>
-        <span class="mini-pill ${capabilityStyle(item.maturity)}">${capabilityLabel(item.maturity)}</span>
-      </div>
-      <span>${escapeHtml(item.detail || "—")}</span>
-      <small class="${capabilityStyle(item.runtime)}">${capabilityLabel(item.runtime)}</small>
-    </article>
-  `).join("");
 }
 
 function renderWorldCatalog(catalog) {
@@ -347,14 +545,16 @@ function renderState(data) {
   text("collectionMode", isBatch ? "BATCH" : "SINGLE");
   const runtimeProfile = process.config?.runtime_profile || "scan_mapping_explore_test";
   text("currentProfile", runtimeProfile);
-  $("runtimeProfile").textContent = runtimeProfile;
-  $("runtimeProfile").className = "state-pill normal";
   text("processPid", process.pid);
   text("exitCode", process.exit_code);
   text("datasetPath", process.dataset_dir);
 
   const totalRounds = Number(batch.total_rounds || (isBatch ? process.config?.total_rounds : 0) || 0);
   const completedRounds = Number(batch.completed_rounds || 0);
+  const hasBatchProgress = Boolean(
+    batch.state || batch.total_rounds || batch.completed_rounds || batch.success_rounds || batch.failed_rounds
+  );
+  $("batchPanel").hidden = !(isBatch || hasBatchProgress);
   const percent = totalRounds > 0 ? Math.min((completedRounds / totalRounds) * 100, 100) : 0;
   $("batchProgressBar").style.width = `${percent}%`;
   const batchState = batch.state || (isBatch && process.running ? "STARTING" : "NOT STARTED");
@@ -418,6 +618,11 @@ function renderState(data) {
   $("attackEffectPill").textContent = cmdEnabled ? `COMMAND ${capabilityLabel(activeCmd.phase)}` : "NO ATTACK";
   $("attackEffectPill").className = `state-pill ${attackEffectActive ? "critical" : cmdEnabled ? "degraded" : "normal"}`;
   const evidenceIdentity = evidence.command_start_s > 0 ? evidence : activeCmd;
+  const evidenceUnit = evidence.metric_unit || telemetry.attack_metric_unit || "m";
+  const metricDigits = evidenceUnit === "rad/s" ? 3 : 2;
+  const metricText = (value, prefix = "") => (
+    Number.isFinite(Number(value)) ? `${prefix}${number(value, metricDigits)} ${evidenceUnit}` : null
+  );
   const pathOnline = Boolean(components.gazebo?.online && components.attack_bridge?.online);
   text("evidenceRun", process.pid ? `${isBatch ? "BATCH" : "SINGLE"} / PID ${process.pid}` : null);
   text("evidenceWorld", process.config?.world_name);
@@ -426,10 +631,11 @@ function renderState(data) {
   text("diagCmd", [evidenceIdentity.source, evidenceIdentity.mode, evidenceIdentity.severity].filter((value) => value && value !== "none").join(" / "));
   text("evidenceMagnitude", formatAttackMagnitude(evidenceIdentity));
   text("evidencePhase", `${capabilityLabel(evidence.phase || activeCmd.phase)} / ${number(activeCmd.elapsed_s, 1)} s`);
-  text("evidenceBaseline", Number.isFinite(evidence.baseline_drift_m) ? `${number(evidence.baseline_drift_m, 2)} m` : null);
-  text("driftValue", Number.isFinite(drift) ? `${number(drift, 2)} m` : null);
-  text("evidencePeak", Number.isFinite(evidence.peak_drift_m) ? `${number(evidence.peak_drift_m, 2)} m` : null);
-  text("evidenceIncrease", Number.isFinite(evidence.drift_increase_m) ? `+${number(evidence.drift_increase_m, 2)} m` : null);
+  text("evidenceMetricLabel", evidence.metric_label || telemetry.attack_metric_label || "Localization drift");
+  text("evidenceBaseline", metricText(evidence.baseline_drift_m));
+  text("driftValue", metricText(evidence.current_drift_m ?? telemetry.attack_metric_value ?? drift));
+  text("evidencePeak", metricText(evidence.peak_drift_m));
+  text("evidenceIncrease", metricText(evidence.drift_increase_m, "+"));
   text("gtValue", Number.isFinite(gt.x) ? `${number(gt.x)} / ${number(gt.y)} / ${number(gt.z)} m` : null);
   text("ekfValue", Number.isFinite(pose.x) ? `${number(pose.x)} / ${number(pose.y)} / ${number(pose.z)} m` : null);
   text("evidenceLocalization", `${mission.localization || "UNKNOWN"} / score ${number(mission.localization_score, 3)}`);
@@ -439,7 +645,7 @@ function renderState(data) {
     : !pathOnline
       ? "INJECTION PATH OFFLINE"
       : evidence.impact_observed
-        ? "DRIFT INCREASE OBSERVED"
+        ? "IMPACT OBSERVED"
         : cmdEnabled
           ? "MEASURING"
           : "READY";
@@ -447,17 +653,19 @@ function renderState(data) {
   text("evidenceSummary", mission.summary, "等待攻擊實驗資料。");
 
   renderRuns(data.recent_runs);
-  renderCapabilities(data.capabilities);
   renderWorldCatalog(data.world_catalog);
 
-  if (process.pid !== lastProcessPid) {
+  if (process.pid && process.pid !== lastProcessPid) {
     trend.length = 0;
+    sensorTrend.length = 0;
     lastProcessPid = process.pid;
   }
   if (telemetryFresh && ages.mission !== undefined && ages.mission < 2) {
     pushTrend(mission, attackEffectActive);
+    pushSensorTrend(telemetry.sensor_metrics || {}, activeCmd, attackEffectActive);
   }
   drawTrends();
+  drawSensorCharts();
 
   if (!profilesLoaded && Array.isArray(data.profile_catalog)) {
     const option = (item) => {
