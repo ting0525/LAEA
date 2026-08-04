@@ -91,6 +91,53 @@ This writes:
 - `data/splits/normal_gps_baseline_test.csv`
 - `data/splits/normal_gps_baseline_splits.csv`
 
+### Four-map campaign registry
+
+For a multi-map normal-flight campaign, do **not** concatenate CSV files by
+filename: every map starts again at `kpi_log_run_001.csv`. Build the immutable
+run registry first. It accepts only `normal + nosip + SUCCESS_FINISH` runs that
+also have `quality_ok=1`, fingerprints every CSV and world file, and assigns
+train/validation/test by run within each map.
+
+Run this only after all requested map batches show `COMPLETED`:
+
+```bash
+python3 tools/dt_ids/build_normal_campaign_registry.py \
+  --campaign-dir laea_twin_tools/laea_logs/normal_four_maps_v1_<timestamp> \
+  --out data/manifests/normal_four_maps_v1_registry.json \
+  --feature-set <active-feature-set>
+```
+
+The default target is 12 accepted runs per map, split 8/2/2. The registry marks
+itself `training_eligible: false` when any map is incomplete, a world hash has
+changed, duplicate CSVs exist, or no feature set was selected. When moving the
+campaign to the GPU server, rerun the command there with
+`--record-path-root <copied-campaign-directory>` so each record path resolves
+on the training host.
+
+For the final 25-run-per-map release, create a reference-only, reproducible
+release directory after `final_normal_collection_v1_status.json` reports
+`COMPLETED`:
+
+```bash
+python3 tools/dt_ids/release_normal_dataset.py create \
+  --campaign-dir laea_twin_tools/laea_logs/normal_four_maps_v1_20260728T031727Z \
+  --release-dir laea_twin_tools/laea_logs/normal_four_maps_v1_20260728T031727Z/releases/normal_dataset_v1 \
+  --feature-set sensor_multimodal_baseline
+```
+
+The tool verifies that every selected KPI CSV contains the configured model
+features, selects the first 25 quality-eligible runs per map, applies a
+deterministic run-level 17/4/4 split, and records remaining eligible runs as
+reserves. It writes manifests and checksums only; it does not copy or alter raw
+logs. Verify it again after relocating the campaign:
+
+```bash
+python3 tools/dt_ids/release_normal_dataset.py verify \
+  --release-dir <release-directory> \
+  --campaign-dir <local-campaign-root>
+```
+
 ## 4) Train a normal-only Isolation Forest
 
 Train on the `gps_derived` split files and keep `t`, `mission_id`, `split`, and `label` out of model inputs.

@@ -104,16 +104,53 @@ fi
 
 # ========= ROS env =========
 if [ -f /opt/ros/noetic/setup.bash ]; then
+  # Catkin setup scripts read optional variables before assigning defaults.
+  # Keep the launcher strict, but do not apply nounset inside third-party setup.
+  set +u
   source /opt/ros/noetic/setup.bash
+  set -u
 fi
 if [ -f /home/tim/laea/devel/setup.bash ]; then
+  set +u
   source /home/tim/laea/devel/setup.bash
+  set -u
 fi
+
+# PX4's Gazebo setup normally comes from ~/.bashrc.  Batch collectors run in a
+# clean systemd environment, so make the model/plugin contract explicit here.
+# Without it Gazebo can advertise its spawn service but spend the full PX4
+# startup window trying to resolve iris_gps_attack, d435i, and 2d_lidar.
+PX4_AUTOPILOT_DIR="${PX4_AUTOPILOT_DIR:-/home/tim/PX4-Autopilot}"
+PX4_SITL_BUILD_DIR="${PX4_SITL_BUILD_DIR:-${PX4_AUTOPILOT_DIR}/build/px4_sitl_default}"
+PX4_GAZEBO_MODEL_DIR="${PX4_AUTOPILOT_DIR}/Tools/sitl_gazebo/models"
+LAEA_GAZEBO_MODEL_DIR="${SCRIPT_DIR}/px4_gazebo/resource/sitl_gazebo/models"
+
+append_colon_path_once() {
+  local variable_name="$1"
+  local candidate="$2"
+  local current="${!variable_name-}"
+  case ":${current}:" in
+    *":${candidate}:"*) return ;;
+  esac
+  if [ -n "${current}" ]; then
+    printf -v "${variable_name}" '%s:%s' "${current}" "${candidate}"
+  else
+    printf -v "${variable_name}" '%s' "${candidate}"
+  fi
+  # shellcheck disable=SC2163  # variable_name intentionally names the export
+  export "${variable_name}"
+}
+
+append_colon_path_once GAZEBO_PLUGIN_PATH "${PX4_SITL_BUILD_DIR}/build_gazebo"
+append_colon_path_once GAZEBO_MODEL_PATH "${PX4_GAZEBO_MODEL_DIR}"
+append_colon_path_once GAZEBO_MODEL_PATH "${LAEA_GAZEBO_MODEL_DIR}"
+append_colon_path_once LD_LIBRARY_PATH "${PX4_SITL_BUILD_DIR}/build_gazebo"
 
 export PYTHONPATH="/usr/lib/python3/dist-packages:${PYTHONPATH:-}"
 
 LOCAL_ROS_PACKAGE_PATHS=(
   "${SCRIPT_DIR}/px4_gazebo"
+  "${SCRIPT_DIR}/rtp_gazebo"
   "/home/tim/PX4-Autopilot"
   "${SCRIPT_DIR}/laea_ditto_bridge"
   "${SCRIPT_DIR}/laea_twin_tools"
@@ -236,7 +273,7 @@ cleanup() {
   # roslaunch / the dashboard so next-round completion detection keeps working.
   # slam_kpi_logger is included because experiment_manager starts it in its own
   # session (setsid), so it is not part of any launch_bg descendant tree.
-  pkill -KILL -f 'gzserver|gzclient|px4_sitl_default/bin/px4|octomap_server_node|exploration_node|mavros_node|geometric_controller|slam_kpi_logger' >/dev/null 2>&1 || true
+  pkill -KILL -f 'gzserver|gzclient|px4_sitl_default/bin/px4|octomap_server_node|exploration_node|mavros_node|geometric_controller|slam_kpi_logger|RTPSender|RTPReceiver' >/dev/null 2>&1 || true
 
   # Killed nodes leave stale registrations on the (shared, persistent) master —
   # gazebo/gzclient in particular never unregister. Purge them by name so the
@@ -253,7 +290,7 @@ EXP = {
     "/gazebo", "/gazebo_gui", "/mavros", "/exploration_node", "/octomap_server",
     "/geometric_controller", "/attack_gazebo_bridge", "/attack_scheduler",
     "/mission_state_node", "/mission_supervisor", "/feedback_actuator",
-    "/laea_aiottalk_rtp", "/slam_kpi_logger", "/waypoint_generator", "/topic2tf",
+    "/laea_aiottalk_rtp", "/rtp_sender", "/rtp_receiver", "/slam_kpi_logger", "/waypoint_generator", "/topic2tf",
     "/tf2topic_tf", "/world2odom", "/tf_base2camera", "/tf_base2laser",
     "/tf_map2world_link", "/base2depth_scan", "/depthscan2pointcloud",
     "/depthimage_to_laserscan", "/traj_msg_converter", "/rviz_map", "/sitl_0",
@@ -308,6 +345,48 @@ wait_for_topic() {
   done
 }
 
+wait_for_topic_messages() {
+  local topic="$1" samples="${2:-3}" timeout_s="${3:-90}" start_ts="${SECONDS}"
+  local probe_timeout
+  echo "[run_aiottalk_rtp] waiting for ${samples} messages on ${topic} (timeout ${timeout_s}s)"
+  wait_for_topic "${topic}" "${timeout_s}"
+  while true; do
+    # A topic may be advertised by MAVROS before it has an FCU connection.  A
+    # short multi-message probe verifies an active publisher without injecting
+    # any control command into the vehicle.
+    probe_timeout=8
+    if (( timeout_s - (SECONDS - start_ts) < probe_timeout )); then
+      probe_timeout=$(( timeout_s - (SECONDS - start_ts) ))
+    fi
+    if (( probe_timeout > 0 )) && timeout "${probe_timeout}" rostopic echo -n "${samples}" "${topic}" >/dev/null 2>&1; then
+      return 0
+    fi
+    if (( SECONDS - start_ts >= timeout_s )); then
+      echo "[run_aiottalk_rtp] ERROR: ${topic} was advertised but did not publish ${samples} messages" >&2
+      return 1
+    fi
+    sleep 1
+  done
+}
+
+wait_for_fcu_connection() {
+  local timeout_s="${1:-120}" start_ts="${SECONDS}" state
+  echo "[run_aiottalk_rtp] waiting for MAVROS FCU connection (timeout ${timeout_s}s)"
+  wait_for_topic /mavros/state "${timeout_s}"
+  while true; do
+    state="$(timeout 5 rostopic echo -n 1 /mavros/state 2>/dev/null || true)"
+    if grep -Fqx 'connected: True' <<<"${state}"; then
+      echo "[run_aiottalk_rtp] MAVROS reports an active FCU connection"
+      return 0
+    fi
+    if (( SECONDS - start_ts >= timeout_s )); then
+      echo "[run_aiottalk_rtp] ERROR: MAVROS never connected to PX4; inspect ${LAEA_SYS_LOG_DIR}/px4_gazebo.log" >&2
+      return 1
+    fi
+    sleep 1
+  done
+}
+
 wait_for_service() {
   local svc="$1" timeout_s="${2:-60}" start_ts="${SECONDS}"
   echo "[run_aiottalk_rtp] waiting for service ${svc} (timeout ${timeout_s}s)"
@@ -322,6 +401,10 @@ wait_for_service() {
 
 prepare_offboard_and_arm() {
   local attempts=5
+  # PX4 requires a sustained stream of setpoints before it accepts OFFBOARD.
+  # The geometric controller owns this stream; only observe it here so the
+  # launcher cannot accidentally override the experiment controller.
+  wait_for_topic_messages /mavros/setpoint_raw/attitude 3 60
   wait_for_service /mavros/set_mode 60
   wait_for_service /mavros/cmd/arming 60
   for attempt in $(seq 1 "${attempts}"); do
@@ -394,17 +477,21 @@ launch_bg "px4_gazebo" roslaunch px4_gazebo laea_gazebo_lidar.launch \
   init_R:="${EXP_SPAWN_ROLL}" \
   init_P:="${EXP_SPAWN_PITCH}" \
   init_Y:="${EXP_SPAWN_YAW}"
-sleep 5
+
+# Gazebo advertises ROS endpoints before the world, vehicle, and PX4 simulator
+# TCP link are actually ready.  Waiting for both the Gazebo spawn service and
+# a true MAVROS connection prevents failed runs from being labelled as data.
+wait_for_service /gazebo/spawn_sdf_model 120
 
 launch_bg "controller"  roslaunch px4_gazebo controller.launch
-wait_for_topic /mavros/state 60
-wait_for_topic /mavros/local_position/pose 60
-wait_for_topic /mavros/local_position/odom 60
-wait_for_topic /mavros/local_position/velocity_local 60
-wait_for_topic /mavros/imu/data 60
-wait_for_topic /mavros/global_position/raw/fix 60
-wait_for_topic /mavros/global_position/raw/gps_vel 60
-wait_for_topic /mavros/global_position/raw/satellites 60
+wait_for_fcu_connection 120
+wait_for_topic_messages /mavros/local_position/pose 3 60
+wait_for_topic_messages /mavros/local_position/odom 3 60
+wait_for_topic_messages /mavros/local_position/velocity_local 3 60
+wait_for_topic_messages /mavros/imu/data 3 60
+wait_for_topic_messages /mavros/global_position/raw/fix 3 60
+wait_for_topic_messages /mavros/global_position/raw/gps_vel 3 60
+wait_for_topic_messages /mavros/global_position/raw/satellites 3 60
 sleep 2
 
 if [ "${ENABLE_DITTO_BRIDGE}" = "1" ]; then
@@ -412,10 +499,18 @@ if [ "${ENABLE_DITTO_BRIDGE}" = "1" ]; then
   sleep 3
 fi
 
-# ── AIoTtalk_plus RTP bridge (replaces rtp_gazebo + iottalk/sip.py) ──────────
+# ── Depth RTP transport ─────────────────────────────────────────────────────
+# Mode 3 (aiottalk_rtp): pybind11 uvgRTP bridge, needs the IoTtalk server.
+# Mode 1 (nosip): rtp_gazebo C++ sender/receiver, uvgRTP loopback 12000->13000,
+#                 no SIP / no IoTtalk. Set ENABLE_AIOTTALK_RTP=0 ENABLE_NOSIP_RTP=1.
 if [ "${ENABLE_AIOTTALK_RTP}" = "1" ]; then
   launch_bg "aiottalk_rtp" python3 "${SCRIPT_DIR}/laea_aiottalk_rtp.py"
   sleep 8   # IoTtalk registration + SDP negotiation needs a few seconds
+elif [ "${ENABLE_NOSIP_RTP:-0}" = "1" ]; then
+  launch_bg "rtp_receiver" roslaunch rtp_gazebo rtp_receiver.launch
+  sleep 2
+  launch_bg "rtp_sender"   roslaunch rtp_gazebo rtp_sender.launch
+  sleep 5   # local uvgRTP loopback comes up quickly, no external server
 fi
 wait_for_topic "${EXP_DEPTH_TOPIC}" 90
 

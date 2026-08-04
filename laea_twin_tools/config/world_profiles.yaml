@@ -46,3 +46,82 @@ worlds:
       box_z_max: 2.5
       min_finish_time_s: 300.0
       min_finish_distance_m: 200.0
+
+  warehouse_01:
+    label: Warehouse 01 (candidate)
+    description: >
+      PX4 Gazebo warehouse.world candidate third environment. Bounds are
+      conservative and require successful smoke collection before this profile
+      is used for any training dataset.
+    world_file: /home/tim/PX4-Autopilot/Tools/sitl_gazebo/worlds/warehouse.world
+    spawn:
+      x: 0.0
+      y: 0.0
+      z: 1.0
+      roll: 0.0
+      pitch: 0.0
+      yaw: 0.0
+    planner:
+      map_size_x: 30.0
+      map_size_y: 30.0
+      map_size_z: 4.0
+      box_x_min: -7.5
+      box_y_min: -8.0
+      box_z_min: -0.1
+      box_x_max: 3.0
+      box_y_max: 8.0
+      box_z_max: 2.5
+      min_finish_time_s: 120.0
+      min_finish_distance_m: 80.0
+
+  lab_corridor_01:
+    label: Lab Corridor 01 (candidate)
+    description: >
+      LAEA-owned, self-contained serpentine corridor map. No online Gazebo
+      model dependency; requires a successful smoke collection before training use.
+    world_file: /home/tim/laea/src/LAEA/px4_gazebo/resource/sitl_gazebo/worlds/lab_corridor_01.world
+    spawn:
+      x: 0.0
+      y: 0.0
+      z: 1.0
+      roll: 0.0
+      pitch: 0.0
+      yaw: 0.0
+    planner:
+      map_size_x: 30.0
+      map_size_y: 30.0
+      map_size_z: 4.0
+      box_x_min: -11.5
+      box_y_min: -11.5
+      box_z_min: -0.1
+      box_x_max: 11.5
+      box_y_max: 11.5
+      box_z_max: 2.5
+      min_finish_time_s: 120.0
+      min_finish_distance_m: 80.0
+
+  lab_rooms_01:
+    label: Lab Rooms 01 (candidate)
+    description: >
+      LAEA-owned, self-contained multi-room map with a central spawn-safe hall.
+      Requires a successful smoke collection before training use.
+    world_file: /home/tim/laea/src/LAEA/px4_gazebo/resource/sitl_gazebo/worlds/lab_rooms_01.world
+    spawn:
+      x: 0.0
+      y: 0.0
+      z: 1.0
+      roll: 0.0
+      pitch: 0.0
+      yaw: 0.0
+    planner:
+      map_size_x: 34.0
+      map_size_y: 30.0
+      map_size_z: 4.0
+      box_x_min: -12.5
+      box_y_min: -10.5
+      box_z_min: -0.1
+      box_x_max: 12.5
+      box_y_max: 10.5
+      box_z_max: 2.5
+      min_finish_time_s: 150.0
+      min_finish_distance_m: 100.0

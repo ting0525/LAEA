@@ -1,6 +1,8 @@
 <launch>
   <arg name="attack_profile" default="none"/>
   <arg name="attack_seed" default="42"/>
+  <arg name="attack_onset_min_s" default="$(optenv ATTACK_ONSET_MIN_S 120.0)"/>
+  <arg name="attack_onset_max_s" default="$(optenv ATTACK_ONSET_MAX_S 180.0)"/>
   <arg name="detector_name" default="rule_mad"/>
   <arg name="supervisor_policy" default="none"/>
   <arg name="depth_topic" default="/rtp/depth/image_raw"/>
@@ -19,6 +21,8 @@
     <rosparam command="load" file="$(find laea_twin_tools)/config/attack_profiles.yaml"/>
     <param name="profile" value="$(arg attack_profile)"/>
     <param name="seed" value="$(arg attack_seed)"/>
+    <param name="onset_min_s" value="$(arg attack_onset_min_s)"/>
+    <param name="onset_max_s" value="$(arg attack_onset_max_s)"/>
   </node>
 
   <!-- Relays the ROS attack command onto Gazebo transport for the source-layer

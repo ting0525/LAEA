@@ -5,12 +5,18 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 if [ -f /opt/ros/noetic/setup.bash ]; then
   # shellcheck disable=SC1091
+  # Catkin setup scripts read optional variables before assigning defaults.
+  # Keep the runner strict, but do not apply nounset inside third-party setup.
+  set +u
   source /opt/ros/noetic/setup.bash
+  set -u
 fi
 
 if [ -f /home/tim/laea/devel/setup.bash ]; then
   # shellcheck disable=SC1091
+  set +u
   source /home/tim/laea/devel/setup.bash
+  set -u
 fi
 
 export PYTHONPATH="/usr/lib/python3/dist-packages:${PYTHONPATH:-}"
