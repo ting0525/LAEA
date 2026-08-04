@@ -6,13 +6,22 @@
   
 
   <!-- size of map, change the size in x, y, z according to your application -->
-  <arg name="map_size_x" value="80.0"/>
-  <arg name="map_size_y" value="80.0"/>
-  <arg name="map_size_z" value="3.0"/>
+  <arg name="map_size_x" default="80.0"/>
+  <arg name="map_size_y" default="80.0"/>
+  <arg name="map_size_z" default="3.0"/>
 
-  <arg name="init_x" value="0.0"/>
-  <arg name="init_y" value="0.0"/>
-  <arg name="init_z" value="1.0"/> 
+  <arg name="init_x" default="0.0"/>
+  <arg name="init_y" default="0.0"/>
+  <arg name="init_z" default="1.0"/>
+
+  <arg name="box_x_min" default="-23"/>
+  <arg name="box_y_min" default="-11"/>
+  <arg name="box_z_min" default="-0.1"/>
+  <arg name="box_x_max" default="23"/>
+  <arg name="box_y_max" default="11"/>
+  <arg name="box_z_max" default="2.3"/>
+  <arg name="min_finish_time" default="300.0"/>
+  <arg name="min_finish_dist" default="200.0"/>
 
   <!-- topic of your odometry such as VIO or LIO -->
   <arg name="odom_topic" value="/mavros/local_position/odom" /> 
@@ -52,32 +61,14 @@
     <!-- <arg name="max_vel" value="0.5" />
     <arg name="max_acc" value="0.5" /> -->
 
-    <!-- indoor_01 -->
-    <!-- 19*41 -->
-    <arg name="box_x_min" value="-23" />
-    <arg name="box_y_min" value="-11" />
-    <arg name="box_z_min" value="-0.1" />
-    <arg name="box_x_max" value="23" />
-    <arg name="box_y_max" value="11" />
-    <arg name="box_z_max" value="2.3" />
-
-    <!-- indoor_02 -->
-    <!-- 35*28 -->
-    <!-- <arg name="box_x_min" value="-18" />
-    <arg name="box_y_min" value="-14" />
-    <arg name="box_z_min" value="-0.1" />
-    <arg name="box_x_max" value="18" />
-    <arg name="box_y_max" value="16" />
-    <arg name="box_z_max" value="2.5" /> -->
-
-    <!-- closed forest_02 -->
-    <!-- 42 22 -->
-    <!-- <arg name="box_x_min" value="-24" />
-    <arg name="box_y_min" value="-13" />
-    <arg name="box_z_min" value="-0.1" />
-    <arg name="box_x_max" value="24" />
-    <arg name="box_y_max" value="13" />
-    <arg name="box_z_max" value="2.5" /> -->
+    <arg name="box_x_min" value="$(arg box_x_min)" />
+    <arg name="box_y_min" value="$(arg box_y_min)" />
+    <arg name="box_z_min" value="$(arg box_z_min)" />
+    <arg name="box_x_max" value="$(arg box_x_max)" />
+    <arg name="box_y_max" value="$(arg box_y_max)" />
+    <arg name="box_z_max" value="$(arg box_z_max)" />
+    <arg name="min_finish_time" value="$(arg min_finish_time)" />
+    <arg name="min_finish_dist" value="$(arg min_finish_dist)" />
 
   </include>
 

@@ -1,17 +1,23 @@
 <launch>
     <param name="/use_sim_time" value="true"/>
     
+    <!-- tf_lookup_timeout raised 0.15 -> 0.4: the assembler was dropping laser
+         scans ("couldn't get TF within 0.15s"), starving octomap and leaving
+         holes the planner then fails to path through. -->
+
     <!-- depth_point_cloud -->
     <include file="$(find laserscan_to_pointcloud)/launch/depth_cloud.launch">
         <arg name="laser_frame" value="depth_scan_frame"/>
         <arg name="target_frame" value="world"/>
         <arg name="pointcloud_publish_topic" value="/depth_scan_pointcloud"/>
+        <arg name="tf_lookup_timeout" value="0.4"/>
     </include>
-    
+
     <!-- scan_cloud -->
     <include file="$(find laserscan_to_pointcloud)/launch/cloud.launch">
         <arg name="laser_frame" value="iris_0/laser_2d"/>
         <arg name="target_frame" value="world"/>  <!-- 改為 world -->
+        <arg name="tf_lookup_timeout" value="0.4"/>
     </include>
     
     <!-- TF Publishers - 確保 frame 層級正確 -->

@@ -1,0 +1,53 @@
+<?xml version="1.0"?>
+<sdf version="1.6">
+  <world name="lab_corridor_01">
+    <light name="sun" type="directional">
+      <pose>0 0 10 0 0 0</pose>
+      <diffuse>0.8 0.8 0.8 1</diffuse>
+      <specular>0.2 0.2 0.2 1</specular>
+      <direction>-0.5 0.1 -0.9</direction>
+    </light>
+    <gravity>0 0 -9.8</gravity>
+    <magnetic_field>6e-06 2.3e-05 -4.2e-05</magnetic_field>
+    <atmosphere type="adiabatic"/>
+    <physics name="default_physics" default="0" type="ode">
+      <max_step_size>0.001</max_step_size>
+      <real_time_factor>1</real_time_factor>
+      <real_time_update_rate>1000</real_time_update_rate>
+    </physics>
+    <scene>
+      <ambient>0.45 0.45 0.45 1</ambient>
+      <background>0.65 0.65 0.65 1</background>
+      <shadows>1</shadows>
+    </scene>
+
+    <model name="ground_plane">
+      <static>true</static>
+      <link name="link">
+        <collision name="collision">
+          <geometry><plane><normal>0 0 1</normal><size>100 100</size></plane></geometry>
+          <surface><friction><ode><mu>100</mu><mu2>50</mu2></ode></friction></surface>
+        </collision>
+        <visual name="visual">
+          <geometry><plane><normal>0 0 1</normal><size>100 100</size></plane></geometry>
+          <material><ambient>0.18 0.18 0.18 1</ambient><diffuse>0.28 0.28 0.28 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- 24 m square, with two offset barriers forming a broad S-shaped route. -->
+    <model name="corridor_architecture">
+      <static>true</static>
+      <link name="north"><pose>0 12 1.5 0 0 0</pose><collision name="c"><geometry><box><size>24.5 0.35 3</size></box></geometry></collision><visual name="v"><geometry><box><size>24.5 0.35 3</size></box></geometry><material><diffuse>0.55 0.32 0.20 1</diffuse></material></visual></link>
+      <link name="south"><pose>0 -12 1.5 0 0 0</pose><collision name="c"><geometry><box><size>24.5 0.35 3</size></box></geometry></collision><visual name="v"><geometry><box><size>24.5 0.35 3</size></box></geometry><material><diffuse>0.55 0.32 0.20 1</diffuse></material></visual></link>
+      <link name="west"><pose>-12 0 1.5 0 0 0</pose><collision name="c"><geometry><box><size>0.35 24.5 3</size></box></geometry></collision><visual name="v"><geometry><box><size>0.35 24.5 3</size></box></geometry><material><diffuse>0.55 0.32 0.20 1</diffuse></material></visual></link>
+      <link name="east"><pose>12 0 1.5 0 0 0</pose><collision name="c"><geometry><box><size>0.35 24.5 3</size></box></geometry></collision><visual name="v"><geometry><box><size>0.35 24.5 3</size></box></geometry><material><diffuse>0.55 0.32 0.20 1</diffuse></material></visual></link>
+      <link name="upper_barrier"><pose>-5 6 1.5 0 0 0</pose><collision name="c"><geometry><box><size>0.35 10 3</size></box></geometry></collision><visual name="v"><geometry><box><size>0.35 10 3</size></box></geometry><material><diffuse>0.28 0.45 0.72 1</diffuse></material></visual></link>
+      <link name="lower_barrier"><pose>5 -6 1.5 0 0 0</pose><collision name="c"><geometry><box><size>0.35 10 3</size></box></geometry></collision><visual name="v"><geometry><box><size>0.35 10 3</size></box></geometry><material><diffuse>0.28 0.45 0.72 1</diffuse></material></visual></link>
+      <link name="upper_cross"><pose>1 4 1.5 0 0 0</pose><collision name="c"><geometry><box><size>9 0.35 3</size></box></geometry></collision><visual name="v"><geometry><box><size>9 0.35 3</size></box></geometry><material><diffuse>0.28 0.45 0.72 1</diffuse></material></visual></link>
+      <link name="lower_cross"><pose>-1 -4 1.5 0 0 0</pose><collision name="c"><geometry><box><size>9 0.35 3</size></box></geometry></collision><visual name="v"><geometry><box><size>9 0.35 3</size></box></geometry><material><diffuse>0.28 0.45 0.72 1</diffuse></material></visual></link>
+      <link name="pillar_nw"><pose>-8 -3 1.5 0 0 0</pose><collision name="c"><geometry><box><size>0.8 0.8 3</size></box></geometry></collision><visual name="v"><geometry><box><size>0.8 0.8 3</size></box></geometry><material><diffuse>0.75 0.65 0.20 1</diffuse></material></visual></link>
+      <link name="pillar_se"><pose>8 3 1.5 0 0 0</pose><collision name="c"><geometry><box><size>0.8 0.8 3</size></box></geometry></collision><visual name="v"><geometry><box><size>0.8 0.8 3</size></box></geometry><material><diffuse>0.75 0.65 0.20 1</diffuse></material></visual></link>
+    </model>
+  </world>
+</sdf>

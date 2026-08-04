@@ -1,0 +1,2 @@
+manifest_version,run_id,scenario,transport_mode,world_name,started_at_s,ended_at_s,duration_s,outcome,log_retained,log_deleted,delete_reason,attack_source,attack_mode,attack_severity,attack_seed,attack_scheduled_onset_s,attack_actual_onset_s,hover_reason_bits,hover_hard_latched,hover_reason
+1,run_001,attack_evidence,aiottalk_rtp,indoor_01,269.326000,438.178000,168.852000,FAIL_SLAM,false,true,FAIL_SLAM,imu,gyro_bias,high,42,158.365608,158.37,,,

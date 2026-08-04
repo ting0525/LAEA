@@ -1,0 +1,330 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LAEA Mission Control</title>
+  <link rel="stylesheet" href="/assets/dashboard.css">
+</head>
+<body>
+  <header>
+    <div>
+      <p class="eyebrow">ROS / PX4 / Digital Twin</p>
+      <h1>LAEA Mission Control</h1>
+    </div>
+    <div class="header-status">
+      <span id="rosBadge" class="badge neutral">ROS UNKNOWN</span>
+      <span id="dataBadge" class="badge neutral">DATA UNKNOWN</span>
+      <span id="processBadge" class="badge neutral">IDLE</span>
+    </div>
+  </header>
+
+  <main>
+    <section class="panel control-panel">
+      <div class="section-title">
+        <div>
+          <p class="eyebrow">Experiment</p>
+          <h2>任務啟動設定</h2>
+        </div>
+        <div class="actions">
+          <button id="startButton" class="primary">啟動單次實驗</button>
+          <button id="startBatchButton" class="primary secondary-primary">開始自動蒐集</button>
+          <button id="stopButton" class="danger">停止實驗</button>
+        </div>
+      </div>
+
+      <div class="form-grid">
+        <label>資料集名稱<input id="datasetName" value="dashboard"></label>
+        <label>Scenario<input id="scenario" value="normal"></label>
+        <label>World
+          <select id="worldName">
+            <option value="indoor_01">載入地圖設定中…</option>
+          </select>
+        </label>
+        <label>Attack profile<select id="attackProfile"><option value="none">none</option></select></label>
+        <label>Attack seed<input id="attackSeed" type="number" min="0" value="42"></label>
+        <label>最長時間（秒）<input id="maxDuration" type="number" min="30" value="900"></label>
+        <label>Detector<input id="detectorName" value="rule_mad"></label>
+        <label>Supervisor policy
+          <select id="supervisorPolicy">
+            <option value="none">none</option>
+            <option value="hybrid">hybrid</option>
+          </select>
+        </label>
+        <label>批次輪數<input id="totalRounds" type="number" min="1" max="1000" value="10"></label>
+        <label>每輪間隔（秒）<input id="roundInterval" type="number" min="0" max="600" value="5"></label>
+      </div>
+      <div class="checks">
+        <label><input id="enableRtp" type="checkbox" checked> AIoTtalk RTP</label>
+        <label><input id="enableRviz" type="checkbox"> RViz</label>
+        <label><input id="enableDitto" type="checkbox"> Ditto bridge</label>
+        <label><input id="incrementSeed" type="checkbox" checked> 每輪 seed +1</label>
+        <label><input id="manualAttack" type="checkbox"> 手動攻擊模式（載入攻擊管線、不自動觸發）</label>
+      </div>
+      <p class="muted">批次蒐集只保留 SUCCESS_FINISH 的 KPI CSV。</p>
+      <p id="actionMessage" class="message"></p>
+    </section>
+
+    <section id="batchPanel" class="panel batch-panel">
+      <div class="section-title">
+        <div>
+          <p class="eyebrow">Automatic collection</p>
+          <h2>訓練資料蒐集進度</h2>
+        </div>
+        <span id="batchState" class="state-pill unknown">NOT STARTED</span>
+      </div>
+      <div class="progress-track"><div id="batchProgressBar" class="progress-value"></div></div>
+      <div class="batch-stats">
+        <div><span>進度</span><strong id="batchRounds">0 / 0</strong></div>
+        <div><span>成功保留</span><strong id="batchSuccess">0</strong></div>
+        <div><span>失敗刪除</span><strong id="batchFailed">0</strong></div>
+        <div><span>目前 Seed</span><strong id="batchSeed">—</strong></div>
+        <div><span>上一輪</span><strong id="batchLastResult">—</strong></div>
+      </div>
+    </section>
+
+    <section class="telemetry-grid">
+      <article class="panel metric-card">
+        <p class="eyebrow">PX4</p>
+        <div class="metric-row"><span>Connection</span><strong id="px4Connection">—</strong></div>
+        <div class="metric-row"><span>Mode</span><strong id="px4Mode">—</strong></div>
+        <div class="metric-row"><span>Armed</span><strong id="px4Armed">—</strong></div>
+      </article>
+      <article class="panel metric-card">
+        <p class="eyebrow">Position</p>
+        <strong id="positionValue" class="large-value">—</strong>
+        <div class="metric-row"><span>Speed</span><strong id="speedValue">—</strong></div>
+        <div class="metric-row"><span>Satellites</span><strong id="satellitesValue">—</strong></div>
+      </article>
+      <article class="panel metric-card">
+        <p class="eyebrow">Perception</p>
+        <div class="metric-row"><span>Depth</span><strong id="depthStatus">—</strong></div>
+        <div class="metric-row"><span>Frame age</span><strong id="depthAge">—</strong></div>
+        <div class="metric-row"><span>Format</span><strong id="depthFormat">—</strong></div>
+      </article>
+      <article class="panel metric-card">
+        <p class="eyebrow">Current run</p>
+        <div class="metric-row"><span>Mode</span><strong id="collectionMode">—</strong></div>
+        <div class="metric-row"><span>Profile</span><strong id="currentProfile">—</strong></div>
+        <div class="metric-row"><span>PID</span><strong id="processPid">—</strong></div>
+        <div class="metric-row"><span>Exit code</span><strong id="exitCode">—</strong></div>
+        <div class="metric-row"><span>Dataset</span><strong id="datasetPath">—</strong></div>
+      </article>
+    </section>
+
+    <section class="panel">
+      <div class="section-title">
+        <div>
+          <p class="eyebrow">Mission-aware Digital Twin</p>
+          <h2>Mission State</h2>
+        </div>
+        <span id="overallState" class="state-pill unknown">UNKNOWN</span>
+      </div>
+      <div class="domain-grid">
+        <div>
+          <span>Localization</span><strong id="localizationState">—</strong><small id="localizationScore">—</small>
+          <p>定位一致性：GPS、EKF、IMU 與氣壓高度是否互相吻合。</p>
+        </div>
+        <div>
+          <span>Perception</span><strong id="perceptionState">—</strong><small id="perceptionScore">—</small>
+          <p>環境感知品質：深度影像是否新鮮、有效且沒有凍結。</p>
+        </div>
+        <div>
+          <span>Planner</span><strong id="plannerState">—</strong><small id="plannerScore">—</small>
+          <p>路徑規劃狀態：指令是否持續更新、追蹤誤差與卡住時間。</p>
+        </div>
+        <div>
+          <span>Flight safety</span><strong id="flightState">—</strong><small id="flightScore">—</small>
+          <p>飛行動態安全：傾斜角與飛行速度是否超過安全門檻。</p>
+        </div>
+      </div>
+      <p id="missionSummary" class="summary">尚未收到 mission state。</p>
+    </section>
+
+    <section class="panel">
+      <div class="section-title">
+        <div>
+          <p class="eyebrow">Timeline</p>
+          <h2>異常影響趨勢</h2>
+        </div>
+        <div class="legend">
+          <span class="lg lg-loc">Localization</span>
+          <span class="lg lg-perc">Perception</span>
+          <span class="lg lg-plan">Planner</span>
+          <span class="lg lg-flight">Flight</span>
+          <span class="lg lg-atk">Attack</span>
+        </div>
+      </div>
+      <canvas id="trendCanvas"></canvas>
+    </section>
+
+    <section id="sensorImpactPanel" class="panel">
+      <div class="section-title">
+        <div>
+          <p class="eyebrow">Sensor impact timeline</p>
+          <h2>感測器攻擊影響線圖</h2>
+        </div>
+        <div class="legend">
+          <span class="lg lg-sensor">Sensor residual</span>
+          <span class="lg lg-support">Reference</span>
+          <span class="lg lg-atk">Attack</span>
+          <span class="lg lg-warn">Degraded</span>
+          <span class="lg lg-crit">Critical</span>
+        </div>
+      </div>
+      <div class="sensor-grid">
+        <article class="sensor-card">
+          <div class="sensor-card-title">
+            <div>
+              <h3>GPS</h3>
+              <p>Position / velocity residual</p>
+            </div>
+            <strong id="gpsSensorNow">—</strong>
+          </div>
+          <canvas id="gpsSensorCanvas"></canvas>
+          <div class="sensor-stats">
+            <span id="gpsSensorPeak">peak —</span>
+            <span id="gpsSensorRef">vel —</span>
+          </div>
+        </article>
+        <article class="sensor-card">
+          <div class="sensor-card-title">
+            <div>
+              <h3>IMU</h3>
+              <p>Yaw-rate residual</p>
+            </div>
+            <strong id="imuSensorNow">—</strong>
+          </div>
+          <canvas id="imuSensorCanvas"></canvas>
+          <div class="sensor-stats">
+            <span id="imuSensorPeak">peak —</span>
+            <span id="imuSensorRef">gyro z bias —</span>
+          </div>
+        </article>
+        <article class="sensor-card">
+          <div class="sensor-card-title">
+            <div>
+              <h3>Barometer</h3>
+              <p>Altitude residual</p>
+            </div>
+            <strong id="baroSensorNow">—</strong>
+          </div>
+          <canvas id="baroSensorCanvas"></canvas>
+          <div class="sensor-stats">
+            <span id="baroSensorPeak">peak —</span>
+            <span id="baroSensorRef">alt drift —</span>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="two-column">
+      <article class="panel">
+        <p class="eyebrow">Supervisor override</p>
+        <h2>手動回饋指令</h2>
+        <div class="override-grid">
+          <button data-level="ALERT">Alert</button>
+          <button data-level="SLOW_DOWN" class="warning">Slow Down</button>
+          <button data-level="HOVER" class="danger">Hover</button>
+          <button data-level="NONE">Clear Override</button>
+        </div>
+        <div class="status-block">
+          <div><span>Output</span><strong id="supervisorLevel">—</strong></div>
+          <div><span>Speed scale</span><strong id="speedScale">—</strong></div>
+          <div><span>Reason</span><strong id="supervisorReason">—</strong></div>
+        </div>
+      </article>
+
+      <article class="panel">
+        <p class="eyebrow">Attack control</p>
+        <h2>攻擊控制</h2>
+        <div class="override-grid attack-controls">
+          <select id="liveAttackProfile"></select>
+          <button id="triggerAttack" class="warning">立即觸發</button>
+          <button id="stopAttack" class="danger">停止攻擊</button>
+        </div>
+        <div class="status-block">
+          <div><span>Profile</span><strong id="attackName">—</strong></div>
+          <div><span>Status</span><strong id="attackState">—</strong></div>
+          <div><span>Elapsed</span><strong id="attackElapsed">—</strong></div>
+          <div><span>Detail</span><strong id="attackDetail">—</strong></div>
+        </div>
+      </article>
+    </section>
+
+    <section id="attackEvidencePanel" class="panel">
+      <div class="section-title">
+        <div>
+          <p class="eyebrow">Attack evidence</p>
+          <h2>攻擊實驗數據</h2>
+        </div>
+        <div class="actions">
+          <button id="evidenceModeButton">數據模式</button>
+          <span id="attackEffectPill" class="state-pill unknown">NO ATTACK</span>
+        </div>
+      </div>
+      <div class="evidence-meta">
+        <div><span>Run</span><strong id="evidenceRun">—</strong></div>
+        <div><span>World</span><strong id="evidenceWorld">—</strong></div>
+        <div><span>Injection layer</span><strong>Source injector → PX4 estimator</strong></div>
+        <div><span>Command path</span><strong id="evidencePath">—</strong></div>
+        <div><span>Captured</span><strong id="evidenceCapturedAt">—</strong></div>
+      </div>
+      <div class="two-column">
+        <div class="status-block">
+          <div><span>Attack</span><strong id="diagCmd">—</strong></div>
+          <div><span>Magnitude</span><strong id="evidenceMagnitude">—</strong></div>
+          <div><span>Phase / elapsed</span><strong id="evidencePhase">—</strong></div>
+        </div>
+        <div class="status-block">
+          <div><span>Evidence metric</span><strong id="evidenceMetricLabel">—</strong></div>
+          <div><span>Baseline metric</span><strong id="evidenceBaseline">—</strong></div>
+          <div><span>Current metric</span><strong id="driftValue">—</strong></div>
+          <div><span>Peak metric</span><strong id="evidencePeak">—</strong></div>
+          <div><span>Peak increase</span><strong id="evidenceIncrease">—</strong></div>
+        </div>
+      </div>
+      <div class="two-column evidence-lower">
+        <div class="status-block">
+          <div><span>Ground truth</span><strong id="gtValue">—</strong></div>
+          <div><span>EKF position</span><strong id="ekfValue">—</strong></div>
+        </div>
+        <div class="status-block">
+          <div><span>Localization state</span><strong id="evidenceLocalization">—</strong></div>
+          <div><span>Overall state</span><strong id="evidenceOverall">—</strong></div>
+          <div><span>Evidence result</span><strong id="evidenceResult">WAITING</strong></div>
+        </div>
+      </div>
+      <p id="evidenceSummary" class="summary">等待攻擊實驗資料。</p>
+    </section>
+
+    <section class="panel">
+      <div class="section-title">
+        <div>
+          <p class="eyebrow">Dataset governance</p>
+          <h2>最近實驗結果</h2>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Run</th><th>Outcome</th><th>Duration</th><th>Scenario</th><th>Attack</th><th>CSV</th></tr></thead>
+          <tbody id="runsBody"><tr><td colspan="6">尚無 manifest 資料</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="section-title">
+        <div>
+          <p class="eyebrow">Process output</p>
+          <h2>實驗 Log</h2>
+        </div>
+        <button id="refreshLog">更新 Log</button>
+      </div>
+      <pre id="logOutput">尚未啟動實驗。</pre>
+    </section>
+  </main>
+
+  <script src="/assets/dashboard.js"></script>
+</body>
+</html>

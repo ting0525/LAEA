@@ -1,0 +1,14 @@
+[run_aiottalk_rtp] kpi dir  : /home/tim/laea/src/LAEA/laea_twin_tools/laea_logs/attack_evidence_barometer_drift_high_20260627T165731Z
+[run_aiottalk_rtp] debug    : failures=true outcomes=all-non-success tail=5.0s
+[run_aiottalk_rtp] mission-aware: 1, attack=barometer_drift_high, attack_plane=true, seed=42
+[run_aiottalk_rtp] waiting for topic /mavros/imu/data (timeout 60s)
+[run_aiottalk_rtp] waiting for topic /mavros/global_position/raw/gps_vel (timeout 60s)
+success: True
+[ERROR] [1782579742.084617, 507.016000]: [RUN run_001] FAIL_PREMATURE_FINISH persistent no-frontier duration=237.8/300.0s distance=130.1/200.0m
+[WARN] [1782579743.116851, 508.018000]: [RUN run_001] debug summary outcome=FAIL_PREMATURE_FINISH rows=4765 e_pos=0.576 path=/home/tim/laea/src/LAEA/laea_twin_tools/laea_logs/attack_evidence_barometer_drift_high_20260627T165731Z/debug/run_001_FAIL_PREMATURE_FINISH.json cause=no_single_clear_cause_in_summary
+[WARN] [1782579743.118575, 508.020000]: [DELETE] (FAIL_PREMATURE_FINISH) removed log: /home/tim/laea/src/LAEA/laea_twin_tools/laea_logs/attack_evidence_barometer_drift_high_20260627T165731Z/kpi_log_run_001.csv
+[INFO] [1782579487.942198, 268.150000]: [experiment_manager] num_runs=1, output_dir=/home/tim/laea/src/LAEA/laea_twin_tools/laea_logs/attack_evidence_barometer_drift_high_20260627T165731Z, scenario=attack_evidence, transport=aiottalk_rtp, world=indoor_01
+[INFO] [1782579489.092811, 269.264000]: [RUN run_001] current_log_path=/home/tim/laea/src/LAEA/laea_twin_tools/laea_logs/attack_evidence_barometer_drift_high_20260627T165731Z/kpi_log_run_001.csv
+[INFO] [1782579742.956796, 507.863000]: [RUN] annotated mission_outcome=FAIL_PREMATURE_FINISH: /home/tim/laea/src/LAEA/laea_twin_tools/laea_logs/attack_evidence_barometer_drift_high_20260627T165731Z/kpi_log_run_001.csv
+[INFO] [1782579743.120363, 508.022000]: [RUN run_001] appended outcome=FAIL_PREMATURE_FINISH to manifest: /home/tim/laea/src/LAEA/laea_twin_tools/laea_logs/attack_evidence_barometer_drift_high_20260627T165731Z/run_manifest.csv
+[run_aiottalk_rtp] done. result=FAIL kept_delta=0 success_delta=0 rc=0

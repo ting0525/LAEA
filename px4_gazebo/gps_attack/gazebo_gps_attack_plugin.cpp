@@ -32,6 +32,9 @@
 #include <ignition/math.hh>
 #include <sdf/sdf.hh>
 
+#include "attack_window.h"
+#include "attack_command_json.h"
+
 namespace gazebo {
 namespace {
 static constexpr double kDefaultUpdateRate = 5.0;
@@ -215,10 +218,16 @@ class GAZEBO_VISIBLE GpsAttackPlugin : public SensorPlugin {
     gps_pub_ =
         node_handle_->Advertise<sensor_msgs::msgs::SITLGps>("~/" + root_model_name + "/link/" + gps_topic_, 10);
 
+    // Runtime attack command from attack_scheduler via attack_gazebo_bridge.
+    // A received command overrides the env/SDF config; absent any command (e.g.
+    // standalone run_gps_attack_slam.sh) the env/SDF path below is used.
+    cmd_sub_ = node_handle_->Subscribe(laea_attack::attackGzTopic(),
+                                       &GpsAttackPlugin::OnAttackCommand, this);
+
     gzmsg << "[gazebo_gps_attack_plugin] loaded topic=~/" << root_model_name << "/link/"
           << gps_topic_ << " mode=" << attack_mode_ << " start=" << attack_start_sec_
           << " end=" << attack_end_sec_ << " reference_sim_t=" << attack_reference_time_sec_
-          << "\n";
+          << " cmd_topic=" << laea_attack::attackGzTopic() << "\n";
   }
 
   void OnWorldUpdate(const common::UpdateInfo &)
@@ -270,19 +279,15 @@ class GAZEBO_VISIBLE GpsAttackPlugin : public SensorPlugin {
 
     ignition::math::Vector3d attack_pos_offset(0.0, 0.0, 0.0);
     ignition::math::Vector3d attack_vel_offset(0.0, 0.0, 0.0);
-    const double attack_elapsed_sec = sim_time_sec - attack_reference_time_sec_;
-    const bool active = attack_active(attack_elapsed_sec);
+    bool freeze_active = false;
+    const bool active =
+        computeAttackOffsets(sim_time_sec, attack_pos_offset, attack_vel_offset, freeze_active);
 
-    if (active) {
-      if (!attack_active_logged_) {
-        gzmsg << "[gazebo_gps_attack_plugin] GPS attack active mode=" << attack_mode_
-              << " elapsed=" << attack_elapsed_sec << " sim_t=" << sim_time_sec << "\n";
-        attack_active_logged_ = true;
-      }
-      apply_attack(attack_elapsed_sec, attack_pos_offset, attack_vel_offset);
-    } else if (attack_active_logged_ && !attack_end_logged_) {
-      gzmsg << "[gazebo_gps_attack_plugin] GPS attack inactive elapsed=" << attack_elapsed_sec
-            << " sim_t=" << sim_time_sec << "\n";
+    if (active && !attack_active_logged_) {
+      gzmsg << "[gazebo_gps_attack_plugin] GPS attack active sim_t=" << sim_time_sec << "\n";
+      attack_active_logged_ = true;
+    } else if (!active && attack_active_logged_ && !attack_end_logged_) {
+      gzmsg << "[gazebo_gps_attack_plugin] GPS attack inactive sim_t=" << sim_time_sec << "\n";
       attack_end_logged_ = true;
     }
 
@@ -302,7 +307,7 @@ class GAZEBO_VISIBLE GpsAttackPlugin : public SensorPlugin {
     gps_msg.set_velocity_north(velocity_current_w.Y() + noise_gps_vel_.X() + attack_vel_offset.Y());
     gps_msg.set_velocity_up(velocity_current_w.Z() - noise_gps_vel_.Z() + attack_vel_offset.Z());
 
-    if (active && attack_mode_ == "freeze") {
+    if (active && freeze_active) {
       if (!freeze_valid_) {
         freeze_msg_ = gps_msg;
         freeze_valid_ = true;
@@ -445,6 +450,73 @@ class GAZEBO_VISIBLE GpsAttackPlugin : public SensorPlugin {
     }
   }
 
+  // Receive a runtime attack command (scheduler JSON) relayed onto Gazebo
+  // transport. Runs on a transport thread, so guard shared state.
+  void OnAttackCommand(const boost::shared_ptr<const msgs::GzString> &msg)
+  {
+    laea_attack::AttackCommand cmd;
+    if (!laea_attack::parseAttackCommandJson(msg->data(), cmd)) {
+      return;
+    }
+    std::lock_guard<std::mutex> lock(cmd_mutex_);
+    cmd_ = cmd;
+    has_command_ = true;
+  }
+
+  // Compute the GPS offset for this step. A received command is authoritative
+  // and disables the env/SDF fallback; without any command the env/SDF path is
+  // used so standalone runs keep working.
+  bool computeAttackOffsets(double sim_time_sec, ignition::math::Vector3d &pos_offset,
+                            ignition::math::Vector3d &vel_offset, bool &freeze_active)
+  {
+    laea_attack::AttackCommand cmd;
+    bool have_command;
+    {
+      std::lock_guard<std::mutex> lock(cmd_mutex_);
+      cmd = cmd_;
+      have_command = has_command_;
+    }
+
+    if (have_command) {
+      if (!cmd.enabled || cmd.source != "gps") {
+        return false;
+      }
+      const double scale = laea_attack::attackScale(sim_time_sec, cmd);
+      if (scale <= 0.0) {
+        return false;
+      }
+      apply_command(cmd, scale, pos_offset, vel_offset, freeze_active);
+      return true;
+    }
+
+    // No command ever received: env/SDF fallback (relative to plugin load time).
+    const double elapsed = sim_time_sec - attack_reference_time_sec_;
+    if (!attack_active(elapsed)) {
+      return false;
+    }
+    apply_attack(elapsed, pos_offset, vel_offset);
+    freeze_active = (attack_mode_ == "freeze");
+    return true;
+  }
+
+  void apply_command(const laea_attack::AttackCommand &cmd, double scale,
+                     ignition::math::Vector3d &pos_offset,
+                     ignition::math::Vector3d &vel_offset, bool &freeze_active)
+  {
+    if (cmd.mode == "bias") {
+      pos_offset.Set(cmd.vx * scale, cmd.vy * scale, cmd.vz * scale);
+    } else if (cmd.mode == "velocity_bias") {
+      vel_offset.Set(cmd.vx * scale, cmd.vy * scale, cmd.vz * scale);
+    } else if (cmd.mode == "jump") {
+      pos_offset.Set(cmd.vx, cmd.vy, cmd.vz);
+    } else if (cmd.mode == "noise") {
+      const double s = cmd.scalar * scale;
+      pos_offset.Set(s * randn_(rand_), s * randn_(rand_), s * randn_(rand_));
+    } else if (cmd.mode == "freeze") {
+      freeze_active = true;
+    }
+  }
+
   std::string namespace_;
   std::string model_name_;
   std::string gps_topic_;
@@ -457,6 +529,10 @@ class GAZEBO_VISIBLE GpsAttackPlugin : public SensorPlugin {
   event::ConnectionPtr updateSensorConnection_;
   transport::NodePtr node_handle_;
   transport::PublisherPtr gps_pub_;
+  transport::SubscriberPtr cmd_sub_;
+  std::mutex cmd_mutex_;
+  laea_attack::AttackCommand cmd_;
+  bool has_command_{false};
 
   double update_rate_{kDefaultUpdateRate};
   common::Time last_gps_time_;

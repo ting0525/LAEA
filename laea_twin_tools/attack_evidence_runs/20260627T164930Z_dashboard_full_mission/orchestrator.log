@@ -1,0 +1,14 @@
+[2026-06-27T16:49:30.197935+00:00] === start gps_bias_high (1/3) ===
+[2026-06-27T16:49:30.407399+00:00] gps_bias_high: t=0s running=True phase=inactive active=False impact=False overall=None metric=None
+[2026-06-27T16:50:00.674181+00:00] gps_bias_high: t=30s running=True phase=inactive active=False impact=False overall=DEGRADED metric=0.010241569808936134
+[2026-06-27T16:50:30.989519+00:00] gps_bias_high: t=61s running=True phase=scheduled active=False impact=False overall=NORMAL metric=None
+[2026-06-27T16:51:01.372661+00:00] gps_bias_high: t=91s running=True phase=scheduled active=False impact=False overall=NORMAL metric=None
+[2026-06-27T16:51:31.723630+00:00] gps_bias_high: t=121s running=True phase=scheduled active=False impact=False overall=NORMAL metric=None
+[2026-06-27T16:52:02.121206+00:00] gps_bias_high: t=152s running=True phase=scheduled active=False impact=False overall=NORMAL metric=None
+[2026-06-27T16:52:32.505457+00:00] gps_bias_high: t=182s running=True phase=scheduled active=False impact=False overall=NORMAL metric=None
+[2026-06-27T16:52:58.556685+00:00] gps_bias_high: active screenshot path=/home/tim/laea/src/LAEA/laea_twin_tools/attack_evidence_runs/20260627T164930Z_dashboard_full_mission/gps_bias_high_active.png error=None
+[2026-06-27T16:53:03.604911+00:00] gps_bias_high: t=213s running=True phase=active active=True impact=False overall=CRITICAL metric=None
+[2026-06-27T16:53:33.851325+00:00] gps_bias_high: t=243s running=False phase=active active=True impact=False overall=CRITICAL metric=None
+[2026-06-27T16:53:37.068902+00:00] === done gps_bias_high: outcome=FAIL_SLAM impact=False max_metric=0.013945170839334046 ===
+[2026-06-27T16:53:37.115586+00:00] === start imu_gyro_bias_high (2/3) ===
+[2026-06-27T16:53:37.339898+00:00] imu_gyro_bias_high: t=0s running=True phase=inactive active=False impact=False overall=CRITICAL metric=None

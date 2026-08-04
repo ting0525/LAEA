@@ -1,0 +1,45 @@
+<launch>
+  <arg name="attack_profile" default="none"/>
+  <arg name="attack_seed" default="42"/>
+  <arg name="attack_onset_min_s" default="$(optenv ATTACK_ONSET_MIN_S 120.0)"/>
+  <arg name="attack_onset_max_s" default="$(optenv ATTACK_ONSET_MAX_S 180.0)"/>
+  <arg name="detector_name" default="rule_mad"/>
+  <arg name="supervisor_policy" default="none"/>
+  <arg name="depth_topic" default="/rtp/depth/image_raw"/>
+  <!-- Source-layer attack command plane, gated in two parts so baseline runs
+       stay clean AND manual-only attack runs are possible:
+       - enable_attack    : the Gazebo bridge (relays commands to the plugins).
+         On for any attack-capable run (auto-fire OR dashboard manual trigger).
+       - enable_scheduler : the auto-fire scheduler. On ONLY when an attack
+         profile is selected. A manual-attack run keeps this OFF so the
+         scheduler never republishes and fights the dashboard's live command.
+       The supervisory framework below stays on either way. -->
+  <arg name="enable_attack" default="false"/>
+  <arg name="enable_scheduler" default="false"/>
+
+  <node if="$(arg enable_scheduler)" pkg="laea_twin_tools" type="attack_scheduler.py" name="attack_scheduler" output="screen">
+    <rosparam command="load" file="$(find laea_twin_tools)/config/attack_profiles.yaml"/>
+    <param name="profile" value="$(arg attack_profile)"/>
+    <param name="seed" value="$(arg attack_seed)"/>
+    <param name="onset_min_s" value="$(arg attack_onset_min_s)"/>
+    <param name="onset_max_s" value="$(arg attack_onset_max_s)"/>
+  </node>
+
+  <!-- Relays the ROS attack command onto Gazebo transport for the source-layer
+       sensor attack plugins (which build in the PX4 tree without roscpp). -->
+  <node if="$(arg enable_attack)" pkg="px4_gazebo" type="attack_gazebo_bridge" name="attack_gazebo_bridge" output="screen"/>
+
+  <node pkg="laea_twin_tools" type="mission_state_node.py" name="mission_state_node" output="screen">
+    <rosparam command="load" file="$(find laea_twin_tools)/config/mission_state.yaml"/>
+    <param name="detector_name" value="$(arg detector_name)"/>
+    <param name="depth_topic" value="$(arg depth_topic)"/>
+  </node>
+
+  <node pkg="laea_twin_tools" type="supervisor_node.py" name="mission_supervisor" output="screen">
+    <rosparam command="load" file="$(find laea_twin_tools)/config/mission_state.yaml"/>
+    <param name="policy" value="$(arg supervisor_policy)"/>
+  </node>
+
+  <!-- Turns supervisor HOVER (auto or dashboard override) into a planner pause. -->
+  <node pkg="laea_twin_tools" type="feedback_actuator.py" name="feedback_actuator" output="screen"/>
+</launch>

@@ -17,6 +17,8 @@ find_package(catkin REQUIRED COMPONENTS
   tf2_ros
 )
 
+find_package(gazebo REQUIRED)
+
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
 
@@ -122,6 +124,20 @@ catkin_package(
 include_directories(
 # include
   ${catkin_INCLUDE_DIRS}
+  ${GAZEBO_INCLUDE_DIRS}
+  ${CMAKE_CURRENT_SOURCE_DIR}/attack_common
+)
+link_directories(${GAZEBO_LIBRARY_DIRS})
+
+# LAEA: ROS -> Gazebo attack command bridge (source-layer attack control plane).
+add_executable(attack_gazebo_bridge src/attack_gazebo_bridge.cpp)
+add_dependencies(attack_gazebo_bridge ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(attack_gazebo_bridge
+  ${catkin_LIBRARIES}
+  ${GAZEBO_LIBRARIES}
+)
+install(TARGETS attack_gazebo_bridge
+  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
 ## Declare a C++ library

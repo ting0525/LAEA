@@ -1,0 +1,286 @@
+{
+  "debug_version": 1,
+  "diagnosis": [
+    "no_single_clear_cause_in_summary"
+  ],
+  "kpi_csv_summary": {
+    "all": {
+      "depth_age_ms": {
+        "count": 4765,
+        "last": 216.99999999998454,
+        "max": 252.00000000000955,
+        "mean": 166.44281217208862,
+        "min": 26.00000000001046,
+        "p95": 201.00000000002183
+      },
+      "depth_mean_m": {
+        "count": 4765,
+        "last": 3.044739007949829,
+        "max": 5.384931564331055,
+        "mean": 3.275087589006734,
+        "min": 1.2730646133422852,
+        "p95": 4.482211589813232
+      },
+      "depth_near_ratio_1m": {
+        "count": 4765,
+        "last": 0.0,
+        "max": 0.6074403350455211,
+        "mean": 0.027609073687758872,
+        "min": 0.0,
+        "p95": 0.19860838807929865
+      },
+      "depth_stale_ratio": 0.0,
+      "depth_valid_ratio": {
+        "count": 4765,
+        "last": 0.9930891927083333,
+        "max": 1.0,
+        "mean": 0.7822266786354427,
+        "min": 0.2547102864583333,
+        "p95": 1.0
+      },
+      "e_pos": {
+        "count": 4765,
+        "last": 0.5762786171714323,
+        "max": 2.394531233539,
+        "mean": 0.7618796178122126,
+        "min": 0.04921733541864785,
+        "p95": 1.7241133083062214
+      },
+      "gps_position_covariance": {
+        "count": 4759,
+        "last": 3.0,
+        "max": 3.0,
+        "mean": 3.0,
+        "min": 3.0,
+        "p95": 3.0
+      },
+      "gps_sat": {
+        "count": 4759,
+        "last": 10.0,
+        "max": 10.0,
+        "mean": 10.0,
+        "min": 10.0,
+        "p95": 10.0
+      },
+      "odom_pose_covariance_summary": {
+        "count": 4765,
+        "last": 0.0,
+        "max": 0.0,
+        "mean": 0.0,
+        "min": 0.0,
+        "p95": 0.0
+      },
+      "odom_twist_covariance_summary": {
+        "count": 4765,
+        "last": 0.0,
+        "max": 0.0,
+        "mean": 0.0,
+        "min": 0.0,
+        "p95": 0.0
+      },
+      "rtp_depth_repeat_score": {
+        "count": 4764,
+        "last": 0.378125,
+        "max": 1.0,
+        "mean": 0.34438435838230974,
+        "min": 0.0,
+        "p95": 0.9997916666666666
+      },
+      "speed_mps": {
+        "count": 4765,
+        "last": 0.10955794699422688,
+        "max": 3.1600833928654066,
+        "mean": 0.5824167623043284,
+        "min": 0.019446867809079976,
+        "p95": 1.0331775253226216
+      }
+    },
+    "available": true,
+    "last_sample": {
+      "depth_age_ms": 216.99999999998454,
+      "depth_valid_ratio": 0.9930891927083333,
+      "e_pos": 0.5762786171714323,
+      "est": {
+        "x": 18.30006980895996,
+        "y": -8.920958518981934,
+        "z": 0.5119318962097168
+      },
+      "gps_fix": 0.0,
+      "gps_position_covariance": 3.0,
+      "gps_sat": 10.0,
+      "gt": {
+        "x": 18.25829176978695,
+        "y": -8.954775055339912,
+        "z": 1.0856984706288146
+      },
+      "mission_outcome": "FAIL_PREMATURE_FINISH",
+      "rtp_depth_repeat_score": 0.378125,
+      "rtp_depth_stale": 0.0,
+      "speed_mps": 0.10955794699422688,
+      "t": 506.995
+    },
+    "log_duration_s": 238.2,
+    "mission_outcome_counts": {
+      "FAIL_PREMATURE_FINISH": 4765
+    },
+    "path": "/home/tim/laea/src/LAEA/laea_twin_tools/laea_logs/attack_evidence_barometer_drift_high_20260627T165731Z/kpi_log_run_001.csv",
+    "row_count": 4765,
+    "t_first": 268.795,
+    "t_last": 506.995,
+    "tail": {
+      "depth_age_ms": {
+        "count": 101,
+        "last": 216.99999999998454,
+        "max": 216.99999999998454,
+        "mean": 174.06930693069887,
+        "min": 83.00000000002683,
+        "p95": 200.00000000004547
+      },
+      "depth_mean_m": {
+        "count": 101,
+        "last": 3.044739007949829,
+        "max": 3.0931591987609863,
+        "mean": 3.0660321783311297,
+        "min": 3.044739007949829,
+        "p95": 3.0861878395080566
+      },
+      "depth_near_ratio_1m": {
+        "count": 101,
+        "last": 0.0,
+        "max": 0.0,
+        "mean": 0.0,
+        "min": 0.0,
+        "p95": 0.0
+      },
+      "depth_stale_ratio": 0.0,
+      "depth_valid_ratio": {
+        "count": 101,
+        "last": 0.9930891927083333,
+        "max": 0.9930891927083333,
+        "mean": 0.9900876005569312,
+        "min": 0.9870149739583334,
+        "p95": 0.9918098958333333
+      },
+      "e_pos": {
+        "count": 101,
+        "last": 0.5762786171714323,
+        "max": 0.5838666545730277,
+        "mean": 0.5758898623307493,
+        "min": 0.5700786457305523,
+        "p95": 0.5786564456803771
+      },
+      "gps_position_covariance": {
+        "count": 101,
+        "last": 3.0,
+        "max": 3.0,
+        "mean": 3.0,
+        "min": 3.0,
+        "p95": 3.0
+      },
+      "gps_sat": {
+        "count": 101,
+        "last": 10.0,
+        "max": 10.0,
+        "mean": 10.0,
+        "min": 10.0,
+        "p95": 10.0
+      },
+      "odom_pose_covariance_summary": {
+        "count": 101,
+        "last": 0.0,
+        "max": 0.0,
+        "mean": 0.0,
+        "min": 0.0,
+        "p95": 0.0
+      },
+      "odom_twist_covariance_summary": {
+        "count": 101,
+        "last": 0.0,
+        "max": 0.0,
+        "mean": 0.0,
+        "min": 0.0,
+        "p95": 0.0
+      },
+      "rtp_depth_repeat_score": {
+        "count": 101,
+        "last": 0.378125,
+        "max": 0.6775,
+        "mean": 0.41707508250825054,
+        "min": 0.20291666666666666,
+        "p95": 0.633125
+      },
+      "speed_mps": {
+        "count": 101,
+        "last": 0.10955794699422688,
+        "max": 0.12885029306735377,
+        "mean": 0.08076819281801398,
+        "min": 0.06172928933284104,
+        "p95": 0.11347710123354902
+      }
+    },
+    "tail_row_count": 101,
+    "tail_window_s": 5.0
+  },
+  "log_exists_before_delete": true,
+  "log_path": "/home/tim/laea/src/LAEA/laea_twin_tools/laea_logs/attack_evidence_barometer_drift_high_20260627T165731Z/kpi_log_run_001.csv",
+  "run_id": "run_001",
+  "scenario": "attack_evidence",
+  "snapshot": {
+    "attack": {
+      "actual_onset_s": 427.713,
+      "mode": "drift",
+      "scheduled_start_s": 427.631607907,
+      "seed": 42,
+      "severity": "high",
+      "source": "barometer"
+    },
+    "created_wall_time_s": 1782579742.958309,
+    "duration_s": 237.752,
+    "ended_at_s": 507.017,
+    "hover": {
+      "hard_latched": false,
+      "reason": "",
+      "reason_bits": 0,
+      "seen": false,
+      "time_s": null
+    },
+    "localization": {
+      "e_pos_m": 0.5762590918034886,
+      "est_age_s": 0.027,
+      "est_time_s": 507.836,
+      "est_xyz": [
+        18.299266815185547,
+        -8.90831470489502,
+        0.514037549495697
+      ],
+      "fail_held_s": null,
+      "fail_started_s": null,
+      "gt_age_s": 0.0,
+      "gt_time_s": 507.863,
+      "gt_xyz": [
+        18.265155151791543,
+        -8.936334736217756,
+        1.0886033100064922
+      ]
+    },
+    "mission": {
+      "early_finish_first_s": 502.001,
+      "early_finish_last_s": 507.863,
+      "finish_seen": false,
+      "finish_time_s": null,
+      "travel_distance_m": 130.08914827255387
+    },
+    "mission_trigger_s": 269.265,
+    "outcome": "FAIL_PREMATURE_FINISH",
+    "ros_now_s": 507.863,
+    "run_start_s": 268.254,
+    "thresholds": {
+      "fail_error_m": 10.0,
+      "fail_hold_s": 1.0,
+      "success_min_distance_m": 200.0,
+      "success_min_duration_s": 300.0
+    }
+  },
+  "transport_mode": "aiottalk_rtp",
+  "world_name": "indoor_01"
+}

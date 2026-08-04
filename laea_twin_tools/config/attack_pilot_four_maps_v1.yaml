@@ -1,0 +1,52 @@
+# Four-map, four-attack feasibility campaign.
+#
+# This file selects existing source-layer profiles.  The campaign driver pins
+# the selected profile definitions and world-file hashes into campaign_plan.json
+# before execution, so later config edits cannot silently change a resumed run.
+schema_version: laea-attack-pilot-config-v1
+campaign_name: attack_four_maps_pilot_v1
+transport_mode: nosip
+attack_sdf: iris_d435_lidar_gps_attack
+
+worlds:
+  - indoor_01
+  - indoor_02
+  - lab_corridor_01
+  - lab_rooms_01
+
+profiles:
+  # Representative middle points from the existing sensitivity sweeps.  These
+  # avoid changing profile semantics and are less destructive than demo "high"
+  # profiles while remaining above the measured normal-flight noise floor.
+  - gps_bias_5m
+  - gps_velocity_1p0
+  - imu_gyro_0p05
+  - baro_1p0
+
+attempts_per_combination: 2
+base_seed: 20260729
+
+# Relative to /traj_start_trigger.  A short but non-immediate window gives the
+# estimator time to stabilize and still leaves enough post-onset data in a
+# pilot run.  run_manifest.csv records both scheduled and actual onset.
+onset_window_s: [60.0, 90.0]
+
+# Pilot limits, not final-dataset limits.  Attack runs are retained regardless
+# of mission outcome so an attributable pre-failure window is not discarded.
+max_duration_s:
+  indoor_01: 420.0
+  indoor_02: 420.0
+  lab_corridor_01: 300.0
+  lab_rooms_01: 330.0
+
+# The smoke selection is a strict subset of the 32-attempt plan.  Keeping all
+# four profiles on the stable baseline map avoids confounding plugin validation
+# with a new-map failure.
+smoke:
+  world: indoor_01
+  attempt: 1
+  profiles:
+    - gps_bias_5m
+    - gps_velocity_1p0
+    - imu_gyro_0p05
+    - baro_1p0

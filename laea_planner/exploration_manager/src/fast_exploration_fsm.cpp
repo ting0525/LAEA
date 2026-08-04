@@ -30,6 +30,8 @@ namespace fast_planner
     nh.param("fsm/init_y", fp_->init_y, 0.0);
     nh.param("fsm/init_z", fp_->init_z, 0.0);
     nh.param("fsm/replan_time", fp_->replan_time_, -1.0);
+    nh.param("fsm/min_finish_time", fp_->min_finish_time_, 0.0);
+    nh.param("fsm/min_finish_dist", fp_->min_finish_dist_, 0.0);
 
     nh.param("fsm/enable_yawing", enable_yawing, false);
 
@@ -54,6 +56,7 @@ namespace fast_planner
     trigger_sub_ =
         nh.subscribe("/waypoint_generator/waypoints", 1, &FastExplorationFSM::triggerCallback, this);
     odom_sub_ = nh.subscribe("/odom_world", 1, &FastExplorationFSM::odometryCallback, this);
+    pause_sub_ = nh.subscribe("/laea/feedback/pause_exploration", 1, &FastExplorationFSM::pauseCallback, this);
 
     pg_T_vio_sub = nh.subscribe("/loop_fusion/pg_T_vio", 10, &FastExplorationFSM::pgTVioCallback, this);
 
@@ -407,6 +410,15 @@ namespace fast_planner
   {
     ROS_INFO_STREAM_THROTTLE(1.0, "[FSM]: state: " << fd_->state_str_[int(state_)]);
 
+    // Mission-aware feedback HOVER: stop planning new tours. The command thread
+    // (cmdCallback) keeps running and drains plan_ to a static hover. Planning
+    // resumes from the current state once the pause is cleared.
+    if (paused_)
+    {
+      ROS_WARN_THROTTLE(2.0, "[FSM]: paused by feedback supervisor (HOVER); holding position.");
+      return;
+    }
+
     switch (state_)
     {
     case INIT:
@@ -553,10 +565,19 @@ namespace fast_planner
       {
         plan_cost_time += ros::Time::now().toSec() - startPlan;
         plan_loop_num++;
+        double cur_flight_time = ros::Time::now().toSec() - flight_start;
+        if (cur_flight_time < fp_->min_finish_time_ ||
+            flight_distance < fp_->min_finish_dist_)
+        {
+          ROS_ERROR(
+              "Reject early no-frontier finish: flight_time %.3f / %.3f, flight_dist %.3f / %.3f",
+              cur_flight_time, fp_->min_finish_time_, flight_distance, fp_->min_finish_dist_);
+          break;
+        }
         cout << "finish" << endl;
         transitState(FINISH, "FSM");
         fd_->static_state_ = true;
-        flight_time = ros::Time::now().toSec() - flight_start;
+        flight_time = cur_flight_time;
       }
       else if (res == FAIL)
       {
@@ -835,6 +856,15 @@ namespace fast_planner
     file << msg->pose.pose.position.x << "," << msg->pose.pose.position.y << "," << msg->pose.pose.position.z << std::endl;
 
     fd_->have_odom_ = true;
+  }
+
+  void FastExplorationFSM::pauseCallback(const std_msgs::Bool::ConstPtr &msg)
+  {
+    const bool requested = msg->data;
+    if (requested == paused_)
+      return;
+    paused_ = requested;
+    ROS_WARN("[FSM]: feedback pause %s", paused_ ? "ENGAGED (hover)" : "RELEASED (resume)");
   }
 
   void FastExplorationFSM::transitState(EXPL_STATE new_state, string pos_call)

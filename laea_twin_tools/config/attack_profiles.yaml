@@ -1,0 +1,117 @@
+# Attack profiles for attack_scheduler.py (loaded as /profiles).
+#
+# Onset is NOT set here: attack_scheduler randomizes it within
+# [onset_min_s, onset_max_s] relative to /traj_start_trigger (seeded per run),
+# so attacks fire mid-mission. profile "none" (the default) = clean baseline.
+#
+# Each injector runs the same lifecycle: ramp_s (0->1), hold for duration_s,
+# recovery_s (1->0). vector/scalar are interpreted per source/mode below.
+# Magnitudes are tuned so "low" reaches mission_state DEGRADED and "high"
+# reaches CRITICAL (thresholds in mission_state.yaml). Values are tunable and
+# should be re-checked against a real run.
+#
+# Contract (vector / scalar meaning):
+#   gps  bias           vector = [E,N,U] position bias (m), ramped
+#   gps  velocity_bias  vector = [vx,vy,vz] velocity bias (m/s)  -> gps_velocity_residual
+#   imu  gyro_bias      vector = [wx,wy,wz] gyro bias (rad/s)     -> yaw_rate_residual (z)
+#   baro drift          scalar = equivalent altitude offset (m)   -> baro_altitude_residual
+#
+# Scope: source-layer only (sensors feeding PX4 EKF2). Perception/depth attacks
+# are intentionally excluded.
+
+profiles:
+  # ---- GPS (source-layer, before EKF2) ------------------------------------
+  gps_bias_low:
+    source: gps
+    mode: bias
+    severity: low
+    ramp_s: 2.0
+    duration_s: 30.0
+    recovery_s: 5.0
+    vector: [10.0, 0.0, 0.0]   # demo-scale position error; may reach FAIL_SLAM
+  gps_bias_high:
+    source: gps
+    mode: bias
+    severity: high
+    ramp_s: 0.5
+    duration_s: 20.0
+    recovery_s: 5.0
+    vector: [30.0, 0.0, 0.0]   # extreme demo; expected to fail the mission quickly
+  gps_velocity_bias_low:
+    source: gps
+    mode: velocity_bias
+    severity: low
+    ramp_s: 1.0
+    duration_s: 30.0
+    recovery_s: 5.0
+    vector: [3.0, 0.0, 0.0]    # demo-scale velocity error; above CRITICAL
+  gps_velocity_bias_high:
+    source: gps
+    mode: velocity_bias
+    severity: high
+    ramp_s: 0.5
+    duration_s: 20.0
+    recovery_s: 5.0
+    vector: [8.0, 0.0, 0.0]    # extreme demo; expected to destabilize EKF quickly
+
+  # ---- IMU (source-layer; magnitudes raised to clear yaw_rate_residual) ----
+  imu_gyro_bias_low:
+    source: imu
+    mode: gyro_bias
+    severity: low
+    ramp_s: 5.0
+    duration_s: 30.0
+    recovery_s: 5.0
+    vector: [0.0, 0.0, 0.30]    # rad/s; ~ yaw_rate_residual_degraded (0.25)
+  imu_gyro_bias_high:
+    source: imu
+    mode: gyro_bias
+    severity: high
+    ramp_s: 5.0
+    duration_s: 30.0
+    recovery_s: 5.0
+    vector: [0.0, 0.0, 0.80]    # > yaw_rate_residual_critical (0.70)
+
+  # ---- Barometer (source-layer; scalar = altitude-equivalent offset, m) ----
+  barometer_drift_low:
+    source: barometer
+    mode: drift
+    severity: low
+    ramp_s: 15.0
+    duration_s: 20.0
+    recovery_s: 15.0
+    scalar: 1.2                 # m; > baro_altitude_residual_degraded (0.8)
+  barometer_drift_high:
+    source: barometer
+    mode: drift
+    severity: high
+    ramp_s: 15.0
+    duration_s: 20.0
+    recovery_s: 15.0
+    scalar: 3.0                 # m; > baro_altitude_residual_critical (2.0)
+
+  # ============================================================================
+  # Sensitivity-sweep profiles — grounded in the normal-flight noise floor and
+  # GPS-spoofing literature (realistic 1-4m gradual drift, not 30m step).
+  # Noise floor: e_pos p99~1.3m, speed_gap p99~1.3 m/s, |yaw| p99~1.3 rad/s,
+  # baro noise ~0.45 m. onset is global (~120-180 s). Slow ramp = drift-evasive.
+  # ============================================================================
+  # GPS position bias sweep (m)
+  gps_bias_2m:  {source: gps, mode: bias, severity: sweep, ramp_s: 12.0, duration_s: 30.0, recovery_s: 8.0, vector: [2.0, 0.0, 0.0]}
+  gps_bias_3m:  {source: gps, mode: bias, severity: sweep, ramp_s: 12.0, duration_s: 30.0, recovery_s: 8.0, vector: [3.0, 0.0, 0.0]}
+  gps_bias_5m:  {source: gps, mode: bias, severity: sweep, ramp_s: 12.0, duration_s: 30.0, recovery_s: 8.0, vector: [5.0, 0.0, 0.0]}
+  gps_bias_8m:  {source: gps, mode: bias, severity: sweep, ramp_s: 10.0, duration_s: 30.0, recovery_s: 8.0, vector: [8.0, 0.0, 0.0]}
+  gps_bias_12m: {source: gps, mode: bias, severity: sweep, ramp_s: 8.0,  duration_s: 30.0, recovery_s: 8.0, vector: [12.0, 0.0, 0.0]}
+  # GPS velocity bias sweep (m/s)
+  gps_velocity_0p5: {source: gps, mode: velocity_bias, severity: sweep, ramp_s: 5.0, duration_s: 30.0, recovery_s: 8.0, vector: [0.5, 0.0, 0.0]}
+  gps_velocity_1p0: {source: gps, mode: velocity_bias, severity: sweep, ramp_s: 5.0, duration_s: 30.0, recovery_s: 8.0, vector: [1.0, 0.0, 0.0]}
+  gps_velocity_2p0: {source: gps, mode: velocity_bias, severity: sweep, ramp_s: 5.0, duration_s: 30.0, recovery_s: 8.0, vector: [2.0, 0.0, 0.0]}
+  # IMU gyro bias sweep (rad/s) — realistic sensor-fault range
+  imu_gyro_0p02: {source: imu, mode: gyro_bias, severity: sweep, ramp_s: 5.0, duration_s: 30.0, recovery_s: 8.0, vector: [0.0, 0.0, 0.02]}
+  imu_gyro_0p05: {source: imu, mode: gyro_bias, severity: sweep, ramp_s: 5.0, duration_s: 30.0, recovery_s: 8.0, vector: [0.0, 0.0, 0.05]}
+  imu_gyro_0p10: {source: imu, mode: gyro_bias, severity: sweep, ramp_s: 5.0, duration_s: 30.0, recovery_s: 8.0, vector: [0.0, 0.0, 0.10]}
+  # Barometer drift sweep (m)
+  baro_0p5: {source: barometer, mode: drift, severity: sweep, ramp_s: 15.0, duration_s: 30.0, recovery_s: 15.0, scalar: 0.5}
+  baro_1p0: {source: barometer, mode: drift, severity: sweep, ramp_s: 15.0, duration_s: 30.0, recovery_s: 15.0, scalar: 1.0}
+  baro_2p0: {source: barometer, mode: drift, severity: sweep, ramp_s: 15.0, duration_s: 30.0, recovery_s: 15.0, scalar: 2.0}
+  baro_3p0: {source: barometer, mode: drift, severity: sweep, ramp_s: 15.0, duration_s: 30.0, recovery_s: 15.0, scalar: 3.0}

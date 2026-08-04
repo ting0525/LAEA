@@ -1,0 +1,39 @@
+Sat Jun 27 15:59:32 UTC 2026
+2f89cba
+ M laea_planner/octomap_mapping/octomap_server/launch/scan_mapping.launch
+ M laea_twin_tools/launch/mission_aware_runtime.launch
+ M laea_twin_tools/scripts/dashboard/catalogs.py
+ M laea_twin_tools/scripts/dashboard/experiment.py
+ M laea_twin_tools/scripts/dashboard/monitor.py
+ M laea_twin_tools/web/dashboard/dashboard.css
+ M laea_twin_tools/web/dashboard/dashboard.js
+ M laea_twin_tools/web/dashboard/index.html
+ M run_aiottalk_rtp.sh
+?? laea_twin_tools/attack_test_logs/
+profile_count 8
+profiles barometer_drift_high,barometer_drift_low,gps_bias_high,gps_bias_low,gps_velocity_bias_high,gps_velocity_bias_low,imu_gyro_bias_high,imu_gyro_bias_low
+sources barometer,gps,imu
+profile barometer_drift_high barometer drift high 3.0
+profile barometer_drift_low barometer drift low 1.2
+profile gps_bias_high gps bias high [30.0, 0.0, 0.0]
+profile gps_bias_low gps bias low [10.0, 0.0, 0.0]
+profile gps_velocity_bias_high gps velocity_bias high [8.0, 0.0, 0.0]
+profile gps_velocity_bias_low gps velocity_bias low [3.0, 0.0, 0.0]
+profile imu_gyro_bias_high imu gyro_bias high [0.0, 0.0, 0.8]
+profile imu_gyro_bias_low imu gyro_bias low [0.0, 0.0, 0.3]
+LIVE_ATTACK_SOURCES barometer,gps,imu
+ATTACK_CAPABLE_PX4_SDF iris_d435_lidar_gps_attack
+a8e630e542b43f32f72e9089ad2ec32f38cd8a73eebad008d1118d65f309d3c6  px4_gazebo/imu_attack/gazebo_imu_attack_plugin.cpp
+a8e630e542b43f32f72e9089ad2ec32f38cd8a73eebad008d1118d65f309d3c6  /home/tim/PX4-Autopilot/Tools/sitl_gazebo/src/gazebo_imu_attack_plugin.cpp
+7d48d3b0b9544ba3ebca66eadd33780b543306fb666b07a915534e9a501d006d  px4_gazebo/baro_attack/gazebo_barometer_attack_plugin.cpp
+7d48d3b0b9544ba3ebca66eadd33780b543306fb666b07a915534e9a501d006d  /home/tim/PX4-Autopilot/Tools/sitl_gazebo/src/gazebo_barometer_attack_plugin.cpp
+f51e2f8628e0f1ea55aaf11fb8f3b521b5e2a560aea33fc735f1fb1c163556bb  px4_gazebo/attack_common/attack_window.h
+f51e2f8628e0f1ea55aaf11fb8f3b521b5e2a560aea33fc735f1fb1c163556bb  /home/tim/PX4-Autopilot/Tools/sitl_gazebo/src/attack_window.h
+9d44609290b0b7c4ae894458a72dfd56a1c7c2723c54c3c9bb77582378461ad2  px4_gazebo/attack_common/attack_command_json.h
+9d44609290b0b7c4ae894458a72dfd56a1c7c2723c54c3c9bb77582378461ad2  /home/tim/PX4-Autopilot/Tools/sitl_gazebo/src/attack_command_json.h
+-rwxrwxr-x 1 tim tim 5.7M Jun 27 06:19 /home/tim/PX4-Autopilot/build/px4_sitl_default/build_gazebo/libgazebo_barometer_attack_plugin.so
+-rwxrwxr-x 1 tim tim 6.4M Jun 20 10:06 /home/tim/PX4-Autopilot/build/px4_sitl_default/build_gazebo/libgazebo_gps_attack_plugin.so
+-rwxrwxr-x 1 tim tim 6.2M Jun 27 06:19 /home/tim/PX4-Autopilot/build/px4_sitl_default/build_gazebo/libgazebo_imu_attack_plugin.so
+3:  <model name='iris_gps_attack'>
+441:    <plugin name='barometer_plugin' filename='libgazebo_barometer_attack_plugin.so'>
+567:    <plugin name='rotors_gazebo_imu_plugin' filename='libgazebo_imu_attack_plugin.so'>

@@ -1,0 +1,16 @@
+std_msgs/Header header
+
+string fsm_state
+uint32 frontier_count
+uint32 dormant_frontier_count
+uint32 replan_count
+uint32 no_path_count
+
+float64 command_age_s
+uint32 trajectory_id
+uint8 trajectory_flag
+float64 command_speed_mps
+float64 command_accel_mps2
+float64 tracking_error_m
+float64 progress_rate_mps
+float64 stall_duration_s

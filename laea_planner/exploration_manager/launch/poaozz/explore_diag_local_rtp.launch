@@ -1,0 +1,6 @@
+<launch>
+  <include file="$(find exploration_manager)/launch/poaozz/explore_diagnostic.launch">
+    <arg name="algorithm_file" value="$(find exploration_manager)/launch/poaozz/algorithm_.xml"/>
+    <arg name="depth_topic" value="/rtp/depth/image_raw"/>
+  </include>
+</launch>

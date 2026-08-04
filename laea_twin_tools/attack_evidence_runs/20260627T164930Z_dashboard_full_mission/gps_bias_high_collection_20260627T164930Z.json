@@ -1,0 +1,50 @@
+{
+  "attack_capable_model": true,
+  "attack_profile": "gps_bias_high",
+  "attack_seed": 42,
+  "collection_mode": "single",
+  "created_at": "2026-06-27T16:49:30.365515+00:00",
+  "dataset_name": "attack_evidence_gps_bias_high_20260627T164930Z",
+  "detector_name": "rule_mad",
+  "enable_ditto": false,
+  "enable_rtp": true,
+  "enable_rviz": false,
+  "increment_seed": false,
+  "manual_attack": false,
+  "max_duration_s": 900.0,
+  "px4_sdf": "iris_d435_lidar_gps_attack",
+  "runner": "/home/tim/laea/src/LAEA/run_aiottalk_rtp.sh",
+  "runtime_profile": "scan_mapping_explore_test",
+  "scenario": "attack_evidence",
+  "sleep_between_rounds_s": 5.0,
+  "supervisor_policy": "none",
+  "total_rounds": 1,
+  "world_name": "indoor_01",
+  "world_profile": {
+    "description": "Stable baseline map used by the current dashboard workflow.",
+    "label": "Indoor 01",
+    "name": "indoor_01",
+    "planner": {
+      "box_x_max": 23.0,
+      "box_x_min": -23.0,
+      "box_y_max": 11.0,
+      "box_y_min": -11.0,
+      "box_z_max": 2.3,
+      "box_z_min": -0.1,
+      "map_size_x": 80.0,
+      "map_size_y": 80.0,
+      "map_size_z": 3.0,
+      "min_finish_distance_m": 200.0,
+      "min_finish_time_s": 300.0
+    },
+    "spawn": {
+      "pitch": 0.0,
+      "roll": 0.0,
+      "x": 0.0,
+      "y": 0.0,
+      "yaw": 0.0,
+      "z": 1.0
+    },
+    "world_file": "/home/tim/PX4-Autopilot/Tools/sitl_gazebo/worlds/indoor_01.world"
+  }
+}

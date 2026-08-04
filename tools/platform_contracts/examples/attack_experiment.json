@@ -1,0 +1,146 @@
+{
+  "schema_version": "platform-experiment-spec-v2",
+  "experiment_id": "attack-attribution-v1",
+  "campaign_kind": "attack",
+  "description": "Attributable GPS and barometer injection campaign.",
+  "worlds": [
+    {
+      "name": "lab_corridor_01",
+      "world_file": "/home/tim/laea/src/LAEA/px4_gazebo/resource/sitl_gazebo/worlds/lab_corridor_01.world",
+      "sha256": "10415f397994bf939528fbeef1be882302229a30e7b43f23ae67700300cc65ba"
+    },
+    {
+      "name": "lab_rooms_01",
+      "world_file": "/home/tim/laea/src/LAEA/px4_gazebo/resource/sitl_gazebo/worlds/lab_rooms_01.world",
+      "sha256": "d6b257311dac787441169bf19ce705d473e7d193b3af63c914ccdb928ce61a4a"
+    }
+  ],
+  "repetitions": 4,
+  "seeds": [
+    20260701,
+    20260702,
+    20260703,
+    20260704
+  ],
+  "transport_mode": "nosip",
+  "feature_set": {
+    "name": "sensor_multimodal_baseline",
+    "catalog_path": "tools/dt_ids/feature_sets.yaml",
+    "catalog_sha256": "3815158779616f47793fd232426213464d644c55deb771661092aee3ad215058",
+    "columns": [
+      "pos_x",
+      "pos_y",
+      "pos_z",
+      "vel_x",
+      "vel_y",
+      "vel_z",
+      "roll",
+      "pitch",
+      "yaw",
+      "odom_pose_covariance_summary",
+      "odom_twist_covariance_summary",
+      "gps_lat",
+      "gps_lon",
+      "gps_alt",
+      "gps_vx",
+      "gps_vy",
+      "gps_vz",
+      "gps_fix",
+      "gps_sat",
+      "gps_position_covariance",
+      "imu_qx",
+      "imu_qy",
+      "imu_qz",
+      "imu_qw",
+      "ang_vel_x",
+      "ang_vel_y",
+      "ang_vel_z",
+      "lin_acc_x",
+      "lin_acc_y",
+      "lin_acc_z",
+      "mag_x",
+      "mag_y",
+      "mag_z",
+      "static_pressure",
+      "static_pressure_variance",
+      "depth_dt",
+      "depth_age_ms",
+      "depth_valid_ratio",
+      "depth_mean_m",
+      "depth_std_m",
+      "depth_near_ratio_1m",
+      "rtp_depth_stale",
+      "rtp_depth_repeat_score"
+    ]
+  },
+  "runtime": {
+    "max_duration_s": 180.0,
+    "delete_on_non_success": false,
+    "mission_aware": true,
+    "ditto_bridge": false,
+    "aiottalk_rtp": false,
+    "nosip_rtp": true,
+    "sleep_between_rounds_s": 5.0
+  },
+  "acceptance": {
+    "required_outcomes": [
+      "SUCCESS_FINISH",
+      "FAIL_SLAM",
+      "TIMEOUT_NO_FINISH"
+    ],
+    "require_log_retained": true,
+    "require_quality_ok": false,
+    "require_attack_attributable": true,
+    "accepted_runs_per_world": 4
+  },
+  "attack_plan": {
+    "runs_per_profile": 2,
+    "onset_window_s": [
+      30.0,
+      45.0
+    ],
+    "profiles": [
+      {
+        "name": "gps_bias_medium",
+        "source": "gps",
+        "mode": "bias",
+        "severity": "medium",
+        "ramp_s": 5.0,
+        "duration_s": 20.0,
+        "recovery_s": 10.0,
+        "vector": [
+          5.0,
+          0.0,
+          0.0
+        ]
+      },
+      {
+        "name": "barometer_drift_medium",
+        "source": "barometer",
+        "mode": "drift",
+        "severity": "medium",
+        "ramp_s": 5.0,
+        "duration_s": 20.0,
+        "recovery_s": 10.0,
+        "scalar": 4.0
+      }
+    ]
+  },
+  "network_profile": {
+    "name": "baseline_link",
+    "applies_to": "rtp_media",
+    "added_latency_ms": 0.0,
+    "jitter_ms": 0.0,
+    "packet_loss_pct": 0.0
+  },
+  "labels": {
+    "owner": "FedDroneLab",
+    "purpose": "attack-attribution"
+  },
+  "provenance": {
+    "created_at_utc": "2026-07-28T10:00:00Z",
+    "created_by": "platform-contracts example",
+    "tool_version": "1.0.0",
+    "source_repo": "/home/tim/laea/src/LAEA"
+  }
+}

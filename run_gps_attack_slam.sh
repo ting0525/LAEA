@@ -18,6 +18,10 @@ DITTO_ENABLE_SLAM="${DITTO_ENABLE_SLAM:-false}"
 RUN_DURATION_S="${RUN_DURATION_S:-0}"
 SHOW_GPS_ATTACK_LOG="${SHOW_GPS_ATTACK_LOG:-1}"
 ENABLE_GPS_ATTACK_MONITOR="${ENABLE_GPS_ATTACK_MONITOR:-1}"
+MAPPING_LAUNCH="${MAPPING_LAUNCH:-scan_mapping.launch}"
+MAPPING_LAUNCH_ARGS="${MAPPING_LAUNCH_ARGS:-}"
+EXPLORE_LAUNCH="${EXPLORE_LAUNCH:-explore_test_NoRtp.launch}"
+EXPLORE_LAUNCH_ARGS="${EXPLORE_LAUNCH_ARGS:-}"
 
 # GPS attack defaults. Increase EAST_BIAS_M if the visual deviation is too small.
 export LAEA_PX4_SDF="${LAEA_PX4_SDF:-iris_d435_lidar_gps_attack}"
@@ -254,7 +258,20 @@ ensure_gps_attack_plugin() {
 log "logs: ${LAEA_SYS_LOG_DIR}"
 log "model: ${LAEA_PX4_SDF}"
 log "attack: mode=${GPS_ATTACK_MODE}, start=${GPS_ATTACK_START_SEC}s, ramp=${GPS_ATTACK_RAMP_SEC}s, east=${GPS_ATTACK_EAST_BIAS_M}m, north=${GPS_ATTACK_NORTH_BIAS_M}m, up=${GPS_ATTACK_UP_BIAS_M}m, vel_east=${GPS_ATTACK_VELOCITY_EAST_BIAS_MPS}m/s"
+log "mapping: ${MAPPING_LAUNCH} ${MAPPING_LAUNCH_ARGS}"
+log "explore: ${EXPLORE_LAUNCH} ${EXPLORE_LAUNCH_ARGS}"
 log "this runner skips AIoTtalk/RTP and experiment_manager.py"
+
+declare -a MAPPING_LAUNCH_ARGS_ARRAY=()
+declare -a EXPLORE_LAUNCH_ARGS_ARRAY=()
+if [ -n "${MAPPING_LAUNCH_ARGS}" ]; then
+  # shellcheck disable=SC2206
+  MAPPING_LAUNCH_ARGS_ARRAY=(${MAPPING_LAUNCH_ARGS})
+fi
+if [ -n "${EXPLORE_LAUNCH_ARGS}" ]; then
+  # shellcheck disable=SC2206
+  EXPLORE_LAUNCH_ARGS_ARRAY=(${EXPLORE_LAUNCH_ARGS})
+fi
 
 ensure_gps_attack_plugin
 
@@ -281,11 +298,10 @@ if [ "${ENABLE_DITTO_BRIDGE}" = "1" ]; then
 fi
 
 # ========= 2) Mapping + No-RTP exploration =========
-launch_bg "mapping" roslaunch octomap_server scan_mapping.launch
+launch_bg "mapping" roslaunch octomap_server "${MAPPING_LAUNCH}" "${MAPPING_LAUNCH_ARGS_ARRAY[@]}"
 sleep 5
 
-EXPLORE_LAUNCH="$(rospack find exploration_manager)/launch/poaozz/explore_test_NoRtp.launch"
-launch_bg "explore" roslaunch "${EXPLORE_LAUNCH}"
+launch_bg "explore" roslaunch exploration_manager "${EXPLORE_LAUNCH}" "${EXPLORE_LAUNCH_ARGS_ARRAY[@]}"
 sleep 5
 
 if [ "${ENABLE_RVIZ}" = "1" ]; then

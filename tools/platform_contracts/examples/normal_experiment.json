@@ -1,0 +1,109 @@
+{
+  "schema_version": "platform-experiment-spec-v2",
+  "experiment_id": "normal-four-maps-v1",
+  "campaign_kind": "normal",
+  "description": "Quality-gated normal-flight baseline with run-level splits.",
+  "worlds": [
+    {
+      "name": "indoor_01",
+      "world_file": "/home/tim/PX4-Autopilot/Tools/sitl_gazebo/worlds/indoor_01.world",
+      "sha256": "bd374b0a731e51d57aae886133f58c891038d4aa17807079a1f343738aacfdbb",
+      "label": "indoor baseline 1"
+    },
+    {
+      "name": "indoor_02",
+      "world_file": "/home/tim/PX4-Autopilot/Tools/sitl_gazebo/worlds/indoor_02.world",
+      "sha256": "8c08e3f89c66f1ffa4771801dd98ab5254d14a7ce81c01471b64c666eb543944",
+      "label": "indoor baseline 2"
+    },
+    {
+      "name": "lab_corridor_01",
+      "world_file": "/home/tim/laea/src/LAEA/px4_gazebo/resource/sitl_gazebo/worlds/lab_corridor_01.world",
+      "sha256": "10415f397994bf939528fbeef1be882302229a30e7b43f23ae67700300cc65ba",
+      "label": "laboratory corridor"
+    },
+    {
+      "name": "lab_rooms_01",
+      "world_file": "/home/tim/laea/src/LAEA/px4_gazebo/resource/sitl_gazebo/worlds/lab_rooms_01.world",
+      "sha256": "d6b257311dac787441169bf19ce705d473e7d193b3af63c914ccdb928ce61a4a",
+      "label": "laboratory rooms"
+    }
+  ],
+  "repetitions": 25,
+  "seed_policy": {
+    "base_seed": 704705,
+    "increment": true,
+    "stride": 1
+  },
+  "transport_mode": "nosip",
+  "feature_set": {
+    "name": "gps_derived",
+    "catalog_path": "tools/dt_ids/feature_sets.yaml",
+    "catalog_sha256": "3815158779616f47793fd232426213464d644c55deb771661092aee3ad215058",
+    "columns": [
+      "gps_lat",
+      "gps_lon",
+      "gps_alt",
+      "gps_vx",
+      "gps_vy",
+      "gps_vz",
+      "gps_fix",
+      "gps_sat",
+      "pos_x",
+      "pos_y",
+      "pos_z",
+      "vel_x",
+      "vel_y",
+      "vel_z",
+      "yaw",
+      "local_speed",
+      "gps_speed",
+      "speed_gap",
+      "vertical_speed_gap",
+      "heading_gap",
+      "local_step_m",
+      "gps_step_m",
+      "step_gap",
+      "sat_change",
+      "sat_drop",
+      "fix_bad",
+      "dt"
+    ]
+  },
+  "runtime": {
+    "max_duration_s": 180.0,
+    "delete_on_non_success": true,
+    "mission_aware": true,
+    "ditto_bridge": false,
+    "aiottalk_rtp": false,
+    "nosip_rtp": true,
+    "sleep_between_rounds_s": 5.0
+  },
+  "acceptance": {
+    "required_outcomes": [
+      "SUCCESS_FINISH"
+    ],
+    "require_log_retained": true,
+    "require_quality_ok": true,
+    "require_attack_attributable": false,
+    "accepted_runs_per_world": 25
+  },
+  "data_split": {
+    "unit": "run",
+    "method": "deterministic_per_world_shuffle",
+    "seed": 20260728,
+    "train_per_world": 17,
+    "val_per_world": 4,
+    "test_per_world": 4
+  },
+  "labels": {
+    "owner": "FedDroneLab",
+    "purpose": "normal-baseline"
+  },
+  "provenance": {
+    "created_at_utc": "2026-07-28T10:00:00+00:00",
+    "created_by": "platform-contracts example",
+    "tool_version": "1.0.0",
+    "source_repo": "/home/tim/laea/src/LAEA"
+  }
+}
